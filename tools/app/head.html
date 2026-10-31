@@ -578,15 +578,7 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .arIb .arDot{display:none;position:absolute;right:1px;top:1px;width:11px;height:11px;border-radius:50%;background:var(--amber);border:2px solid #111}
 .arIb.moved{box-shadow:0 0 0 2px var(--amber)} .arIb.moved .arDot{display:block}
 .arMoved{position:absolute;right:12px;top:calc(var(--sa-top) + 66px);margin:0;padding:7px 12px;border-radius:999px;color:#fff;font:600 var(--fs-xs)/1 var(--f-board)}
-/* 1.118 (Dave's pick: AUTO always on, no button): when it finds an alignment, a prompt asks (Not now / Apply), in the
-   tour's card look; the zoom buttons get a small label; the mini radar bottom left (above the hint, the dial alone: 88 px to tap) lists the planes around */
-.arAsk{position:absolute;left:12px;right:12px;top:calc(var(--sa-top) + 66px);z-index:6;max-width:440px;margin:0 auto;background:#16171a;border-radius:16px;
-  border:1px solid rgba(255,255,255,.14);padding:14px 16px;display:grid;gap:6px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
-.arAsk[hidden]{display:none}
-.arAsk b{font:700 var(--fs-l)/1.2 var(--f-board);color:var(--amber)}
-.arAsk span{font:500 var(--fs-s)/1.4 var(--f-board);color:#d6d2c6}
-.arAsk .arTourAct{justify-content:flex-end;margin-top:4px}
-.arAsk .cBtn{min-width:96px;margin:0}
+/* 1.118 (Dave's pick: AUTO always on, no button): the zoom buttons get a small label; the mini radar bottom left (above the hint, the dial alone: 88 px to tap) lists the planes around */
 .arZoomL{text-align:center;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:#d6d2c6;text-shadow:0 1px 3px rgba(0,0,0,.8)}
 .arMini{all:unset;box-sizing:border-box;cursor:pointer;position:absolute;left:0;bottom:calc(100% + 10px);display:block;width:88px;height:88px;border-radius:50%}
 .arMini[hidden]{display:none}
@@ -673,6 +665,24 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 #arView .arCard{position:absolute;left:10px;right:10px;bottom:calc(var(--sa-bottom) + 10px);margin:0;max-height:calc(100dvh - var(--sa-top) - 80px);overflow:auto;
   background:linear-gradient(rgba(23,24,27,.96),rgba(16,17,19,.96));touch-action:pan-y}
 /* 1.66: the compass seems off: a note under the top bar until it settles */
+/* 1.121: the report flag bottom right (the owner's), and the align step: its target and the circle, one bar in the hint's place */
+#arView #arFlag{position:absolute;right:0;bottom:calc(100% + 10px)}
+#arMini[hidden]~#arFlag{display:none}
+#arView.alignBar #arHint{display:none}
+#arView.aligning #arMini,#arView.aligning #arFlag,#arView.aligning #arRib,#arView.aligning .arZoom,#arView.aligning #arInfo,#arView.aligning #arAlign,#arView.aligning #arCal,#arView.aligning #arMoved{display:none}
+.arAlignBar{align-self:stretch;display:flex;align-items:center;gap:6px;min-height:48px;padding:6px 8px 6px 14px;border-radius:10px;background:rgba(11,11,12,.78);color:var(--c-paper)}
+.arAlignBar[hidden]{display:none}
+.arAlignBar div{flex:1;min-width:0;display:grid;gap:3px}
+.arAlignBar b{font:700 var(--fs-m)/1.25 var(--f-board)}
+.arAlignBar b .ok{color:var(--amber);font-style:normal}
+.arAlignBar small{font:600 var(--fs-s)/1.2 var(--f-board);color:var(--amber)}
+.arAlignBar em{font:600 var(--fs-s)/1 var(--f-board);font-style:normal;color:#d6d2c6;white-space:nowrap;padding-right:6px}
+.arAlignBar button{all:unset;cursor:pointer;padding:12px 8px;color:#d6d2c6;font:600 var(--fs-s)/1 var(--f-board)}
+.arAlignBar button:focus-visible{outline:2px solid var(--amber)}
+.arAlignGo i{display:grid;place-items:center;color:#17140e;font:700 var(--fs-s)/1 var(--f-board);font-style:normal}
+.arAlignPick{display:flex;gap:10px}
+.arAlignPick[hidden]{display:none}
+.arAlignPick .arIb{font:700 var(--fs-l)/1 var(--f-board);color:var(--amber)}
 #arView .arCal{position:absolute;left:12px;right:12px;top:calc(var(--sa-top) + 106px);margin:0;padding:9px 12px;border-radius:10px;
   background:rgba(15,16,18,.85);color:var(--c-paper);font:500 var(--fs-m)/1.35 var(--f-board)}
 #arView .arCal b{color:var(--amber)}
@@ -1821,13 +1831,12 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
   <video id="arVid" playsinline muted autoplay></video>
   <canvas id="arCv" aria-hidden="true"></canvas>
   <div class="arTop"><div class="arTitle"><b data-t="Sky view">Sky view</b><span id="arCount"></span></div>
-    <button class="arIb" type="button" id="arFlag" aria-label="Send a report to tune Sky view" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h11l-2.5 4L17 12H6"/></svg></button><button class="arIb" type="button" id="arInfo" aria-label="How Sky view works" data-ta="How Sky view works"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><button class="arIb" type="button" id="arReset" aria-label="Line the labels up again" data-ta="Line the labels up again"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg><i class="arDot"></i></button><button class="arIb" type="button" id="arClose" aria-label="Close" data-ta="Close"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <button class="arIb" type="button" id="arInfo" aria-label="How Sky view works" data-ta="How Sky view works"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><button class="arIb" type="button" id="arAlign" aria-label="Line the labels up again" data-ta="Line the labels up again"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/></svg><i class="arDot"></i></button><button class="arIb" type="button" id="arClose" aria-label="Close" data-ta="Close"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="arZoom"><span class="arZoomL" data-t="Zoom">Zoom</span><button class="arIb" type="button" id="arZ2" aria-label="Zoom in two times" aria-pressed="false">×2</button><button class="arIb" type="button" id="arZ5" aria-label="Zoom in five times" aria-pressed="false">×5</button></div>
   <p class="arMoved" id="arMoved" hidden></p>
   <div class="arTour" id="arTour" hidden></div>
   <p class="arCal" id="arCal" hidden></p>
-  <div class="arAsk" id="arAsk" role="alertdialog" aria-live="polite" hidden></div>
-  <div class="arBot"><button class="arMini" type="button" id="arMini" aria-label="Planes around" data-ta="Planes around"><canvas id="arMiniCv" aria-hidden="true"></canvas></button><button class="arShut" type="button" id="arShut" aria-label="Take a picture" hidden><i></i></button><canvas class="arRib" id="arRib" aria-hidden="true"></canvas><p class="arHint" id="arHint"></p></div>
+  <div class="arBot"><button class="arMini" type="button" id="arMini" aria-label="Planes around" data-ta="Planes around"><canvas id="arMiniCv" aria-hidden="true"></canvas></button><button class="arIb" type="button" id="arFlag" aria-label="Send a report to tune Sky view" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h11l-2.5 4L17 12H6"/></svg></button><button class="arShut" type="button" id="arShut" aria-label="Take a picture" hidden><i></i></button><div class="arAlignPick" id="arAlignPick" hidden><button class="arIb" type="button" data-k="sun" aria-label="Sun" data-ta="Sun">☀</button><button class="arIb" type="button" data-k="moon" aria-label="Moon" data-ta="Moon">☾</button></div><button class="arShut arAlignGo" type="button" id="arAlignGo" hidden><i data-t="Align">Align</i></button><canvas class="arRib" id="arRib" aria-hidden="true"></canvas><p class="arHint" id="arHint"></p><div class="arAlignBar" id="arAlignBar" role="status" aria-live="polite" hidden></div></div>
   <div class="rvCard cardish arCard" id="arCard" hidden></div>
 </div>
 <div id="splash" aria-hidden="true">

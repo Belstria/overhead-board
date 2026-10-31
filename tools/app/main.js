@@ -2749,7 +2749,8 @@ async function arStart(button){
   try { arOff = {h: 0, p: 0, ...JSON.parse(localStorage.getItem("od.ar.off") || "{}")}; } catch {}
   // 1.76: labels lined up before true north was known carry the declination in their drag: taken out once
   if (!arOff.v) { if (arOff.h) { arOff.h -= magDecl(S.lat, S.lon); arOffSave(); } arOff.v = 2; }
-  arAutoFinds = []; arFindLog = []; arAutoLock = null; arAutoPause = 0; arAskHide(); arGlide = null; arMiniSig = ""; arBounds.at = 0;   // 1.118
+  arAutoFinds = []; arFindLog = []; arAutoLock = null; arAutoPause = 0; arAligned = null; arGlide = null; arMiniSig = ""; arBounds.at = 0;   // 1.118
+  arAlignEnd(); arAlignLog = [];
   const v = $("arVid"); v.srcObject = arStream; v.play().catch(() => {});
   v.addEventListener("loadedmetadata", () => {                 // 1.75.2: what the camera gives, for the log
     const tr = arStream && arStream.getVideoTracks()[0], st = tr && tr.getSettings ? tr.getSettings() : {};
@@ -2799,7 +2800,7 @@ function arClose(){
   if (!arOn) return;
   arOn = false; ctlSound.nav();
   dlog("debug", `Sky view closed after ${Math.round((Date.now() - arSince) / 1000)} s`);
-  $("arTour").hidden = true; $("arView").classList.remove("tourBtns"); $("arMoved").hidden = true; arAskHide(); arGlide = null;
+  $("arTour").hidden = true; $("arView").classList.remove("tourBtns"); $("arMoved").hidden = true; arGlide = null; arAlignEnd();
   if (arStream) arStream.getTracks().forEach(t => t.stop());
   arStream = null; $("arVid").srcObject = null;
   arZoom = arZk = arZc = arZcTo = 1; arZBase = null; arZSeq++; arZoomCss(); arZoomBtns();   // 1.99: back to ×1
@@ -2974,26 +2975,22 @@ function arLoop(){
     s.w1 = w1; s.wc = wc; s.box = [bx, by, bw, bh];
     boxes.push(s.box); arHits.push({hex: s.ac.hex, x, y, box: s.box});
   }
-  const view = arUnproject(W / 2, H / 2, R, W, H).az, aim = arAimStep(W, H), chips = arChipsAt(g, outs.slice(0, 3), view, W, H);
+  const view = arUnproject(W / 2, H / 2, R, W, H).az, aim = arAlign ? {cx: W / 2, cy: H / 2, R0: AR_ALIGN_R, k: arAlign.prog} : arAimStep(W, H), chips = arChipsAt(g, outs.slice(0, 3), view, W, H);
   for (const c of chips) arHits.push({hex: c.hex, x: c.box[0] + c.box[2] / 2, y: c.box[1] + c.box[3] / 2, box: c.box});
   const bodies = arBodiesAt(R, here, W, H), marks = bodies.filter(m => !m.pr.edge);
   arShownN = shown.length;
   if (arLocked && shown.some(s => s.ac.hex === arLocked && !s.pr.edge)) arShotAt = Date.now();   // 1.90: only once locked on (the ring full)
-  const shut = $("arShut"), snap = Date.now() - arShotAt < 5000;
+  const shut = $("arShut"), snap = !arAlign && Date.now() - arShotAt < 5000;
   if (shut.hidden === snap) shut.hidden = !snap;
   // 1.90: with the small card open, the shutter sits above it (it was behind it)
   const card = $("arCard"), lift = snap && !card.hidden && !arFull && arP === 0 ? card.offsetHeight + 4 : 0;
   if (lift !== arLift) { arLift = lift; $("arView").style.setProperty("--ar-lift", lift + "px"); }
   // 1.114.6: written only when it changes (every frame, it cost two layouts a frame)
-  const count = inView.length + outs.length ? T(outs.length ? "{n} in view · {m} around" : "{n} in view", {n: inView.length, m: outs.length}) : T("No planes nearby");
+  const count = inView.length + outs.length ? T("{n} around", {n: inView.length + outs.length}) : T("No planes nearby");   // 1.121: one number
   if ($("arCount").textContent !== count) $("arCount").textContent = count;
   const moved = Math.abs(arOff.h) > .5 || Math.abs(arOff.p) > .5;
-  if ($("arReset").classList.contains("moved") !== moved) $("arReset").classList.toggle("moved", moved);   // 1.72.7: the labels were dragged
-  // 1.86: until the labels are lined up, AUTO asks for a look near the sun (it finds it in the picture by itself)
-  const sunUp = arBody && arBody.sun.el > 1 && arBody.sun.el < 75;
-  const hint = Date.now() < arNote.until ? arNote.text : arHeldAt ? arHintText : sunUp ? T("Point the phone near the sun for a moment, without looking into it, to line the labels up.")
-    : marks.some(m => m.k === "sun") ? T("Drag the sky until the sun sits in its dashed ring, without looking into it.")
-    : marks.length ? T("Drag the sky until the moon sits in its dashed ring.") : arHintText;
+  if ($("arAlign").classList.contains("moved") !== moved) $("arAlign").classList.toggle("moved", moved);   // 1.72.7: the labels were moved
+  const hint = Date.now() < arNote.until ? arNote.text : arHintText;   // 1.121: the align button asks for the sun or moon now
   if (hint && $("arHint").textContent !== hint) $("arHint").textContent = hint;
   // 1.114.6: the picture is drawn only when it would differ from the last one: where the phone points (to a quarter
   // pixel), the zoom, the labels (their words and places, to a quarter pixel), the sun and moon, the ring, AUTO's marks
@@ -3001,23 +2998,24 @@ function arLoop(){
   const brk = arAutoLock ? shown.filter(s => !s.pr.edge && arAutoLock.hexes.includes(s.ac.hex)) : [];
   const sig = [W, H, px, Math.round(f * 10), LANG, ...R.map(c => c.map(v => Math.round(v * q)).join(",")), Math.round((arOff.h + arDec) * Math.PI / 180 * q), Math.round(arOff.p * Math.PI / 180 * q),
     (screen.orientation && screen.orientation.angle) || window.orientation || 0, ...bodies.map(m => m.k + Math.round(m.b.az * 100) + "," + Math.round(m.b.el * 100)),
-    aim.R0, Math.round(aim.k * 200), arAutoLock ? (arAutoLock.sun ? "S" : "") + brk.map(s => rq(s.pr.x) + "," + rq(s.pr.y)).join(";") : "",
+    arAlign ? arAlign.k : "", aim.R0, Math.round(aim.k * 200), arAutoLock ? (arAutoLock.sun ? "S" : "") + brk.map(s => rq(s.pr.x) + "," + rq(s.pr.y)).join(";") : "",
     ...top.map(s => [s.ac.hex, s.name, s.sub, s.chip, +s.isFeat, +s.gold, +s.far, s.tier, +(s.ac.hex === arSel || s.ac.hex === arWant),
       s.pr.edge ? "" : rq(s.pr.x) + "," + rq(s.pr.y) + "," + s.box.map(rq).join(",")].join("|")),
     ...chips.map(c => [c.hex, c.name, c.sub, c.a, +c.feat, c.box.join(",")].join("|"))].join("~");
   if (sig !== arPicSig) {
     arPicSig = sig;
     g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, W, H);
-    arBodiesDraw(g, bodies, R, W, H);
+    arBodiesDraw(g, arAlign ? bodies.filter(m => m.k === arAlign.k) : bodies, R, W, H);   // 1.121: the align step: its target and the circle only
     g.textBaseline = "alphabetic";
+    if (!arAlign) {
     for (const s of top) if (!s.pr.edge) arLabelDraw(g, s);
     arChipsDraw(g, chips);                           // 1.118: the planes outside the picture (they were arEdge's arrows)
     for (const s of brk) arBrackets(g, s.pr.x, s.pr.y);
-    if (arAutoLock && arAutoLock.sun) for (const m of marks) if (m.k === "sun") arBrackets(g, m.x, m.y, 32, 10);   // 1.86
+    }
+    if (!arAlign && arAutoLock && arAutoLock.sun) for (const m of marks) if (m.k === "sun") arBrackets(g, m.x, m.y, 32, 10);   // 1.86
     arAimDraw(g, aim);
   }
-  arRibbon(R, W, H);
-  arMini(inView, outs, view, Math.atan(W / 2 / f) * 180 / Math.PI, aroundM);
+  if (!arAlign) { arRibbon(R, W, H); arMini(inView, outs, view, Math.atan(W / 2 / f) * 180 / Math.PI, aroundM); }
   arAutoStep(shown, W, H, marks.filter(m => m.k === "sun"), R);
 }
 // 1.114.6 (L6): Spotted today by hex, built once for each new list: the first entry scanned or locked on, and the
@@ -3103,14 +3101,15 @@ function arReport(){
   const now = Date.now(), t = performance.now(), cv = $("arCv"), W = cv.clientWidth, H = cv.clientHeight, v = $("arVid");
   const c = arQ ? arUnproject(W / 2, H / 2, arQMatrix(arQ), W, H) : null, sun = arBody && arBody.sun, moon = arBody && arBody.moon;
   return {
-    v: 3, app: typeof VERSION === "string" ? VERSION : "", os: /iPhone|iPad/.test(navigator.userAgent) ? "ios" : /Android/.test(navigator.userAgent) ? "android" : "other",
+    v: 4, app: typeof VERSION === "string" ? VERSION : "", os: /iPhone|iPad/.test(navigator.userAgent) ? "ios" : /Android/.test(navigator.userAgent) ? "android" : "other",
     secs: Math.round((now - arSince) / 1000), events: arEvN, gap: arR1(arGap), dec: arR1(arDec), off: {h: arR1(arOff.h), p: arR1(arOff.p)},
     held: arHeldAt ? {secs: Math.round((now - arHeldAt) / 1000), why: arHeldWhy} : null,
     unsure: now - arCalAt < 4000, rate: arR1(arRate), stillSecs: arR1((t - arMovedAt) / 1000),
     facing: c && {az: arR1(c.az), el: arR1(c.el)}, q: arQ && arQ.map(x => Math.round(x * 1e4) / 1e4),
     gapRef: arR1(arGapRef), gapLog: arGapLog.filter((x, i) => i % 4 === 0).map(([gt, rel]) => [Math.round(gt - t), arR1(rel)]),
     raw: arRaw.map(([rt, a, b, g]) => [rt - now, arR1(a), arR1(b), arR1(g)]),
-    auto: {on: true, sun: !!(arAutoLock && arAutoLock.sun), planes: arAutoLock && !arAutoLock.sun ? arAutoLock.hexes.length : 0, ...arAskN, asking: !!arAsk},
+    auto: {on: true, sun: !!(arAutoLock && arAutoLock.sun), planes: arAutoLock && !arAutoLock.sun ? arAutoLock.hexes.length : 0},
+    align: arAlignLog, alignNow: arAlign && arAlignSeen(arAlign),   // 1.121: what the align step saw, how it ended and the correction
     finds: arAutoFinds.map(x => [x.hex === "sun" ? "sun" : "plane", x.t - now, arR1(x.h), arR1(x.p)]),
     // 1.114.6.1: the last 60 finds, counted or not (made while turning), with the turn then (°/s; about the vertical,
     // + to the left); and the phone clock's offset taken off the planes' age (s)
@@ -3216,6 +3215,7 @@ function arAutoStep(shown, W, H, avoid, R){
   const now = Date.now(), v = $("arVid");
   if (arDrag || now < arAutoPause || now - arAutoAt < AR_AUTO_MS || !(v.readyState >= 2) || !v.videoWidth) return;
   arAutoAt = now;
+  if (arAlign) return arAlignStep(v, R, W, H, now);  // 1.121: the align step looks for its target instead
   const turn = arTurnNow(), steady = turn.deg < AR_AUTO_RATE || !arRelQ;   // (no gyroscope: the compass's wobble isn't a turn)
   // 1.86: the sun, anywhere in the picture, says how far off the compass is (up to 45°)
   const sun = arBody && arBody.sun;
@@ -3249,14 +3249,12 @@ function arAutoStep(shown, W, H, avoid, R){
   const h = use.length ? med(use.map(x => x.h)) : 0, p = use.length ? med(use.map(x => x.p)) : 0;
   if (use.length && use.every(x => Math.abs(x.h - h) < 1.5 && Math.abs(x.p - p) < 1.5)) {
     const onSun = use[0].hex === "sun", near = (a, d) => !!a && Math.abs(wrap180(h - a.h)) < d && Math.abs(p - a.p) < d;
-    // 1.118: further off than AR_ASK_DEG (and not what was applied): ask first; declined, not again for a while
-    if (Math.hypot(wrap180(h - arOff.h), p - arOff.p) > AR_ASK_DEG && !near(arAskGo, AR_ASK_DEG * 2)) {
-      if (!(arAskNo && now < arAskNo.until && near(arAskNo, AR_ASK_NEW))) arAskShow({h, p, sun: onSun, hexes: use.map(x => x.hex), at: now});
+    // 1.121 (Dave: the Apply card goes): before an alignment, and when far from it, the labels stay where they are
+    if (!arAligned || (Math.hypot(wrap180(h - arOff.h), p - arOff.p) > AR_AUTO_NEAR && !near(arAligned, AR_AUTO_NEAR * 2))) {
       if (arAutoLock && now - arAutoLock.at > 2000) arAutoLock = null;
       return;
     }
-    if (arAskGo) arAskGo = {h, p};                  // applied: small corrections go on by themselves, as before
-    if (arAsk) arAskHide();
+    arAligned = {h, p};                              // small corrections go on by themselves
     if (!arAutoLock || arAutoLock.sun !== onSun) dlog("debug", `Sky view AUTO: lined up on ${onSun ? "the sun" : use.length === 1 ? "1 plane" : use.length + " planes"}, moved ${(h - arOff.h).toFixed(1)}° across, ${(p - arOff.p).toFixed(1)}° up`);
     arAutoLock = {hexes: use.map(x => x.hex), sun: onSun, at: now};
     const k = 1 - Math.exp(-AR_AUTO_MS / 700);       // glides there in a second or two
@@ -3264,7 +3262,6 @@ function arAutoStep(shown, W, H, avoid, R){
     if (now - arAutoSaved > 5000) { arAutoSaved = now; arOffSave(); }
     arHold(onSun ? "AUTO, on the sun" : "AUTO");
   } else if (arAutoLock && now - arAutoLock.at > 2000) arAutoLock = null;
-  if (arAsk && now - arAsk.at > AR_ASK_GONE) arAskHide();   // nothing found for a while: the question goes
 }
 // Looks for a plane-sized dot in the camera's picture within r of (x, y) on the screen: its screen position, or null.
 // The picture is scaled so the plane (size: its expected span in screen px) comes out about 3 samples across.
@@ -3351,53 +3348,185 @@ function arSunFind(v, R, W, H, sun){
   if (!best || best.cut || second > best.cnt / 3) return null;
   const across = 2 * Math.sqrt(best.cnt / Math.PI) / k * s / arFocal(W, H) * 180 / Math.PI;   // degrees
   if (across < .7 || across > 20 || best.cnt < .45 * best.bw * best.bh || Math.max(best.bw, best.bh) > 1.8 * Math.min(best.bw, best.bh)) return null;
+  best.across = across;
   return Math.abs(wrap180(sun.az - best.az)) > 45 ? null : best;
 }
 // The AUTO switch under the title: off, looking, or lined up on the sun or n planes.
-/* 1.118 (Dave's pick: AUTO always on, with a prompt): what AUTO finds (the sun, or planes in the picture) no longer
-   moves the labels by itself when it is more than AR_ASK_DEG off: a prompt asks first ("Lined up with the sun · The labels
-   sit 12° left of the planes. Move them into place?"). Apply does what AUTO's lock did (the labels glide there and north
-   is held; small corrections after that go on by themselves while it keeps finding the same). Not now leaves the labels
-   and doesn't ask again for AR_ASK_QUIET (3 minutes), unless AUTO then finds an alignment more than AR_ASK_NEW off the
-   declined one. With no find for AR_ASK_GONE the prompt goes by itself. A drag or ⟲ starts over. */
-const AR_ASK_DEG = 2, AR_ASK_NEW = 5, AR_ASK_QUIET = 180000, AR_ASK_GONE = 15000;
-let arAsk = null, arAskGo = null, arAskNo = null, arGlide = null, arAskN = {asked: 0, applied: 0, declined: 0};
-function arAskShow(a){
-  const box = $("arAsk"), dh = wrap180(arOff.h - a.h), dp = a.p - arOff.p, x = Math.round(Math.abs(dh)), y = Math.round(Math.abs(dp));   // dh > 0: left, dp > 0: above
-  const title = T(a.sun ? "Lined up with the sun" : a.hexes.length === 1 ? "Lined up with a plane" : "Lined up with {n} planes", {n: a.hexes.length});
-  const line = (x >= y ? T(dh > 0 ? "The labels sit {n}° left of the planes." : "The labels sit {n}° right of the planes.", {n: x})
-    : T(dp > 0 ? "The labels sit {n}° above the planes." : "The labels sit {n}° below the planes.", {n: y})) + " " + T("Move them into place?");
-  if (!arAsk) {
-    arAskN.asked++;
-    dlog("debug", `Sky view AUTO: found ${a.sun ? "the sun" : a.hexes.length + " plane(s)"}, ${(a.h - arOff.h).toFixed(1)}° across, ${(a.p - arOff.p).toFixed(1)}° up: asks`);
-    box.innerHTML = `<b></b><span></span><div class="arTourAct"><button class="arTourSkip" type="button" data-no>${escH(T("Not now"))}</button>` +
-      `<button class="cBtn" type="button" data-go>${escH(T("Apply"))}</button></div>`;
-    box.querySelector("[data-no]").onclick = arAskNot; box.querySelector("[data-go]").onclick = arAskApply;
-    box.hidden = false;
+/* AUTO after an alignment (1.121; 1.118's Apply card went): finds within AR_AUTO_NEAR of the labels, or twice that of the
+   alignment (arAligned), glide on silently. A drag sets it to where the finger put them; Reset clears it. */
+const AR_AUTO_NEAR = 2;
+let arAligned = null, arGlide = null;
+/* 1.121 (to-do #223, Dave's combination of two mockups): the align button in the top row opens a step: a small circle in
+   the middle, one instruction, the labels away. The phone is aimed by hand, so the picture is searched only around the
+   circle: when the sun (arSunFind) or the moon (arMoonFind) sits in the circle for AR_ALIGN_N finds that agree, the
+   labels glide there (north is held, small AUTO corrections go on from there). Or the Align button, where the shutter
+   goes: where the middle of the screen looks against where the body really is, so the circle's size is the error. Too
+   far off to be it (AR_ALIGN_FAR_*): it says so. Heading and height only: no roll, no field of view. Every ending goes
+   into arAlignLog for the report. Tuned on made-up pictures only: no real sky has seen this yet (to-do #201). */
+const AR_ALIGN_R = 24, AR_ALIGN_WIN = 70, AR_ALIGN_N = 4, AR_ALIGN_MS = 1500, AR_ALIGN_TOL = .7, AR_ALIGN_FAR_AZ = 45, AR_ALIGN_FAR_EL = 10, AR_ALIGN_DONE = 5000;
+let arAlign = null, arAlignUndo = null, arAlignLog = [], arMoonSaw = null, arAlignT = 0;
+const arMoonCan = document.createElement("canvas"), arMoonCx = arMoonCan.getContext("2d", {willReadFrequently: true});
+function arAlignUp(){                                // the bodies that can be aimed at now
+  const here = arHere || {lat: S.lat, lon: S.lon}, b = skyBodies(here.lat, here.lon, Date.now());
+  return [...(b.sun.el > 1 ? ["sun"] : []), ...(b.moon.el > 1 && b.moon.lit >= .04 ? ["moon"] : [])];
+}
+function arSunUpAt(){                                // when the sun is next up, as a time ("" if not within a day: the far north)
+  const here = arHere || {lat: S.lat, lon: S.lon}, now = Date.now();
+  for (let m = 5; m <= 1440; m += 5) if (skyBodies(here.lat, here.lon, now + m * 6e4).sun.el > -.5) return hhmm(new Date(now + m * 6e4));
+  return "";
+}
+function arAlignNote(ending, extra){
+  const a = arAlign, sky = a && arBody && arBody[a.k];
+  arAlignLog.push({ending, ...(a ? {...arAlignSeen(a), az: sky ? arR1(sky.az) : null, el: sky ? arR1(sky.el) : null} : {}), ...extra});
+  if (arAlignLog.length > 12) arAlignLog.shift();
+  dlog("debug", `Sky view align: ${ending}${a ? ` on the ${a.k}` : ""}${extra && extra.dh != null ? `, ${extra.dh}° across, ${extra.dp}° up` : ""}`);
+}
+const arAlignSeen = a => ({k: a.k, secs: arR1((Date.now() - a.t0) / 1000), tries: a.tries, seen: a.seen, inRing: a.inRing, why: a.k === "moon" && arMoonSaw ? arMoonSaw : null});
+function arAlignBar(html){                           // the bar in the hint's place; html "" takes it away
+  const bar = $("arAlignBar");
+  bar.innerHTML = html; bar.hidden = !html; $("arView").classList.toggle("alignBar", !!html);
+  bar.querySelectorAll("[data-a]").forEach(b => { b.onclick = () => { ctlSound.click(); ({cancel: arAlignCancel, reset: arAlignReset, undo: arAlignBack, close: arAlignEnd})[b.dataset.a](); }; });
+}
+const arAlignBtn = (a, t, go) => `<button type="button" class="${go ? "go" : ""}" data-a="${a}">${escH(T(t))}</button>`;
+const arAlignMoved = () => arHeldAt || Math.abs(arOff.h) > .5 || Math.abs(arOff.p) > .5;
+function arAlignShow(text){                          // the step's bar: one instruction (the warning under it while the sun is the target)
+  const a = arAlign, up = arAlignUp();
+  arAlignBar(`<div><b>${escH(text || T(a.k === "sun" ? "Put the sun in the circle" : "Put the moon in the circle"))}</b>${a.k === "sun" ? `<small>${escH(T("Don't look into the sun"))}</small>` : ""}</div>` +
+    (arAlignMoved() ? arAlignBtn("reset", "Reset") : "") + arAlignBtn("cancel", "Cancel"));
+  const pick = $("arAlignPick");
+  pick.hidden = up.length < 2;
+  for (const b of pick.children) { b.classList.toggle("on", b.dataset.k === a.k); b.setAttribute("aria-pressed", b.dataset.k === a.k); }
+}
+function arAlignOpen(){
+  ctlSound.click();
+  clearTimeout(arAlignT); arAlignUndo = null;
+  if (!$("arCard").hidden) arCardDismiss();
+  if (arZoom !== 1) arZoomSet(arZoom);               // the circle means the same at ×1 every time
+  const up = arAlignUp();
+  if (!up.length) {
+    const t = arSunUpAt();
+    arAlignBar(`<div><b>${escH(T("Sun and moon are down"))}</b></div>${t ? `<em>${escH(T("Sun up {t}", {t}))}</em>` : ""}` + (arAlignMoved() ? arAlignBtn("reset", "Reset") : "") + arAlignBtn("close", "Close"));
+    arAlignNote("down");
+    return;
   }
-  arAsk = a;                                         // the newest find; the words only when they change (the buttons stay put)
-  const b = box.querySelector("b"), sp = box.querySelector("span");
-  if (b.textContent !== title) b.textContent = title;
-  if (sp.textContent !== line) sp.textContent = line;
+  arAlignStart(up[0]);
 }
-function arAskHide(){ arAsk = null; const box = $("arAsk"); if (!box.hidden) box.hidden = true; }
-function arAskApply(){
-  const a = arAsk;
-  if (!a) return;
-  ctlSound.click(); arAskN.applied++; arAskHide();
-  const h1 = arOff.h + wrap180(a.h - arOff.h);
-  arGlide = {h0: arOff.h, p0: arOff.p, h1, p1: a.p, t0: performance.now()};
-  arAskGo = {h: h1, p: a.p}; arAskNo = null;
-  arAutoLock = {hexes: a.hexes, sun: a.sun, at: Date.now()};
-  dlog("debug", `Sky view AUTO: applied, lined up on ${a.sun ? "the sun" : a.hexes.length === 1 ? "1 plane" : a.hexes.length + " planes"}`);
-  arHold(a.sun ? "AUTO, on the sun" : "AUTO");
+function arAlignStart(k){
+  arAlign = {k, t0: Date.now(), tries: 0, seen: 0, inRing: 0, finds: [], prog: 0};
+  arMoonSaw = null; arAutoFinds = []; arAutoLock = null; arGlide = null;
+  $("arView").classList.add("aligning"); $("arAlignGo").hidden = false;
+  arAlignShow(); arPicSig = "";
 }
-function arAskNot(){
-  const a = arAsk;
-  if (!a) return;
-  ctlSound.click(); arAskN.declined++; arAskHide();
-  arAskNo = {h: a.h, p: a.p, until: Date.now() + AR_ASK_QUIET};
+function arAlignEnd(){                               // the step (and the bar) away
+  clearTimeout(arAlignT);
+  arAlign = null; $("arView").classList.remove("aligning"); $("arAlignGo").hidden = true; $("arAlignPick").hidden = true;
+  arAlignBar(""); arPicSig = ""; arMiniSig = ""; arRibSig = "";
 }
+function arAlignCancel(){ arAlignNote("cancel"); arAlignEnd(); }
+function arAlignDo(how, h, p, hit){                  // lined up: the labels glide there; Undo for a moment
+  const a = arAlign, h1 = arOff.h + wrap180(h - arOff.h);
+  arAlignNote(how, {dh: arR1(h1 - arOff.h), dp: arR1(p - arOff.p), ...hit, zoom: arR1(arZk * arZc)});
+  arAlignUndo = {h: arOff.h, p: arOff.p, held: arHeldAt, why: arHeldWhy, go: arAligned};
+  arGlide = {h0: arOff.h, p0: arOff.p, h1, p1: p, t0: performance.now()};
+  arAligned = {h: h1, p}; arAutoFinds = []; arAutoLock = null; arAutoPause = Date.now() + 1500;
+  arHold(`align, on the ${a.k} (${how})`);
+  arAlignEnd(); ctlSound.click();
+  arAlignBar(`<div><b><i class="ok">✓</i> ${escH(T("Lined up"))}</b></div>` + arAlignBtn("undo", "Undo"));
+  arAlignT = setTimeout(arAlignEnd, AR_ALIGN_DONE);
+}
+function arAlignBack(){                              // Undo: where the labels were, and north as it was
+  const u = arAlignUndo;
+  if (!u) return arAlignEnd();
+  arAlignNote("undo");
+  arGlide = {h0: arOff.h, p0: arOff.p, h1: u.h, p1: u.p, t0: performance.now()};
+  arAligned = u.go; arAutoFinds = []; arAutoLock = null; arHeldAt = u.held; arHeldWhy = u.why;
+  if (!u.held) arGap = null;
+  arAlignUndo = null; arAlignEnd();
+}
+function arAlignReset(){                             // labels where the compass says (it was the ⟲ button until 1.121)
+  arAlignNote("reset");
+  arOff = {h: 0, p: 0, v: 2}; arAutoFinds = []; arAutoLock = null; arGlide = arAligned = null; $("arMoved").hidden = true; try { localStorage.removeItem("od.ar.off"); } catch {}
+  arHeldAt = 0; arGap = null;                        // 1.86: and north from the compass again, at once
+  arAlignEnd();
+}
+function arAlignPress(){                             // the Align button: the sum alone
+  const a = arAlign, sky = arBody && arBody[a.k], cv = $("arCv"), W = cv.clientWidth, H = cv.clientHeight;
+  ctlSound.click();
+  if (!arQ || !sky) return;
+  const c = arUnproject(W / 2, H / 2, arQMatrix(arQ), W, H), dh = wrap180(sky.az - c.az), dp = sky.el - c.el;
+  if (Math.abs(dh) > AR_ALIGN_FAR_AZ || Math.abs(dp) > AR_ALIGN_FAR_EL) {
+    arAlignNote("far", {dh: arR1(dh), dp: arR1(dp)});
+    arAlignShow(T(a.k === "sun" ? "That's not the sun" : "That's not the moon"));
+    clearTimeout(arAlignT); arAlignT = setTimeout(() => { if (arAlign === a) arAlignShow(); }, 3000);
+    return;
+  }
+  arAlignDo("button", arOff.h + dh, arOff.p + dp, {});
+}
+function arAlignStep(v, R, W, H, now){               // every AUTO step while the step is open
+  const a = arAlign, sky = arBody && arBody[a.k];
+  if (!sky) return;
+  a.tries++;
+  const hit = a.k === "sun" ? arSunFind(v, R, W, H, sky) : arMoonFind(v, R, W, H, sky);
+  a.finds = a.finds.filter(x => now - x.t < AR_ALIGN_MS);
+  if (hit) {
+    a.seen++;
+    if (Math.hypot(hit.x - W / 2, hit.y - H / 2) <= AR_ALIGN_R && (arTurnNow().deg < AR_AUTO_RATE || !arRelQ)) {
+      a.inRing++;
+      a.finds.push({t: now, h: arOff.h + wrap180(sky.az - hit.az), p: arOff.p + sky.el - hit.el, hit});
+    }
+  }
+  a.prog = Math.min(1, a.finds.length / AR_ALIGN_N);
+  if (a.finds.length < AR_ALIGN_N) return;
+  const med = l => [...l].sort((x, y) => x - y)[l.length >> 1], h = med(a.finds.map(x => x.h)), p = med(a.finds.map(x => x.p));
+  if (!a.finds.every(x => Math.abs(wrap180(x.h - h)) < AR_ALIGN_TOL && Math.abs(x.p - p) < AR_ALIGN_TOL)) return;
+  const l = a.finds[a.finds.length - 1].hit;
+  arAlignDo("finder", h, p, {across: arR1(l.across), top: l.top != null ? Math.round(l.top) : null, sky: l.bg != null ? Math.round(l.bg) : null, x: arR1(l.x - W / 2), y: arR1(l.y - H / 2)});
+}
+// The moon in the middle of the picture: a bright patch against the sky just around it, at the video's own resolution.
+// Only AR_ALIGN_WIN px around the circle, because the phone is aimed: a wrong find is no worse than pressing Align. arMoonSaw says what it saw.
+function arMoonFind(v, R, W, H, moon){
+  const vw = v.videoWidth, vh = v.videoHeight, s = Math.max(W / vw, H / vh) * arZc, sw = Math.min(2 * AR_ALIGN_WIN / s, vw, vh), n = Math.min(160, Math.round(sw)), k = n / sw, N = n * n;
+  if (arMoonCan.width !== n) arMoonCan.width = arMoonCan.height = n;
+  arMoonCx.drawImage(v, (vw - sw) / 2, (vh - sw) / 2, sw, sw, 0, 0, n, n);
+  const px = arMoonCx.getImageData(0, 0, n, n).data, L = new Float32Array(N), rim = [], dif = [];
+  let top = 0;
+  for (let q = 0; q < N; q++) {
+    const l = L[q] = .299 * px[q * 4] + .587 * px[q * 4 + 1] + .114 * px[q * 4 + 2], i = q % n, j = (q - i) / n;
+    if (l > top) top = l;
+    if (i < 3 || j < 3 || i >= n - 3 || j >= n - 3) { rim.push(l); if (i) dif.push(Math.abs(l - L[q - 1])); }   // (next to each other: not the sky's slope)
+  }
+  rim.sort((a, b) => a - b); dif.sort((a, b) => a - b);
+  const sky = rim[rim.length >> 1], noise = Math.max(1, 1.5 * dif[dif.length >> 1]), rise = top - sky, see = why => { arMoonSaw = {why, top: Math.round(top), sky: Math.round(sky), noise: arR1(noise)}; return null; };
+  if (rise < Math.max(10, 6 * noise)) return see("flat");   // nothing stands out (a pale moon by day, cloud)
+  const T0 = sky + .6 * rise, lab = new Uint8Array(N), st = new Int32Array(N);
+  let best = null, second = 0;
+  for (let q0 = 0; q0 < N; q0++) {
+    if (lab[q0] || L[q0] < T0) continue;
+    let sp = 0, cnt = 0, sx = 0, sy = 0, x0 = n, x1 = 0, y0 = n, y1 = 0;
+    st[sp++] = q0; lab[q0] = 1;
+    while (sp) {
+      const q = st[--sp], i = q % n, j = (q - i) / n;
+      cnt++; sx += i; sy += j; x0 = Math.min(x0, i); x1 = Math.max(x1, i); y0 = Math.min(y0, j); y1 = Math.max(y1, j);
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        const ii = i + di, jj = j + dj, qq = jj * n + ii;
+        if (ii >= 0 && ii < n && jj >= 0 && jj < n && !lab[qq] && L[qq] >= T0) { lab[qq] = 1; st[sp++] = qq; }
+      }
+    }
+    if (!best || cnt > best.cnt) { if (best) second = Math.max(second, best.cnt); best = {cnt, sx, sy, x0, x1, y0, y1}; } else second = Math.max(second, cnt);
+  }
+  if (!best) return see("none");
+  const bw = best.x1 - best.x0 + 1, bh = best.y1 - best.y0 + 1, across = 2 * Math.sqrt(best.cnt / Math.PI) / k * s / arFocal(W, H) * 180 / Math.PI, thin = moon.lit < .3;
+  if (best.x0 === 0 || best.y0 === 0 || best.x1 === n - 1 || best.y1 === n - 1) return see("edge");   // bigger than the window: cloud
+  if (second > best.cnt / 3) return see("two");
+  if (across < .2 || across > 4) return see("size");
+  if (best.cnt < (thin ? .25 : .45) * bw * bh || Math.max(bw, bh) > (thin ? 3.5 : 1.8) * Math.min(bw, bh)) return see("shape");
+  const x = W / 2 + ((best.sx / best.cnt + .5) / k - sw / 2) * s, y = H / 2 + ((best.sy / best.cnt + .5) / k - sw / 2) * s, d = arUnproject(x, y, R, W, H);
+  if (Math.abs(d.el - moon.el) > AR_ALIGN_FAR_EL || Math.abs(wrap180(moon.az - d.az)) > AR_ALIGN_FAR_AZ) return see("far");
+  see("found");
+  return {x, y, az: d.az, el: d.el, across, top, bg: sky};
+}
+$("arAlignGo").onclick = arAlignPress;
+for (const b of $("arAlignPick").children) b.onclick = () => { ctlSound.click(); if (arAlign && arAlign.k !== b.dataset.k) { arAlignNote("switch"); arAlignStart(b.dataset.k); } };
 
 /* 1.118 (Dave's pick, to-do #205): the planes outside the picture. The three closest (the plane on top first, when it is
    outside) as chips: the flight, its distance and an arrow. A tap opens its card (arHits).
@@ -3648,7 +3777,7 @@ function arAimDraw(g, {cx, cy, R0, k}){
 }
 const shortType = t => String(t || "").replace(/^(Airbus|Boeing|Embraer|Bombardier|De Havilland Canada|ATR) /i, "");
 // Dragging the picture lines the labels up with the planes: sideways turns them, up and down lifts them.
-function arDragStart(e){ arGlide = null; arDrag = {x: e.clientX, y: e.clientY, h: arOff.h, p: arOff.p, moved: false}; e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); }
+function arDragStart(e){ if (arAlign) return; arGlide = null; arDrag = {x: e.clientX, y: e.clientY, h: arOff.h, p: arOff.p, moved: false}; e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); }
 function arDragMove(e){
   if (!arDrag) return;
   if (!arDrag.moved && Math.hypot(e.clientX - arDrag.x, e.clientY - arDrag.y) < 8) return;       // still a tap
@@ -3663,21 +3792,21 @@ function arDragEnd(e){
   if (tap && e && e.type === "pointerup") return arTap(e);
   arOffSave();
   arAutoFinds = []; arAutoLock = null; arAutoPause = Date.now() + 5000;   // 1.76: the finger wins; AUTO waits
-  arAskGo = arAskNo = null; arAskHide();             // 1.118: and asks afresh
+  arAligned = {h: arOff.h, p: arOff.p};              // 1.121: small corrections go on from where the finger put them
   arHold("by hand");
   arMovedNote();
 }
-// 1.72.7: after a drag, a note by ⟲ for a moment: the labels sit where the finger put them, not where the compass says.
+// 1.72.7: after a drag, a note by the align button for a moment: the labels sit where the finger put them, not where the compass says.
 function arMovedNote(){
   const n = $("arMoved");
-  n.textContent = T("Labels moved by hand · ⟲ to undo"); n.hidden = false;
+  n.textContent = T("Labels moved by hand"); n.hidden = false;
   clearTimeout(arMovedNote.t); arMovedNote.t = setTimeout(() => { n.hidden = true; }, 3500);
 }
 // 1.72.7: the walkthrough, the first time Sky view opens and from ⓘ: the ring, the drag, the buttons.
 // 1.118 (Dave's pick A): one thing per step, in one line.
 const AR_TOUR = [["ring", "Hold a plane in the ring", "Its card opens after a moment."],
   ["drag", "Labels beside the planes?", "Drag the sky until they sit on the planes."],
-  ["btns", "The buttons", "⟲ puts the labels back, ⓘ shows these tips, ×2 and ×5 zoom in."]];
+  ["btns", "The buttons", "The corners line the labels up on the sun or moon, ⓘ shows these tips, ×2 and ×5 zoom in."]];
 function arTour(step){
   const box = $("arTour");
   if (step >= AR_TOUR.length) {
@@ -3978,8 +4107,7 @@ function skyRowRender(){
 setInterval(skyRowRender, 1000);
 $("arClose").onclick = arClose;
 $("arShut").onclick = arSnap;
-$("arReset").onclick = () => { ctlSound.click(); arOff = {h: 0, p: 0, v: 2}; arAutoFinds = []; arAutoLock = null; arGlide = arAskGo = arAskNo = null; arAskHide(); $("arMoved").hidden = true; try { localStorage.removeItem("od.ar.off"); } catch {}
-  arHeldAt = 0; arGap = null; };                // 1.86: and north from the compass again, at once
+$("arAlign").onclick = arAlignOpen;
 $("arZ2").onclick = () => arZoomSet(2); $("arZ5").onclick = () => arZoomSet(5);
 { const cv = $("arCv");
   cv.addEventListener("pointerdown", arDragStart); cv.addEventListener("pointermove", arDragMove);

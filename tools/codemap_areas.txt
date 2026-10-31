@@ -440,11 +440,11 @@ tools/test/flows.py: "the game (relay 59)" "relay 71: Recent points" "relay 63: 
 changelog: game|point|level|league|trophy|trophies|bingo|achievement|hangar|medal|spotters' club|lock-on
 
 [skyview] Sky view and Where to look: camera, compass and gyroscope, labels, AUTO, sun and moon, the ribbon, reports
-tools/app/head.html: .look .lookH .lookRow .lookTxt .lookActs #lookCv #arView .arTitle .arIb .arMoved .arZoom .arZoomL .arAsk .arMini .arAround .arTour
+tools/app/head.html: .look .lookH .lookRow .lookTxt .lookActs #lookCv #arView .arTitle .arIb .arMoved .arZoom .arZoomL .arAlignBar .arAlignGo .arAlignPick .arMini .arAround .arTour
     .arTourBox .arTourAct .arTourRing @arPulse .arTourDrag .arTourPlane .arTourLab .arTourFinger @arDragLab
     @arDragFinger .arShut .arFlash @arFlash .arL .arPeekL .arFullL .arGrip .arPeek .arThumb .arPeekT .arSwipe @arNudge
-    .arGhost @arSheetIn css:body.arOpen .skyRow #skyCv .liveAsk .liveGo .liveNo #arAsk #arMini #arMiniCv #arBtn #arBtn2 #arCal #arCard
-    #arClose #arCount #arCv #arFlag #arHint #arInfo #arMoved #arReset #arRib #arShut #arTour #arVid #arZ2 #arZ5 #look #lookDir
+    .arGhost @arSheetIn css:body.arOpen .skyRow #skyCv .liveAsk .liveGo .liveNo #arMini #arMiniCv #arBtn #arBtn2 #arCal #arCard
+    #arClose #arCount #arCv #arFlag #arHint #arInfo #arMoved #arAlign #arAlignBar #arAlignPick #arAlignGo #arRib #arShut #arTour #arVid #arZ2 #arZ5 #look #lookDir
     #lookSub #skyB #skyRow #skySub
 tools/app/main.js: lookHeading lookOn lookRaf lookErr lookErrAt lookWhy lookWhyLogged lookAt drawLook lookWhyDraw
     drawTape lookSoon lookHeadingFrom lookStart arPossible arOn arSince arStream arList arListAt arQ arQt arGap arGapT
@@ -455,12 +455,11 @@ tools/app/main.js: lookHeading lookOn lookRaf lookErr lookErrAt lookWhy lookWhyL
     arClose WMM_EPOCH WMM_C magCache magField magDecl skyBodies arProject arUnproject arPicSig arLoop arSpotIdx arSpotMap arLabel arInfoOf arName arType arTextW arTW arLabelDraw arReportOk arR1 arReport
     $("arFlag").onclick arShotAt arShownN arLocked arLift arSnapping arSnap arBrackets AR_AUTO_MS AR_AUTO_R AR_AUTO_N
     arAutoAt arAutoFinds arAutoLock arAutoPause arAutoSaved arCan arCx AR_AUTO_RATE arFindLog arTurnNow arFindNote arAutoStep arFind arSunCan arSunCx
-    arSunFind AR_ASK_DEG AR_ASK_NEW AR_ASK_QUIET AR_ASK_GONE arAsk arAskGo arAskNo arGlide arAskN arAskShow arAskHide arAskApply
-    arAskNot AR_LABEL_UP arTopOut AR_CHIP_H AR_CHIP_UP AR_CHIP_GAP arChipTurn arBounds arChipBounds arChipsAt arChipsDraw AR_MINI arMiniSig arAroundNow arMini arAroundOpen $("arMini").onclick arBody arBodyAt arBodiesAt arBodiesDraw arBodyEdge AR_RIB arRibSig arRibbon arMove
+    arSunFind AR_ALIGN_R AR_ALIGN_WIN AR_ALIGN_N AR_ALIGN_MS AR_ALIGN_TOL AR_ALIGN_FAR_AZ AR_ALIGN_FAR_EL AR_ALIGN_DONE arAlign arAlignUndo arAlignLog arMoonSaw arAlignT arMoonCan arMoonCx arAlignUp arSunUpAt arAlignNote arAlignSeen arAlignBar arAlignBtn arAlignMoved arAlignShow arAlignOpen arAlignStart arAlignEnd arAlignCancel arAlignDo arAlignBack arAlignReset arAlignPress arAlignStep arMoonFind $("arAlignGo").onclick AR_AUTO_NEAR arAligned arGlide AR_LABEL_UP arTopOut AR_CHIP_H AR_CHIP_UP AR_CHIP_GAP arChipTurn arBounds arChipBounds arChipsAt arChipsDraw AR_MINI arMiniSig arAroundNow arMini arAroundOpen $("arMini").onclick arBody arBodyAt arBodiesAt arBodiesDraw arBodyEdge AR_RIB arRibSig arRibbon arMove
     arWeather arHeight arAimStep arScans arScanned arAimDraw shortType arDragStart arDragMove arDragEnd arMovedNote AR_TOUR arTour
     $("arInfo").onclick arTap arCardSig AR_PEEK_MS arFull arAwayAt arP arPeekHtml arCardRender arSet arRoom arTo
     arPeekWatch arCardDismiss $("arBtn").onclick $("arBtn2").onclick $("skyCv").onclick arTry arGoing arGoLive skyRowRender
-    $("arClose").onclick $("arShut").onclick $("arReset").onclick $("lookCv").onclick lookAuto
+    $("arClose").onclick $("arShut").onclick $("arAlign").onclick $("lookCv").onclick lookAuto
     addEventListener("pointerup") +gLockOn
 relay/serve.py: +metar +sky_json SKY_REPORTS_MAX SKY_REPORT_DROP sky_report_clean sky_report_save /skyreport /sky
 tools/app/WMM.COF: "WMM"
