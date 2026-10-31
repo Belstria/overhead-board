@@ -224,25 +224,29 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .dayFacts .span{margin:10px 0 0;font:500 var(--fs-s)/1.3 var(--f-board);color:var(--muted)}
 .dayFacts .span b,.dayFacts .span .dayJump{color:var(--ink);font-weight:600}
 .dayFacts button.dayJump:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
-/* 1.115 (to-do #206, Dave's pick B): Today: the title with the filter beside it, four labelled numbers, the Highlights
-   card (it raises the day's plate as a sheet, tdOpen), the filter chips, the list */
-.tdFind{margin:0 0 12px}
-.tdFind .svFind{display:flex;width:100%;margin:0}
-.tdFind input{flex:1;width:100%}
-.tdNums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 10px}
-.tdNums div{display:flex;flex-direction:column-reverse;text-align:center;padding:10px 4px 9px;border-radius:12px;background:var(--box-bg);border:var(--box-bd)}
-.tdNums dd{margin:0;font:700 var(--fs-2xl)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums}
-.tdNums dt{margin:6px 0 0;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tdHl{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:12px;width:100%;margin:0 0 14px;padding:12px 14px;border-radius:14px;
+/* 1.123 (to-do #241, Dave's pick C): the plates, sideways: Today, All time and the period. Twins (rule 16): a gold name, four named
+   numbers. A peek of the next at the right edge; one left alone takes the full width. An amber name: the number opens its list. */
+.lbStrip{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;margin:0 calc(-1 * var(--gut)) 14px;padding:0 var(--gut);scroll-padding:0 var(--gut)}
+.lbStrip::-webkit-scrollbar{display:none}
+.lbStrip[hidden]{display:none}
+.lbPlate{all:unset;box-sizing:border-box;flex:0 0 calc(100% - 30px);min-width:0;scroll-snap-align:start;display:grid;align-content:start;gap:9px;padding:11px 12px 11px 14px;border-radius:14px;cursor:pointer;
   background:linear-gradient(90deg,rgba(240,180,41,.14),rgba(0,0,0,.35));border:1px solid rgba(240,180,41,.35);-webkit-tap-highlight-color:transparent}
-.tdHl[hidden]{display:none}
-.tdHl:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba(0,0,0,.45))}
-.tdHl:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-.tdHl span{flex:1;min-width:0}
-.tdHl small{display:block;margin:0 0 5px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--amber)}
-.tdHl b{display:block;font:700 var(--fs-l)/1.15 var(--f-board);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tdHl em{display:block;margin-top:4px;font:500 var(--fs-s)/1.3 var(--f-board);font-style:normal;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tdHl i{font-style:normal;font:700 var(--fs-xl)/1 var(--f-board);color:var(--amber)}
+.lbStrip.one .lbPlate{flex-basis:100%}
+.lbPlate[hidden]{display:none}
+button.lbPlate:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba(0,0,0,.45))}
+.lbPlate:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
+.lbPlate.lbOpens{cursor:default}
+.lbPlH{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:15px}
+.lbPlH small{min-width:0;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lbPlH i{font:700 var(--fs-xl)/.75 var(--f-board);font-style:normal;color:var(--amber)}
+.lbPlN{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.lbPlN>*{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:6px;min-width:0}
+.lbPlN b{font:700 var(--fs-2xl)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums}
+.lbPlN small{font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.lbOpens .lbPlN button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.lbOpens .lbPlN button:not(:disabled) small{color:var(--amber)}
+.lbOpens .lbPlN button:not(:disabled):active b{color:var(--amber)}
+.lbOpens .lbPlN button:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:4px}
 #cardBox .cardIn.tdSheet{padding:22px 8px 12px}      /* the grip above; the plate nearly edge to edge */
 /* 1.119.1 (to-do #217): the title's margins as on every plate (.plate>h3; #cardBox h3's margin:0 had set it below the screws) */
 #cardBox .tdSheet .plate>h3,#cardBox .setSheet .plate>h3{margin:calc(6px*var(--k) - var(--pt)) calc(23px*var(--k) - var(--px)) calc(4px*var(--k));font:600 var(--fs-s)/1 var(--f-board);color:rgba(214,208,194,.72);padding-right:0}
@@ -290,7 +294,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .tools{display:flex;flex-wrap:wrap;gap:12px 14px;margin:14px 0 4px;padding:3px;--k:.86}
 .tools .cap{margin:0}
 .tools .svFind{flex:1 1 100%;--k:1}
-.tools .svFind input,.tdFind .svFind input{width:100%;height:40px;font-size:var(--fs-input)}   /* 1.122.1: Today's find box and All time's search box are one look (16 px, no zoom on a phone; 40 px high) */
+.tools .svFind input{width:100%;height:44px;font-size:var(--fs-input)}   /* 1.123: the Logbook's search, as high as the filter icon beside it (16 px: no zoom on a phone) */
 #tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:12px 0 calc(12px + var(--sa-bottom));background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
   box-shadow:0 -1px 0 rgba(255,255,255,.05),0 -2px 0 rgba(0,0,0,.7),0 -8px 18px rgba(0,0,0,.38)}
 #tabs .wrap{display:flex;gap:9px;--k:.88}
@@ -770,8 +774,12 @@ html.daylight .devTile{background:#fbf8f1;border-color:#d3cab7}
 html.daylight .cups li:not(.on):not(.medal) .cup{stroke:rgba(25,25,25,.3)}
 html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} html.daylight .cups li.m2{--m:#b07d0c} html.daylight .cups li.m3{--m:#23806f} html.daylight .cups li.m4{--m:#4467cc}
 /* 1.65: the whole logbook searched; while a search shows, the logbook's own parts step aside */
-.lbFindBox{margin:8px 0 4px;padding:0}
-#t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding #lbNums,#t-logbook.finding #lbYear,#t-logbook.finding #lbIdx,#t-logbook.finding .rcol{display:none!important}
+.lbSeg .lbFindBox{flex:1 1 0;min-width:0;margin:0;padding:0}
+.lbFindBox .svFind{display:flex;width:100%;margin:0}
+.lbFindBox input{flex:1;min-width:0}
+#t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding .lbStrip,#t-logbook.finding .lbFilter,#t-logbook.finding .rcol{display:none!important}
+#t-logbook.finding .tdFil{opacity:.35;pointer-events:none}   /* the results are the page: nothing for the filter to act on */
+#t-logbook.lbOther .lbSeg,#t-logbook.lbOther .lbStrip,#t-logbook.lbOther .lbFilter,#t-logbook.lbOther #svList,#t-logbook.lbOther .statusText{display:none!important}   /* no game: Collection or Records on show */
 #lbFound .lbfHead{margin:10px 0 6px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
 #lbFound ol{list-style:none;margin:0;padding:0}
 #lbFound li{padding:11px 0;border-top:1px solid var(--line)}
@@ -814,8 +822,8 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 /* 1.117 (to-do #210, Dave's pick B): the Logbook and About as an index (.idx) under their summary; the period's More,
    the connection card's Details and the log unfold in place under a one-row .idx; the connection and the Log open
    with a verdict (.verdict: a lamp, a word, one line) */
-#lbIdx,#aboutIdx{margin:0 0 12px}
-#lbIdx[hidden]{display:none}
+#lbFilPlace,#aboutIdx{margin:0 0 12px}
+#lbFilPlace[hidden]{display:none}
 .perMore{margin:12px 0 0}
 .perMoreIn{margin:12px 0 0}
 .verdict{display:flex;gap:12px;align-items:flex-start;margin:0 0 12px;padding:12px 14px;border-radius:14px;border:1px solid rgba(34,160,88,.45);background:rgba(34,160,88,.12)}
@@ -877,7 +885,7 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .seg.svPlaces[hidden],.seg.lbViews[hidden]{display:none}
 .seg.svPlaces button,.seg.lbViews button,.seg.gSeg button,.seg.svFilters button,.seg.lbPer button,.seg.catSeg button,.seg.trSeg button,.seg.logSeg button,.seg.jumpSeg button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
-.seg.lbViews{margin:10px 0 0}
+.seg.lbViews{margin:0 0 10px}
 .seg.lbViews button{height:40px;padding:0 4px;font-size:var(--fs-s);line-height:1.1;white-space:normal}
 .seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true],.seg.svFilters button[aria-pressed=true],.seg.lbPer button[aria-pressed=true],.seg.catSeg button[aria-pressed=true],.seg.trSeg button[aria-pressed=true],.seg.logSeg button[aria-pressed=true],.seg.jumpSeg button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
 #t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:var(--fs-l);font-weight:600}
@@ -1657,19 +1665,17 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
    one tap away; a child of the page itself, as sticky only holds within its parent. The line under them stays in from
    the edges, as before.
    The Logbook's period card: Week · Month · Year with earlier and later. */
-/* 1.120 (to-dos #222, #225, Dave's pick A): Today | All time at the top of the Logbook, stuck under the header, with the
-   Today pane's filter icon at the end of the row (an empty place on All time, so the row stays put) */
+/* 1.120 (to-do #225), 1.123 (to-do #241): the Logbook's search stuck under the header, with the filter icon at the end of the row */
+.sum.lbFoot{margin:22px 0 4px;text-align:center}   /* 1.89: the footnote at the bottom of the Club (1.123: no longer the Logbook) */
 .lbSeg{position:sticky;top:var(--topH,0px);z-index:4;grid-column:1/-1;display:flex;gap:8px;margin:-6px calc(-1 * var(--gut)) 8px;padding:6px var(--gut) 8px;
   background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;box-shadow:0 6px 10px -6px rgba(0,0,0,.8)}
-.lbSeg .seg.gSeg{flex:1 1 0;margin:0}
 .tdFil{all:unset;box-sizing:border-box;cursor:pointer;position:relative;flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);color:var(--muted)}
 .tdFil svg{width:19px;height:19px}
 .tdFil[aria-pressed=true]{color:var(--ink);border-color:var(--amber)}
 .tdFil.act::after{content:"";position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--amber)}   /* a filter is on, its panel closed */
 .tdFil:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-.tdFil.gap{visibility:hidden}
-#t-today:not(.tdFilOn) .tdFind,#t-today:not(.tdFilOn) #svTools,#t-today:not(.tdFilOn) #svSum,#t-today:not(.tdFilOn) #svPlaces{display:none}
-#t-today.tdFilOn #tdNums,#t-today.tdFilOn #tdHl{display:none}
+#t-logbook:not(.tdFilOn) .lbFilter{display:none}
+.lbFilter{margin:0 0 12px}
 .perHead{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .perHead h3{margin:0}
 .perArr{display:flex;gap:6px}
@@ -1678,7 +1684,6 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
 .yearCard .seg.lbPer{margin:10px 0 4px}
 /* 1.75: categories open in place; the search reads category words; its results' parts are pills */
 /* 1.89: the footnote at the bottom of Logbook and Spotters' Club (counting since, the points; a place's own line) */
-.sum.lbFoot{margin:22px 0 4px;text-align:center}
 .cats li.catTap,.ranks li.lbTap{cursor:pointer} .cats li.catTap .chev{color:var(--muted);font-size:var(--fs-s)}
 /* 1.91 (to-do #105, Dave's pick C at 14 px): the arrow of what opens (DD in main.js), a chevron in a small grey ring:
    the place bar's Saved places (the name keeps its ellipsis, the arrow stays whole) and the Categories rows, turned up
@@ -1984,37 +1989,32 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
       <p class="status statusText"></p>
     </div>
   </section>
-  <section class="wrap tab cols" id="t-today" hidden>
-    <div class="lbSeg"><div class="seg gSeg" role="group"><button type="button" data-lt="today" aria-pressed="true" data-t="Today">Today</button><button type="button" data-lt="logbook" aria-pressed="false" data-t="All time">All time</button></div><button class="tdFil" type="button" id="tdFil" aria-pressed="false" aria-label="Filter" data-ta="Filter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button></div>
+  <!-- 1.123 (to-do #241, Dave's pick C): the Logbook, one screen: the search and the filter icon, three plates sideways, the day's list -->
+  <section class="wrap tab cols" id="t-logbook" hidden>
+    <div class="lbSeg"><div class="tools lbFindBox" id="lbFindBox"></div><button class="tdFil" type="button" id="tdFil" aria-pressed="false" aria-label="Filter" data-ta="Filter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button></div>
     <div class="lcol">
-      <div class="tdFind" id="tdFind"></div>
-      <dl class="tdNums" id="tdNums"></dl>
-      <button type="button" class="tdHl" id="tdHl" hidden></button>
+      <div id="lbFound" hidden></div>
+      <div class="seg lbViews" id="lbViews" role="group" hidden></div>
+      <p class="sum" id="lbSum"></p>
+      <div class="lbStrip" id="lbStrip">
+        <button type="button" class="lbPlate" id="tdPlate" hidden></button>
+        <div class="lbPlate lbOpens" id="lbPlate" hidden></div>
+        <button type="button" class="lbPlate" id="lbYear" hidden></button>
+      </div>
+      <div class="lbFilter" id="lbFilter">
+        <div class="tools" id="svTools"></div>
+        <p class="sum" id="svSum"></p>
+        <div class="seg svPlaces" id="svPlaces" role="group" hidden><button type="button" data-all="0"></button><button type="button" data-all="1"></button></div>
+        <ul class="idx" id="lbFilPlace" hidden></ul>
+      </div>
       <div hidden><section class="plate secPlate" style="--cols:1" id="todayTop"><i></i><i></i><i></i><i></i><h3 data-t="Today in numbers">Today in numbers</h3>
       <div class="panel" id="todayP" role="img" aria-label="Today in numbers"></div>
       <dl class="facts dayFacts" id="todayFacts"></dl></section></div>
     </div>
     <div class="rcol">
-      <div class="tools" id="svTools"></div>
-      <p class="sum" id="svSum"></p>
-      <div class="seg svPlaces" id="svPlaces" role="group" hidden><button type="button" data-all="0"></button><button type="button" data-all="1"></button></div>
+      <div id="lbLists"></div>
       <ol class="flights tline" id="svList"></ol>
       <p class="status statusText"></p>
-    </div>
-  </section>
-  <section class="wrap tab cols" id="t-logbook" hidden>
-    <div class="lbSeg"><div class="seg gSeg" role="group"><button type="button" data-lt="today" aria-pressed="false" data-t="Today">Today</button><button type="button" data-lt="logbook" aria-pressed="true" data-t="All time">All time</button></div><span class="tdFil gap" aria-hidden="true"></span></div>
-    <div class="lcol">
-      <div class="tools lbFindBox" id="lbFindBox" hidden></div>
-      <div id="lbFound" hidden></div>
-      <div class="seg lbViews" id="lbViews" role="group" hidden></div>
-      <p class="sum" id="lbSum"></p>
-      <dl class="tdNums" id="lbNums"></dl>
-      <button type="button" class="tdHl" id="lbYear" hidden></button>
-      <ul class="idx" id="lbIdx" hidden></ul>
-    </div>
-    <div class="rcol">
-      <div id="lbLists"></div>
     </div>
   </section>
   <section class="wrap tab cols" id="t-radar" hidden>

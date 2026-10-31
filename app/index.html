@@ -720,25 +720,29 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .dayFacts .span{margin:10px 0 0;font:500 var(--fs-s)/1.3 var(--f-board);color:var(--muted)}
 .dayFacts .span b,.dayFacts .span .dayJump{color:var(--ink);font-weight:600}
 .dayFacts button.dayJump:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
-/* 1.115 (to-do #206, Dave's pick B): Today: the title with the filter beside it, four labelled numbers, the Highlights
-   card (it raises the day's plate as a sheet, tdOpen), the filter chips, the list */
-.tdFind{margin:0 0 12px}
-.tdFind .svFind{display:flex;width:100%;margin:0}
-.tdFind input{flex:1;width:100%}
-.tdNums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 10px}
-.tdNums div{display:flex;flex-direction:column-reverse;text-align:center;padding:10px 4px 9px;border-radius:12px;background:var(--box-bg);border:var(--box-bd)}
-.tdNums dd{margin:0;font:700 var(--fs-2xl)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums}
-.tdNums dt{margin:6px 0 0;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tdHl{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:12px;width:100%;margin:0 0 14px;padding:12px 14px;border-radius:14px;
+/* 1.123 (to-do #241, Dave's pick C): the plates, sideways: Today, All time and the period. Twins (rule 16): a gold name, four named
+   numbers. A peek of the next at the right edge; one left alone takes the full width. An amber name: the number opens its list. */
+.lbStrip{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;margin:0 calc(-1 * var(--gut)) 14px;padding:0 var(--gut);scroll-padding:0 var(--gut)}
+.lbStrip::-webkit-scrollbar{display:none}
+.lbStrip[hidden]{display:none}
+.lbPlate{all:unset;box-sizing:border-box;flex:0 0 calc(100% - 30px);min-width:0;scroll-snap-align:start;display:grid;align-content:start;gap:9px;padding:11px 12px 11px 14px;border-radius:14px;cursor:pointer;
   background:linear-gradient(90deg,rgba(240,180,41,.14),rgba(0,0,0,.35));border:1px solid rgba(240,180,41,.35);-webkit-tap-highlight-color:transparent}
-.tdHl[hidden]{display:none}
-.tdHl:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba(0,0,0,.45))}
-.tdHl:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-.tdHl span{flex:1;min-width:0}
-.tdHl small{display:block;margin:0 0 5px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--amber)}
-.tdHl b{display:block;font:700 var(--fs-l)/1.15 var(--f-board);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tdHl em{display:block;margin-top:4px;font:500 var(--fs-s)/1.3 var(--f-board);font-style:normal;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tdHl i{font-style:normal;font:700 var(--fs-xl)/1 var(--f-board);color:var(--amber)}
+.lbStrip.one .lbPlate{flex-basis:100%}
+.lbPlate[hidden]{display:none}
+button.lbPlate:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba(0,0,0,.45))}
+.lbPlate:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
+.lbPlate.lbOpens{cursor:default}
+.lbPlH{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:15px}
+.lbPlH small{min-width:0;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lbPlH i{font:700 var(--fs-xl)/.75 var(--f-board);font-style:normal;color:var(--amber)}
+.lbPlN{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.lbPlN>*{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:6px;min-width:0}
+.lbPlN b{font:700 var(--fs-2xl)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums}
+.lbPlN small{font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.lbOpens .lbPlN button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.lbOpens .lbPlN button:not(:disabled) small{color:var(--amber)}
+.lbOpens .lbPlN button:not(:disabled):active b{color:var(--amber)}
+.lbOpens .lbPlN button:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:4px}
 #cardBox .cardIn.tdSheet{padding:22px 8px 12px}      /* the grip above; the plate nearly edge to edge */
 /* 1.119.1 (to-do #217): the title's margins as on every plate (.plate>h3; #cardBox h3's margin:0 had set it below the screws) */
 #cardBox .tdSheet .plate>h3,#cardBox .setSheet .plate>h3{margin:calc(6px*var(--k) - var(--pt)) calc(23px*var(--k) - var(--px)) calc(4px*var(--k));font:600 var(--fs-s)/1 var(--f-board);color:rgba(214,208,194,.72);padding-right:0}
@@ -786,7 +790,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .tools{display:flex;flex-wrap:wrap;gap:12px 14px;margin:14px 0 4px;padding:3px;--k:.86}
 .tools .cap{margin:0}
 .tools .svFind{flex:1 1 100%;--k:1}
-.tools .svFind input,.tdFind .svFind input{width:100%;height:40px;font-size:var(--fs-input)}   /* 1.122.1: Today's find box and All time's search box are one look (16 px, no zoom on a phone; 40 px high) */
+.tools .svFind input{width:100%;height:44px;font-size:var(--fs-input)}   /* 1.123: the Logbook's search, as high as the filter icon beside it (16 px: no zoom on a phone) */
 #tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:12px 0 calc(12px + var(--sa-bottom));background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
   box-shadow:0 -1px 0 rgba(255,255,255,.05),0 -2px 0 rgba(0,0,0,.7),0 -8px 18px rgba(0,0,0,.38)}
 #tabs .wrap{display:flex;gap:9px;--k:.88}
@@ -1266,8 +1270,12 @@ html.daylight .devTile{background:#fbf8f1;border-color:#d3cab7}
 html.daylight .cups li:not(.on):not(.medal) .cup{stroke:rgba(25,25,25,.3)}
 html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} html.daylight .cups li.m2{--m:#b07d0c} html.daylight .cups li.m3{--m:#23806f} html.daylight .cups li.m4{--m:#4467cc}
 /* 1.65: the whole logbook searched; while a search shows, the logbook's own parts step aside */
-.lbFindBox{margin:8px 0 4px;padding:0}
-#t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding #lbNums,#t-logbook.finding #lbYear,#t-logbook.finding #lbIdx,#t-logbook.finding .rcol{display:none!important}
+.lbSeg .lbFindBox{flex:1 1 0;min-width:0;margin:0;padding:0}
+.lbFindBox .svFind{display:flex;width:100%;margin:0}
+.lbFindBox input{flex:1;min-width:0}
+#t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding .lbStrip,#t-logbook.finding .lbFilter,#t-logbook.finding .rcol{display:none!important}
+#t-logbook.finding .tdFil{opacity:.35;pointer-events:none}   /* the results are the page: nothing for the filter to act on */
+#t-logbook.lbOther .lbSeg,#t-logbook.lbOther .lbStrip,#t-logbook.lbOther .lbFilter,#t-logbook.lbOther #svList,#t-logbook.lbOther .statusText{display:none!important}   /* no game: Collection or Records on show */
 #lbFound .lbfHead{margin:10px 0 6px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
 #lbFound ol{list-style:none;margin:0;padding:0}
 #lbFound li{padding:11px 0;border-top:1px solid var(--line)}
@@ -1310,8 +1318,8 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 /* 1.117 (to-do #210, Dave's pick B): the Logbook and About as an index (.idx) under their summary; the period's More,
    the connection card's Details and the log unfold in place under a one-row .idx; the connection and the Log open
    with a verdict (.verdict: a lamp, a word, one line) */
-#lbIdx,#aboutIdx{margin:0 0 12px}
-#lbIdx[hidden]{display:none}
+#lbFilPlace,#aboutIdx{margin:0 0 12px}
+#lbFilPlace[hidden]{display:none}
 .perMore{margin:12px 0 0}
 .perMoreIn{margin:12px 0 0}
 .verdict{display:flex;gap:12px;align-items:flex-start;margin:0 0 12px;padding:12px 14px;border-radius:14px;border:1px solid rgba(34,160,88,.45);background:rgba(34,160,88,.12)}
@@ -1373,7 +1381,7 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .seg.svPlaces[hidden],.seg.lbViews[hidden]{display:none}
 .seg.svPlaces button,.seg.lbViews button,.seg.gSeg button,.seg.svFilters button,.seg.lbPer button,.seg.catSeg button,.seg.trSeg button,.seg.logSeg button,.seg.jumpSeg button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
-.seg.lbViews{margin:10px 0 0}
+.seg.lbViews{margin:0 0 10px}
 .seg.lbViews button{height:40px;padding:0 4px;font-size:var(--fs-s);line-height:1.1;white-space:normal}
 .seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true],.seg.svFilters button[aria-pressed=true],.seg.lbPer button[aria-pressed=true],.seg.catSeg button[aria-pressed=true],.seg.trSeg button[aria-pressed=true],.seg.logSeg button[aria-pressed=true],.seg.jumpSeg button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
 #t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:var(--fs-l);font-weight:600}
@@ -2152,19 +2160,17 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
    one tap away; a child of the page itself, as sticky only holds within its parent. The line under them stays in from
    the edges, as before.
    The Logbook's period card: Week · Month · Year with earlier and later. */
-/* 1.120 (to-dos #222, #225, Dave's pick A): Today | All time at the top of the Logbook, stuck under the header, with the
-   Today pane's filter icon at the end of the row (an empty place on All time, so the row stays put) */
+/* 1.120 (to-do #225), 1.123 (to-do #241): the Logbook's search stuck under the header, with the filter icon at the end of the row */
+.sum.lbFoot{margin:22px 0 4px;text-align:center}   /* 1.89: the footnote at the bottom of the Club (1.123: no longer the Logbook) */
 .lbSeg{position:sticky;top:var(--topH,0px);z-index:4;grid-column:1/-1;display:flex;gap:8px;margin:-6px calc(-1 * var(--gut)) 8px;padding:6px var(--gut) 8px;
   background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;box-shadow:0 6px 10px -6px rgba(0,0,0,.8)}
-.lbSeg .seg.gSeg{flex:1 1 0;margin:0}
 .tdFil{all:unset;box-sizing:border-box;cursor:pointer;position:relative;flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);color:var(--muted)}
 .tdFil svg{width:19px;height:19px}
 .tdFil[aria-pressed=true]{color:var(--ink);border-color:var(--amber)}
 .tdFil.act::after{content:"";position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--amber)}   /* a filter is on, its panel closed */
 .tdFil:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-.tdFil.gap{visibility:hidden}
-#t-today:not(.tdFilOn) .tdFind,#t-today:not(.tdFilOn) #svTools,#t-today:not(.tdFilOn) #svSum,#t-today:not(.tdFilOn) #svPlaces{display:none}
-#t-today.tdFilOn #tdNums,#t-today.tdFilOn #tdHl{display:none}
+#t-logbook:not(.tdFilOn) .lbFilter{display:none}
+.lbFilter{margin:0 0 12px}
 .perHead{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .perHead h3{margin:0}
 .perArr{display:flex;gap:6px}
@@ -2173,7 +2179,6 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
 .yearCard .seg.lbPer{margin:10px 0 4px}
 /* 1.75: categories open in place; the search reads category words; its results' parts are pills */
 /* 1.89: the footnote at the bottom of Logbook and Spotters' Club (counting since, the points; a place's own line) */
-.sum.lbFoot{margin:22px 0 4px;text-align:center}
 .cats li.catTap,.ranks li.lbTap{cursor:pointer} .cats li.catTap .chev{color:var(--muted);font-size:var(--fs-s)}
 /* 1.91 (to-do #105, Dave's pick C at 14 px): the arrow of what opens (DD in main.js), a chevron in a small grey ring:
    the place bar's Saved places (the name keeps its ellipsis, the arrow stays whole) and the Categories rows, turned up
@@ -2479,37 +2484,32 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
       <p class="status statusText"></p>
     </div>
   </section>
-  <section class="wrap tab cols" id="t-today" hidden>
-    <div class="lbSeg"><div class="seg gSeg" role="group"><button type="button" data-lt="today" aria-pressed="true" data-t="Today">Today</button><button type="button" data-lt="logbook" aria-pressed="false" data-t="All time">All time</button></div><button class="tdFil" type="button" id="tdFil" aria-pressed="false" aria-label="Filter" data-ta="Filter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button></div>
+  <!-- 1.123 (to-do #241, Dave's pick C): the Logbook, one screen: the search and the filter icon, three plates sideways, the day's list -->
+  <section class="wrap tab cols" id="t-logbook" hidden>
+    <div class="lbSeg"><div class="tools lbFindBox" id="lbFindBox"></div><button class="tdFil" type="button" id="tdFil" aria-pressed="false" aria-label="Filter" data-ta="Filter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button></div>
     <div class="lcol">
-      <div class="tdFind" id="tdFind"></div>
-      <dl class="tdNums" id="tdNums"></dl>
-      <button type="button" class="tdHl" id="tdHl" hidden></button>
+      <div id="lbFound" hidden></div>
+      <div class="seg lbViews" id="lbViews" role="group" hidden></div>
+      <p class="sum" id="lbSum"></p>
+      <div class="lbStrip" id="lbStrip">
+        <button type="button" class="lbPlate" id="tdPlate" hidden></button>
+        <div class="lbPlate lbOpens" id="lbPlate" hidden></div>
+        <button type="button" class="lbPlate" id="lbYear" hidden></button>
+      </div>
+      <div class="lbFilter" id="lbFilter">
+        <div class="tools" id="svTools"></div>
+        <p class="sum" id="svSum"></p>
+        <div class="seg svPlaces" id="svPlaces" role="group" hidden><button type="button" data-all="0"></button><button type="button" data-all="1"></button></div>
+        <ul class="idx" id="lbFilPlace" hidden></ul>
+      </div>
       <div hidden><section class="plate secPlate" style="--cols:1" id="todayTop"><i></i><i></i><i></i><i></i><h3 data-t="Today in numbers">Today in numbers</h3>
       <div class="panel" id="todayP" role="img" aria-label="Today in numbers"></div>
       <dl class="facts dayFacts" id="todayFacts"></dl></section></div>
     </div>
     <div class="rcol">
-      <div class="tools" id="svTools"></div>
-      <p class="sum" id="svSum"></p>
-      <div class="seg svPlaces" id="svPlaces" role="group" hidden><button type="button" data-all="0"></button><button type="button" data-all="1"></button></div>
+      <div id="lbLists"></div>
       <ol class="flights tline" id="svList"></ol>
       <p class="status statusText"></p>
-    </div>
-  </section>
-  <section class="wrap tab cols" id="t-logbook" hidden>
-    <div class="lbSeg"><div class="seg gSeg" role="group"><button type="button" data-lt="today" aria-pressed="false" data-t="Today">Today</button><button type="button" data-lt="logbook" aria-pressed="true" data-t="All time">All time</button></div><span class="tdFil gap" aria-hidden="true"></span></div>
-    <div class="lcol">
-      <div class="tools lbFindBox" id="lbFindBox" hidden></div>
-      <div id="lbFound" hidden></div>
-      <div class="seg lbViews" id="lbViews" role="group" hidden></div>
-      <p class="sum" id="lbSum"></p>
-      <dl class="tdNums" id="lbNums"></dl>
-      <button type="button" class="tdHl" id="lbYear" hidden></button>
-      <ul class="idx" id="lbIdx" hidden></ul>
-    </div>
-    <div class="rcol">
-      <div id="lbLists"></div>
     </div>
   </section>
   <section class="wrap tab cols" id="t-radar" hidden>
@@ -7909,8 +7909,6 @@ const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"], 
 function buildSvTools(){
   const box = $("svTools");
   box.innerHTML = `<div class="seg svFilters" role="group">` + SV_TOOLS.map(([k, t]) => `<button type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("") + `</div>`;   // 1.73: a segmented bar
-  $("tdFind").innerHTML = svFindHtml();                       // 1.115: the filter beside the title
-  svFindWire($("tdFind"), () => { svSig = ""; renderToday(); });
   for (const b of box.querySelectorAll("[data-t]")) b.onclick = () => {
     ctlSound.click();
     const k = b.dataset.t;
@@ -7933,7 +7931,7 @@ function todayNumbers(){
 // 1.111 (to-do #163, Dave's pick C with A's tap): the day's plate: the counters, the three records side by side (the
 // figure first, the plane and time under it), the most seen and the newest plane new to the logbook; from 21:00 "Your
 // day in planes" opens with the Plane of the day and the day's span. A plane named here is a button: it jumps to its row.
-// 1.115 (to-do #206, Dave's pick B): the list is the page: four labelled numbers and a Highlights card on top; the
+// 1.115 (to-do #206, Dave's pick B), 1.123 (to-do #241): the list is the page, four labelled numbers on the Today plate; the
 // plate rises from below as a sheet (tdOpen), every fact labelled as in A (first, last and busiest hour as three, the
 // most seen airline and types apart). The plate is the same element, moved into the sheet and kept (TD_PLATE).
 const TD_PLATE = $("todayTop"), TD_FACTS = $("todayFacts");
@@ -7962,22 +7960,16 @@ function renderTodayNumbers(){
   if (html !== todayFactsSig) { todayFactsSig = html; TD_FACTS.innerHTML = html; }
   const title = T(ev ? "Your day in planes" : "Today in numbers"), h3 = TD_PLATE.querySelector("h3");
   if (h3.textContent !== title) h3.textContent = title;
-  // the page: the numbers, each with its name, and the card: the plane of the day (or the newest first) and a line of records
-  const num = (v, k) => `<div><dt>${escH(T(k))}</dt><dd>${nf.format(v || 0)}</dd></div>`;
-  const nm = e => shortType(e.type) || e.typeCode || rowName(e);
-  const head = ev ? T("Plane of the day: {t}", {t: nm(p)}) : nw ? T("New in the logbook: {t}", {t: nw.newType ? nm(nw) : nw.airline || rowName(nw)}) : "";
-  const line = [h.low ? T("lowest {a}", {a: altText(h.low.altAtMin)}) : "", h.fast ? T("fastest {s}", {s: speedStr(h.fast.maxSpeed).toLowerCase()}) : "",
-    h.newN ? T("{n} new in the logbook", {n: nf.format(h.newN)}) : ""].filter(Boolean).join(" · ");
-  const sig = [n.planes, n.over, n.airlines, n.types, head, line, LANG].join("|");
-  if (sig === tdSig) return;
-  tdSig = sig;
-  $("tdNums").hidden = !n.planes;                             // 1.120: a day with no planes yet: one line (renderToday)
-  $("tdNums").innerHTML = num(n.planes, "Planes") + num(n.over, "Overhead") + num(n.airlines, "Airlines") + num(n.types, "Types");
-  const hl = $("tdHl");
-  hl.hidden = !n.planes || !(head || line);
-  hl.innerHTML = `<span><small>${escH(T("Highlights"))}</small><b>${escH(head || line)}</b>${head && line ? `<em>${escH(line)}</em>` : ""}</span><i aria-hidden="true">›</i>`;
+  // 1.123 (to-do #241): the Today plate, a day with no planes yet folded away (the list has its one line)
+  const sig = [n.planes, n.over, n.airlines, n.types, LANG].join("|");
+  if (sig !== tdSig) {
+    tdSig = sig;
+    $("tdPlate").hidden = !n.planes;
+    $("tdPlate").innerHTML = lbPlateHtml(T("Today"), [[n.planes, "Planes"], [n.over, "Overhead"], [n.airlines, "Airlines"], [n.types, "Types"]], true);
+  }
+  lbStripSync();
 }
-// The Highlights card: the plate as a sheet (the app's cards: the grip, swiped down, a tap beside or back).
+// A tap on the Today plate: the day's plate as a sheet (the app's cards: the grip, swiped down, a tap beside or back).
 function tdOpen(){
   ctlSound.nav();
   cardOpen(`<div class="tdIn"></div>`, ci => {
@@ -7986,18 +7978,41 @@ function tdOpen(){
     TODAYP.cssW = 0; showPanel(TODAYP);
   });
 }
-$("tdHl").onclick = tdOpen;
-// 1.120 (to-do #225, Dave's pick A): the find box, the filter row and the places row sit behind the icon at the end of the
-// Today | All time row; opening it swaps the numbers and Highlights for them. A dot on the icon: a filter is on behind it.
+$("tdPlate").onclick = tdOpen;
+// 1.123 (to-do #241, Dave's pick C): the plates, sideways. Each: a gold name and four named numbers, nothing else (rule 16).
+// Where the strip stands isn't kept: the routes pick a plate (lbPlateGo), and lbPlateOn keeps it there when a plate comes or folds.
+const LB_PLATES = {today: "tdPlate", all: "lbPlate", period: "lbYear"};
+let lbPlateOn = "today", lbStripSig = "";
+const lbPlateNum = (v, k) => `<span><b>${v == null ? "–" : nf.format(v)}</b><small>${escH(T(k))}</small></span>`;
+const lbPlateHtml = (title, nums, chev) => `<span class="lbPlH"><small>${escH(title)}</small>${chev ? '<i aria-hidden="true">›</i>' : ""}</span><span class="lbPlN">${nums.map(([v, k]) => lbPlateNum(v, k)).join("")}</span>`;
+function lbStripSync(force){
+  const strip = $("lbStrip"), on = Object.values(LB_PLATES).map($).filter(el => !el.hidden), sig = on.map(el => el.id).join();
+  strip.hidden = !on.length;
+  strip.classList.toggle("one", on.length === 1);
+  if (!on.length || !strip.clientWidth || (!force && sig === lbStripSig)) { if (strip.clientWidth) lbStripSig = sig; return; }
+  lbStripSig = sig;
+  const el = $(LB_PLATES[lbPlateOn]);
+  strip.scrollLeft = (el.hidden ? on[0] : el).offsetLeft - on[0].offsetLeft;
+}
+function lbPlateGo(k){ lbPlateOn = k; lbStripSync(true); }
+$("lbStrip").addEventListener("scroll", () => {
+  const strip = $("lbStrip"), on = Object.entries(LB_PLATES).filter(([, id]) => !$(id).hidden);
+  if (tab !== "logbook" || !on.length) return;
+  const x = strip.scrollLeft, at = ([, id]) => Math.abs($(id).offsetLeft - $(on[0][1]).offsetLeft - x);
+  lbPlateOn = on.reduce((a, c) => at(c) < at(a) ? c : a)[0];
+}, {passive: true});
+// 1.120 (to-do #225), 1.123: the filters, the places switch and the saved places open in place under the plates, from the icon at
+// the end of the search. A dot on the icon: a filter or a saved place is on behind it.
 function tdFilter(on){
-  $("t-today").classList.toggle("tdFilOn", on);
+  $("t-logbook").classList.toggle("tdFilOn", on);
   $("tdFil").setAttribute("aria-pressed", String(on));
 }
+function tdFilDot(){ $("tdFil").classList.toggle("act", svFilter !== "all" || !!svQuery || allPlaces || !!lbPlace); }
 $("tdFil").onclick = () => {
   ctlSound.click();
-  const on = !$("t-today").classList.contains("tdFilOn");
+  const on = !$("t-logbook").classList.contains("tdFilOn");
   tdFilter(on);
-  if (on) { window.scrollTo(0, 0); setTimeout(() => appTips("today"), 400); }
+  if (on) { window.scrollTo(0, 0); setTimeout(() => appTips("logbook"), 400); }
 };
 // A's tap: the plane's row in the timeline below, scrolled to and lit gold for a moment (1.115: the row is one line, so
 // without the words of what it was named for). A filter that hides it is cleared first.
@@ -8005,7 +8020,7 @@ function todayJump(k){
   const row = () => $("svList").querySelector(`li.fl[data-more="${CSS.escape(k)}"]`);
   if (!row() && (svFilter !== "all" || svQuery)) {
     svFilter = "all"; svQuery = "";
-    const inp = $("tdFind").querySelector("[data-q]"), x = $("tdFind").querySelector("[data-qx]");
+    const inp = $("lbFindBox").querySelector("[data-q]"), x = $("lbFindBox").querySelector("[data-qx]");
     if (inp) inp.value = ""; if (x) x.hidden = true;
     svSig = ""; renderToday();
   }
@@ -8020,14 +8035,14 @@ function todayJump(k){
 document.addEventListener("click", e => {
   const b = e.target.closest && e.target.closest("#todayFacts button[data-jump]");
   if (!b) return;
-  if (b.closest("#cardBox")) cardClose();                    // 1.115: from the Highlights sheet
+  if (b.closest("#cardBox")) cardClose();                    // 1.115: from the Today sheet
   todayJump(b.dataset.jump);
 });
 function renderToday(){
-  if (tab !== "today") return;
+  if (tab !== "logbook") return;
   loadFullDay();
   renderTodayNumbers();
-  $("tdFil").classList.toggle("act", svFilter !== "all" || !!svQuery || allPlaces);
+  tdFilDot();
   const d = svData();
   for (const b of $("svTools").querySelectorAll("[data-t]")) {
     const k = b.dataset.t, n = d.counts[k];
@@ -8065,7 +8080,7 @@ function renderToday(){
 }
 function renderLists(){
   renderRecent();
-  if (tab === "today") renderToday();
+  if (tab === "logbook") renderToday();
 }
 
 /* Logbook */
@@ -8085,7 +8100,7 @@ async function fetchLogbook(){
   achCheck((lbData() || {}).game); medalNudge((lbData() || {}).game);
   renderLogbook(); renderGame();
 }
-let lbSig = "", lbView = "logbook";
+let lbSig = "", lbView = "logbook", lbDemoPer = false;
 // 1.97.1.1 (to-do #130): the places list can arrive after the Logbook's first draw; its bar (the places are chips) then shows at once.
 placesHooks.push(() => { if (tab === "logbook") renderLogbook(); });
 // 1.55 (to-do #65): the Logbook tab shows one of the board's four logbook views at a time, picked in a row that stays
@@ -8108,9 +8123,11 @@ function lbViewsBar(){
    Typing searches after a short pause; × clears it and the logbook comes back. */
 let lbQuery = "", lbFindT = 0, lbFindTok = 0;
 function lbFindSetup(){
-  const box = $("lbFindBox");
-  box.hidden = (window.OVERHEAD_RELAY_VERSION || 0) < 55 || !relay() || S.demo;
-  if (box.hidden || box.firstChild) return;
+  const box = $("lbFindBox"), local = (window.OVERHEAD_RELAY_VERSION || 0) < 55 || !relay() || S.demo;
+  if (box.dataset.mode === (local ? "day" : "all")) return;
+  box.dataset.mode = local ? "day" : "all";
+  // 1.123: with no /search behind it (demo mode, no relay, an old relay) the box finds in the day's list, as it could before
+  if (local) { box.innerHTML = svFindHtml(); svFindWire(box, () => { svSig = ""; renderToday(); }); return; }
   box.innerHTML = `<span class="svFind"><input type="search" data-q enterkeyhint="search" autocomplete="off" spellcheck="false" ` +
     `placeholder="${escH(T((window.OVERHEAD_RELAY_VERSION || 0) >= 63 ? "Search, e.g. OE-LBN, A380, Santorini" : "Search, e.g. OE-LBN, A380, OS 802"))}" aria-label="${escH(T("Search the logbook"))}">` +
     `<button type="button" data-qx aria-label="${escH(T("Clear"))}" hidden>×</button></span>`;
@@ -8220,10 +8237,9 @@ async function foundCard(k, g){
   for (const t0 = Date.now(); (pic().asking || (ac.hex && acDetails.get(ac.hex) === null)) && Date.now() - t0 < 2500 && tok === cardTok;) await new Promise(r => setTimeout(r, 150));
   shown = await cardWhenReady(tok, html(), wire);
 }
-/* 1.117 (to-do #210, Dave's pick B): the Logbook on one screen: the search, four labelled totals, the period as one card
-   (Today's Highlights card), then an index of its lists, each with its state in one line. A row raises its plate as the
-   app's sheet (cardOpen, as Today's Highlights: the grip, swiped down, a tap beside or back); the plates are drawn here
-   (lbPanels) and a panel on show follows new numbers in place (lbPanelSync). The search results stay as they were. */
+/* 1.117 (to-do #210), 1.123 (to-do #241, Dave's pick C): the All time plate's numbers each raise a list's plate as the
+   app's sheet (cardOpen: the grip, swiped down, a tap beside or back); the plates are drawn here (lbPanels) and a panel on
+   show follows new numbers in place (lbPanelSync). The search results stay as they were. */
 let lbPanels = {}, lbPanel = "", lbPanelTok = 0;
 const lbPanelOn = () => !!lbPanel && cardTok === lbPanelTok && cardOpenNow();
 function lbPanelOpen(k){
@@ -8245,12 +8261,13 @@ function renderLogbook(){
   lbFindSetup();
   lbViewsBar();
   const v = lbView;
+  if (S.demo && !lbDemoPer) { lbDemoPer = true; lbPeriod = "week"; }     // 1.123: demo mode has sample weeks and months, no sample year
   if (v === "logbook") { if (lbPeriod === "year") fetchYear(); else fetchReview(() => { lbSig = ""; renderLogbook(); }); }
   const all = lbData() || {}, pl = v === "logbook" && lbPlaceOk() ? lbChips() : [];
   if (v === "logbook" && lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
   const place = v === "logbook" ? lbPlace : "";
-  // 1.89 (to-do #90): All · On the go · the saved places; 1.117: a row of the index, its panel the list to pick from.
-  // Counting since and a place's own line are the footnote at the bottom.
+  // 1.89 (to-do #90): All · On the go · the saved places; 1.123: a row in the filter, its panel the list to pick from.
+  // Counting since and a place's own line are the engraved footnote of the All time plate's four panels.
   const live = pl.find(c => c.id === "live"), saved = pl.filter(c => c.id !== "live"), cur = pl.find(c => c.id === lbPlace);
   const b = place ? lbPlaceData[place] || {} : all, has = place ? !!lbPlaceData[place] : !!lbData();
   $("lbSum").hidden = v === "review" || v === "logbook";
@@ -8258,95 +8275,83 @@ function renderLogbook(){
     : v === "records" ? T("The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.") : "";
   const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
   const types = byCount(b.types), airlines = byCount(b.airlines);
-  const model = types[0] && types[0][1].count > 1 ? T("most seen model {t} ({n} times)", {t: typeLabel(types[0][0], types[0][1].name), n: nf.format(types[0][1].count || 0)}) : "";
-  const foot = v !== "logbook" ? "" : [place ? !has ? T("Loading …")
+  const foot = v !== "logbook" ? "" : plFoot(place ? !has ? T("Loading …")
     : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(place), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"}) : "",
-    [logbookSummary(true), model].filter(Boolean).join(" · ")].filter(Boolean).map(escH).join("<br>");
-  for (const id of ["lbNums", "lbIdx"]) $(id).hidden = v !== "logbook";
-  $("lbYear").hidden = v !== "logbook" || !!place;
+    logbookSummary(true));
+  $("t-logbook").classList.toggle("lbOther", v !== "logbook");
+  // A plate with no data folds away (rule 13): All time's and the period's once the logbook is known to be empty or out of reach
+  const noBook = S.demo ? !all.sightings : !relayV5() || (lbCache ? !lbCache.sightings : !!lbError);
+  $("lbYear").hidden = v !== "logbook" || !!place || noBook || !(S.demo || relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 29);
+  $("lbPlate").hidden = v !== "logbook" || !place && noBook;
+  tdFilDot();
+  lbStripSync();
   const sig = JSON.stringify([v, place, foot, b.since, b.sightings, b.regsCount, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, pl, all.game, all.records, yearData, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], lbPeriod, yearBack, perMore, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
-  const num = (n, k) => `<div><dt>${escH(T(k))}</dt><dd>${has ? nf.format(n || 0) : "–"}</dd></div>`;
-  $("lbNums").innerHTML = num(b.sightings, "Sightings") + num(b.regsCount, "Aircraft") + num(types.length, "Types") + num(airlines.length, "Airlines");
   const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
   // 1.113 (to-do #185): a type, an airline or an aircraft opens what the same row inside a category opens (tap: data-*)
   const li = (name, n, sub, tap = "") => `<li${tap ? ` class="lbTap"${tap}` : ""}><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
-  const P = {}, rows = [];
-  const row = (k, name, state) => rows.push(`<li><button type="button" data-lp="${k}"><b>${escH(name)}</b><small>${escH(state)}</small><i aria-hidden="true">›</i></button></li>`);
+  const P = {};
   let html = "";
   const g0 = all.game;                               // the collection, bingo and trophies count every place
   if (v === "logbook") {
     if (b.categories) {
       const max = Math.max(1, ...LB_CATS.map(([k]) => b.categories[k] || 0));
-      P.cats = secPlate(T("Categories"), `<ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
+      if (LB_CATS.some(([k]) => b.categories[k])) P.cats = secPlate(T("Categories"), `<ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
         const n = b.categories[k] || 0;
         const open = lbCat === k && catOk() && n;
         return `<li style="--lamp:${col}"${n && catOk() ? ` data-cat="${k}" class="catTap${open ? " open" : ""}"` : ""}><i class="lamp"></i><span class="name">${escH(T(en))}${n && catOk() ? ` <span class="chev">${DD}</span>` : ""}</span><span class="n">${nf.format(n)}</span>` +
           `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>` + (open ? catOpenHtml(k) : "");
-      }).join("") + "</ul>");
-      const top = LB_CATS.filter(([k]) => b.categories[k]).sort((x, y) => b.categories[y[0]] - b.categories[x[0]]).slice(0, 3);
-      if (top.length) row("cats", T("Categories"), top.map(([k, en]) => `${T(en)} ${nf.format(b.categories[k])}`).join(" · "));   // none yet: folded away
+      }).join("") + "</ul>" + foot);
     }
     if (types.length) {
-      P.types = secPlate(T("Aircraft types"), rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0), "", ` data-ct="${escH(c)}" data-cn="${escH(t.name || "")}"`))));
-      row("types", T("Aircraft types"), T("{n} · top: {t}", {n: nf.format(types.length), t: typeLabel(types[0][0], types[0][1].name)}));
+      P.types = secPlate(T("Aircraft types"), rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0), "", ` data-ct="${escH(c)}" data-cn="${escH(t.name || "")}"`))) + foot);
     }
     if (airlines.length) {
       P.airlines = secPlate(T("Airlines"), rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0), "",
-        ` data-co="${escH(c)}" data-cn="${escH(a.name || "")}" data-ci="${escH((AIRLINES[c] || [])[0] || "")}"`))));
-      row("airlines", T("Airlines"), T("{n} · top: {t}", {n: nf.format(airlines.length), t: (AIRLINES[airlines[0][0]] || [])[1] || airlines[0][1].name || airlines[0][0]}));
+        ` data-co="${escH(c)}" data-cn="${escH(a.name || "")}" data-ci="${escH((AIRLINES[c] || [])[0] || "")}"`))) + foot);
     }
     if ((b.regsTop || []).length) {
-      P.regs = secPlate(T("Most seen aircraft"), rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name, ` data-cr="${escH(r.reg)}"`))));
-      row("regs", T("Most seen aircraft"), b.regsTop[0].reg);
+      P.regs = secPlate(T("Most seen aircraft"), rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name, ` data-cr="${escH(r.reg)}"`))) + foot);
     }
     if (pl.length) {
       const name = saved.length ? T("Saved places") : live.name;
       const opt = (k, n, cnt) => `<li class="catTap" data-pk="${escH(k)}" style="--lamp:${k === lbPlace ? "var(--c-gold)" : "#3a3c41"}"><i class="lamp"></i><span class="name">${escH(n)}</span><span class="n">${cnt != null ? nf.format(cnt) : ""}</span></li>`;
       P.places = secPlate(name, `<ul class="ranks cats">` + opt("", T("All"), all.sightings) + pl.map(c => opt(c.id, c.name, c.n)).join("") + `</ul>` +
         (saved.length ? `<p class="sum">${escH(T("Places are saved in Settings → Places."))}</p>` : ""));
-      row("places", name, cur ? cur.name : T("All"));
+      $("lbFilPlace").innerHTML = `<li><button type="button" data-lp="places"><b>${escH(name)}</b><small>${escH(cur ? cur.name : T("All"))}</small><i aria-hidden="true">›</i></button></li>`;
     }
-    if (!place && relay() && !S.demo && (window.OVERHEAD_RELAY_VERSION || 0) >= 29)      // the whole logbook, as the year's card
-      rows.push(`<li><a href="${escH(relay())}/logbook.csv" download data-lp="csv"><b>${escH(T("Download as CSV"))}</b><small>${escH(T("every sighting"))}</small><i aria-hidden="true">›</i></a></li>`);
+    $("lbFilPlace").hidden = !pl.length;
+    // The All time plate: amber names, no chevron; each number opens its list (a number with no list yet: no amber, no tap)
+    const opener = (n, k, panel) => `<button type="button" data-lp="${panel}"${P[panel] ? "" : " disabled"}><b>${has ? nf.format(n || 0) : "–"}</b><small>${escH(T(k))}</small></button>`;
+    $("lbPlate").innerHTML = `<span class="lbPlH"><small>${escH(cur ? `${T("All time")} · ${cur.name}` : T("All time"))}</small></span><span class="lbPlN">` +
+      opener(b.sightings, "Sightings", "cats") + opener(b.regsCount, "Aircraft", "regs") + opener(types.length, "Types", "types") + opener(airlines.length, "Airlines", "airlines") + `</span>`;
     if (!place) { P.year = periodHtml(); lbYearCard(); }
   } else if (v === "collection") html = collectionHtml(g0);
   else if (v === "records") html = recordsHtml(all, g0);
   else html = reviewHtml();
   lbPanels = P;
-  $("lbIdx").innerHTML = rows.join("");
-  $("lbIdx").hidden = v !== "logbook" || !rows.length;
-  $("lbLists").innerHTML = (html || v === "logbook" ? html : `<p class="sum">${escH(T("Loading …"))}</p>`) + (foot ? `<p class="sum lbFoot">${foot}</p>` : "");
+  $("lbLists").innerHTML = html || v === "logbook" ? html : `<p class="sum">${escH(T("Loading …"))}</p>`;
   trWire($("lbLists"), () => { lbSig = ""; renderLogbook(); });
   lbPanelSync();
 }
-// The period's card above the index: its title, three numbers and what its panel holds.
+// The period's plate: its title and four numbers, "–" while they load; a tap opens its panel.
 function lbYearCard(){
   const per = reviewOk() ? lbPeriod : "year", yr = new Date().getFullYear() - yearBack;
-  const three = list => list.map(([n, k]) => `${nf.format(n || 0)} ${T(n === 1 ? PIC_ONE[k] || k : k)}`).join(" · ");
-  let title, line;
-  if (per === "year") {
-    const y = yearData && yearData.year === yr ? yearData : null;
-    title = T("{y} in planes", {y: yr});
-    line = !y ? T("Loading …") : !y.planes ? T("No planes that year.") : three([[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"]]);
-  } else {
-    const r = reviewData();
-    title = T("{p} in planes", {p: reviewTitle()});
-    line = r && r.planes ? three([[r.planes, "planes"], [r.types, "types"], [r.airlines, "airlines"]]) : reviewSummary(r);
-  }
-  $("lbYear").innerHTML = `<span><small>${escH(title)}</small><b>${escH(line)}</b></span><i aria-hidden="true">›</i>`;
+  const r = per === "year" ? (yearData && yearData.year === yr ? yearData : null) : reviewData();
+  const title = per === "year" ? T("{y} in planes", {y: yr}) : T("{p} in planes", {p: reviewTitle()}), n = k => r ? r[k] || 0 : null;
+  $("lbYear").innerHTML = lbPlateHtml(title, [[n("planes"), "Planes"], [n("airframes"), "Aircraft"], [n("types"), "Types"], [n("airlines"), "Airlines"]], true);
 }
 $("lbYear").onclick = () => { lbPanelOpen("year"); perWarm(); };
 document.addEventListener("click", e => {
-  const b = e.target.closest && e.target.closest("#lbIdx [data-lp]");
+  const b = e.target.closest && e.target.closest("#lbPlate [data-lp], #lbFilPlace [data-lp]");
   if (!b) return;
-  if (b.dataset.lp === "csv") return ctlSound.click();
   lbPanelOpen(b.dataset.lp);
 });
 // 1.89: a place picked (All, on the go or a saved one): its numbers come from the relay the first time.
 async function lbPick(id){
-  lbPlace = id; lbSig = ""; renderLogbook();
+  lbPlace = id; if (id) lbPlateOn = "all";          // 1.123: the place's numbers are what was asked for
+  lbSig = ""; renderLogbook(); lbStripSync(true);
   if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
 }
 // The game's collection (points, tiers, the collections) and its records, bingo and trophies: on the Game page since
@@ -11471,7 +11476,7 @@ function backStep(){
   if (shown($("t-styles"))) return stylesHide;
   const row = [...document.querySelectorAll(".tline li.fl.open")].find(li => li.getClientRects().length);
   if (row) return () => tlFold(row, true);                                 // a plane opened in place in a list: folded
-  if (tab === "today" && $("t-today").classList.contains("tdFilOn")) return () => tdFilter(false);   // 1.120: Today's filters
+  if (tab === "logbook" && $("t-logbook").classList.contains("tdFilOn")) return () => tdFilter(false);   // 1.120: the filter
   if (tab !== "now") return () => showTab("now");
   return null;
 }
@@ -11498,7 +11503,8 @@ if (ANDROID) window.fallblattBack = fallblattBack;
    Not in the Android app (its own back handler does this). */
 let guardOn = !ANDROID && !!(history.state && history.state.fbGuard);   // after a reload the guard may still be there
 let guardSelf = false;
-function tabHash(){ return tab === "now" ? "" : "#" + tab; }
+// 1.123: the Logbook's URL is #today, so a reload starts on the Today plate (#logbook still opens on All time: showTab)
+function tabHash(){ return tab === "now" ? "" : tab === "logbook" ? "#today" : "#" + tab; }
 function guardSync(){
   if (ANDROID || guardSelf || document.hidden) return;
   const need = !!backStep();
@@ -12541,7 +12547,7 @@ function fitSideways(){
 let sideFrom = null;
 function sideways(){
   if (SIDEWAYS.matches) { if (tab !== "now") { sideFrom = tab; showTab("now"); } }
-  else if (sideFrom) { const t = sideFrom; sideFrom = null; showTab(t); }
+  else if (sideFrom) { const t = sideFrom, pl = lbPlateOn; sideFrom = null; showTab(t); if (t === "logbook") lbPlateGo(pl); }
 }
 // Only the flaps of the page showing are drawn.
 function nowPanels(){
@@ -12580,6 +12586,11 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.123", date: "2026-10-31", notes: [
+    "The Logbook is one screen: the search on top, then Today, All time and the period as plates you swipe sideways, then the day's planes.",
+    "All time's numbers open their lists: Sightings the categories, Aircraft the most seen, then types and airlines.",
+    "The filter opens under the plates, with your saved places in it.",
+  ]},
   {v: "1.122.1", date: "2026-10-31", notes: [
     "The place line in the header fits a narrow phone: \"Vienna · 15 km\".",
     "The next rank's name is no longer cut off on the level card.",
@@ -14542,11 +14553,10 @@ const TAB_ICONS = {
   radar: ICON('<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M12 12 18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
   settings: ICON('<path d="M18.97 9.84 21.66 10.34 21.66 13.66 18.97 14.16 18.46 15.41 20.00 17.66 17.66 20.00 15.41 18.46 14.16 18.97 13.66 21.66 10.34 21.66 9.84 18.97 8.59 18.46 6.34 20.00 4.00 17.66 5.54 15.41 5.03 14.16 2.34 13.66 2.34 10.34 5.03 9.84 5.54 8.59 4.00 6.34 6.34 4.00 8.59 5.54 9.84 5.03 10.34 2.34 13.66 2.34 14.16 5.03 15.41 5.54 17.66 4.00 20.00 6.34 18.46 8.59Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" fill="none"/><circle cx="12" cy="12" r="3.1" stroke="currentColor" stroke-width="1.9" fill="none"/>'),
 };
-// 1.120 (to-dos #222, #225): the five keys. The Logbook's key opens on Today, one of its two panes (TAB_PAGES); the Club's
+// 1.120 (to-do #222): the five keys. The Logbook's key opens on the Today plate (showTab); the Club's
 // goes when there's no game (gameOk: demo mode, no relay, an old relay) and the other four fill the bar.
 const TABS = [["now", "Now"], ["logbook", "Logbook"], ["game", "Club"], ["radar", "Radar"], ["settings", "Settings"]];
-const TAB_PAGES = ["now", "today", "logbook", "game", "radar", "settings"];
-const tabKey = t => t === "today" ? "logbook" : t;
+const TAB_PAGES = ["now", "logbook", "game", "radar", "settings"];
 let tab = "now", tabTimer = null;
 // 1.45: the ding for a new plane on top only sounds on Now, where that plane shows; the chimes play anywhere.
 function onMainPage(){ return tab === "now"; }
@@ -14575,8 +14585,7 @@ function appTips(t){
   if (t !== tab || SIDEWAYS.matches || ($("welcome") && !$("welcome").hidden) || !$("t-about").hidden) return;
   const vis = el => el && !el.hidden && el.getClientRects().length ? el : null;
   const tabBtn = x => () => $("tabRow").querySelector(`[data-tab="${x}"]`);
-  const key = tabKey(t);
-  if (TAB_TIPS[key]) tip("tab-" + key, tabBtn(key), T(TAB_TIPS[key]));
+  if (TAB_TIPS[t]) tip("tab-" + t, tabBtn(t), T(TAB_TIPS[t]));
   if (t === "now") {
     tip("mode", () => $("modes"), T(NOW_TIPS.mode));
     const pageBtn = p => () => vis($("apPick").querySelector(`[data-page="${p}"]`)) || vis($("nowPages").querySelector(`[data-page="${p}"]`));
@@ -14586,8 +14595,10 @@ function appTips(t){
     tip("swipe", () => $("recent").querySelector("li.fl[data-more]"), T("Swipe a plane right to make it a favourite, left to hide it."));
     tip("open", () => $("recent").querySelector("li.fl[data-more]"), T("Tap a plane to open its card."));
   }
-  if (t === "today") tip("allplaces", () => vis($("svPlaces")), T("Switch between this place and all your places."));
-  if (t === "logbook") tip("lbplaces", () => vis($("lbIdx").querySelector('[data-lp="places"]')), T("Pick a place for its own numbers, or All."));
+  if (t === "logbook") {
+    tip("allplaces", () => vis($("svPlaces")), T("Switch between this place and all your places."));
+    tip("lbplaces", () => vis($("lbFilPlace").querySelector('[data-lp="places"]')), T("Pick a place for its own numbers, or All."));
+  }
   // 1.116: Settings' Location tips come when its panel opens (setOpen)
 }
 // About is a page over Settings (1.41): Settings stays as it was underneath, scrolled where it was.
@@ -14606,30 +14617,37 @@ addEventListener("keydown", e => { if (e.key === "Escape" && !cardOpenNow()) { i
 function showTab(t){
   if (t === "about") { aboutShow(); return; }
   const rv = /^review-(week|month)-(\d{1,2})$/.exec(t || "");      // a review notification (1.52): the Logbook at that week or month
-  if (rv) { review.span = rv[1]; review.back = +rv[2]; lbPeriod = rv[1]; t = "logbook"; }
+  // 1.123: every route to the Logbook lands on its plate: the key and #today on Today, #logbook on All time, a review on the period
+  // (which a saved place hides, so that goes). The page itself, asked for again (a language change), stays where it is.
+  let plate = rv ? "period" : t === "today" ? "today" : t === "logbook" && tab !== "logbook" ? "all" : null;
+  if (rv) { review.span = rv[1]; review.back = +rv[2]; lbPeriod = rv[1]; lbPlace = ""; t = "logbook"; }
+  else if (t === "today") t = "logbook";
   aboutHide(); stylesHide();
   clubKey();
   if (!TAB_PAGES.includes(t) || (t === "game" && !gameOk()) || SIDEWAYS.matches) t = "now";
   const was = tab;
   tab = t;
   for (const x of TAB_PAGES) $("t-" + x).hidden = x !== t;
-  for (const b of $("tabRow").children) { if (b.dataset.tab === tabKey(t)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
-  HERO.off = t !== "now"; TODAYP.off = t !== "today";
+  for (const b of $("tabRow").children) { if (b.dataset.tab === t) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
+  HERO.off = t !== "now"; TODAYP.off = t !== "logbook";
   clearInterval(tabTimer); tabTimer = null;
   stopRadar();
   refreshPanels();
   if (t === "now") { pingNow(false); applyMode(); renderFeatured(); renderAircraftInfo(); renderRecent(); }
-  else if (t === "today") { if (was !== "today") tdFilter(false); svSig = ""; renderToday(); }
-  else if (t === "logbook") { lbSig = ""; fetchLogbook(); tabTimer = setInterval(fetchLogbook, 60000); }
+  else if (t === "logbook") {                  // 1.123: the day's data and the logbook's, both kept fresh while it's on show
+    if (was !== "logbook") tdFilter(false);
+    svSig = lbSig = ""; renderLogbook(); renderToday(); fetchLogbook(); tabTimer = setInterval(fetchLogbook, 60000);
+    if (plate) lbPlateGo(plate); else lbStripSync(true);
+  }
   else if (t === "radar") { rvSig = ""; startRadar(); renderRadarList(); }
   else if (t === "settings") { cockpitOpen(); settingsExtra(); renderFavBox(); setListRender(); }
   else if (t === "game") { if (was !== "game") gSub = "level"; gPlates = null; gRefresh(true); gLeagueLoad(true); fetchLogbook(); renderGame(); tabTimer = setInterval(() => { gLeagueLoad(); renderGame(); }, 30000); }
-  const hash = t === "now" ? "" : "#" + t;
+  const hash = tabHash();
   if (location.hash !== hash) history.replaceState(null, "", location.pathname + location.search + hash);
   setTimeout(() => appTips(t), 900);
   if (was !== t) window.scrollTo(0, 0);
 }
-addEventListener("hashchange", () => { if (location.hash !== tabHash()) showTab(location.hash.slice(1)); });   // 1.97.7: not when it's the page's own back putting the URL right
+addEventListener("hashchange", () => { if (location.hash === tabHash()) return; const h = location.hash.slice(1); showTab(h); if (h === "logbook") lbPlateGo("all"); });   // 1.97.7: not when it's the page's own back putting the URL right
 
 /* ---------- status: a dot by the clock, a line under the lists ---------- */
 function statusLine(){
@@ -14885,17 +14903,16 @@ function gHitDo(){
   el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit");
 }
 document.addEventListener("click", e => { if (e.target.closest && e.target.closest("#t-game .gGoB")) { audioInit(); ctlSound.click(); gGoLive(); } });
-// 1.120: Today | All time in the Logbook; a sideways swipe goes Today, All time, Club, but never on a plane's row (it has
-// its own swipes) or anything that scrolls sideways.
-for (const b of document.querySelectorAll("[data-lt]")) b.onclick = () => { if (tab !== b.dataset.lt) { ctlSound.nav(); showTab(b.dataset.lt); } };
-for (const id of ["t-today", "t-logbook", "t-game"]) { let sw = null;
-  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .bingo, .hgRow, .lyCar, .lyIdx, .ppMap, .tline li.open") || swipeRow(e.target) ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
+// 1.123 (to-do #241): a sideways swipe goes Logbook, Club, but never on the plates (they scroll sideways themselves), a plane's
+// row (it has its own swipes) or anything else that scrolls sideways.
+for (const id of ["t-logbook", "t-game"]) { let sw = null;
+  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .lbStrip, .bingo, .hgRow, .lyCar, .lyIdx, .ppMap, .tline li.open") || swipeRow(e.target) ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
   $(id).addEventListener("touchend", e => {
     if (!sw) return;
     const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y; sw = null;
     if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * .6) return;
-    const order = gameOk() ? ["today", "logbook", "game"] : ["today", "logbook"], to = order[order.indexOf(tab) + (dx < 0 ? 1 : -1)];
-    if (to) showTab(to);
+    if (tab === "logbook" && dx < 0 && gameOk()) showTab("game");
+    else if (tab === "game" && dx > 0) showTab("today");
   }, {passive: true}); }
 // 1.73.2: a notice goes when swiped to the right (a finger, or a mouse); a short swipe springs back. 1.113 (to-do #183):
 // to the left too.
