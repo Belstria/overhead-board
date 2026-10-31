@@ -80,7 +80,7 @@ changelog: style|palette|finish|badge|daylight|realistic|gold leaf|first class|L
 [header] Title and header: the place, the Overhead/Airport switch, the clock, the status dot and line, the board's footer
 test/index.html: +liveShow swapSign placeModeSwitch setMode tickClock updateFooter +placeNow css:footer .pip #status
     .dot #modeSw #dot #pip #statusText +drawStatic
-tools/app/head.html: #top #mark .title .clockbox .dot .status #dot #modes .stOk .verdict +.gHead
+tools/app/head.html: #top .where #mark .title .clockbox .dot .status #dot #modes .stOk .verdict +.gHead
 tools/app/main.js: drawMark setMode showModes applyMode $("dot").onclick statusLine updateFooter statusVerdict stMore statusCard
     updateWhere liveShow tickClock
 README.md: "The footer shows the name" "- **Connection** (1.38)"
@@ -404,7 +404,7 @@ test/index.html: +styleGame +styleOk GAME_LEVELS TIER_COL TIER_DRUM TIER_NAME dr
     achNext confetti @achDown css:canvas.confetti +stylesCount .ach .achBar .achBadge .achTx SIG_JS WORLD_JS
 tools/app/head.html: #gSub .seg.jumpSeg .gIdx .cats.tiers .bingo .ranks.plain.cups .cups .gHead .gHv .gTx .gL1 .gRing .gRt .gRa .gLap .gHead.lvl @gFlash .gHead.flip .gHead.gain .gSay .gSay.out @gSayIn .gBar @gGlow
     .skyIco .gSpin @gSpin @gR1 @gR2 .gPts #t-game .gLeague .plCard .plMedals .plMedal .plLines .hgShelf
-    .hgHead .hgRow .hgCard .hgT #medalMo .mmRib .mmTx @mmSwing @mmIn .gRule .gSbyTg .gSbyTg.off .cuTap .cuHit .gHero .plFoot .gHowTbl .gHowH .gStk .gLim .gNote .hgL #gAws .gAw @gAwUp @gAwOut .hgPlate #gLvUp .gWk .gWkB
+    .hgHead .hgRow .hgCard .hgT #medalMo .mmRib .mmTx @mmSwing @mmIn .gRule .gSbyTg .gSbyTg.off .gSbyTg.lim .cuTap .cuHit .gHero .plFoot .gHowTbl .gHowH .gStk .hgL #gAws .gAw @gAwUp @gAwOut .hgPlate #gLvUp .gWk .gWkB
     .mk1 .mk2 .mk3 .mk4 .mkBar .mkMast .mkSteps .mkBarT .lyN .ly0 .ly1 .ly2 .ly3 .lyFF .lyCar .lySt .lyC .lyIn .lyFr .lyBk .lyBr .lyLg .lyVt .lyHo .lyRg .lyNx @lyHolo .lySh @lyShine .lyMag .lyHm .lyGr .lyTy .lyCount .lyDots .lySort .lyIdx #lyBub
     .ppPlate .ppShelf .ppHd .ppMap .ppMap.big .pCard .pCard.no .pS .pS.rd .pS.rc .pS.ov .ppNew .ppDrop @ppLand .scSc .scPick .scCab @ppHit .ppNoneHd .ppShelf.shut .ppNone .ppNone
     @gPop .pF @pfIn @pfTear #arBurst @pfSpark @gSheen #gameBox .rpList .gHow .rkI .rkGold .rkLv .plIns
@@ -413,7 +413,7 @@ tools/app/head.html: #gSub .seg.jumpSeg .gIdx .cats.tiers .bingo .ranks.plain.cu
 tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow HG_EAGER HG_GAP hgLast hgPumpT hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
     hgSoon hangarCard tierIcons tierIcon gTrTab trProg trPips trMedal trRow trToGo trWon trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gScanKm gScanSet gGoldSet gme gmeAt gBusy
     gLeague gLeagueAt gAll gAnimT gLvFrom gStripSetup gRingP gLapSet gRingSet gGoPlate gHit gHitDo gGoing gGoLive gGoShow gSay gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
-    gCoins gLvT gLevelUp gJingle gRip gGold gBurst gLeagueLoad gPlates gPlateSplit renderGame G_SUBS G_PARTS LY_TAU LY_FAST TIX_MIN gSub gSubHas gSubBar gSubGo gIndexHtml gLimHtml gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gLastMin gSbyHtml gSbyFrom plateSheet gSbyOpen
+    gCoins gLvT gLevelUp gJingle gRip gGold gBurst gLeagueLoad gPlates gPlateSplit renderGame G_SUBS G_PARTS LY_TAU LY_FAST TIX_MIN gSub gSubHas gSubBar gSubGo gIndexHtml gLimFull gLimLine gLimOpen gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gLastMin gSbyHtml gSbyFrom plateSheet gSbyOpen
     RK_MET RK_CLOTH RK_WF RK_STAR RK_PLANE RK_LADDER rkDefs rkStar rkWings rkCap rankTitle rankIns
     ROMAN medalT achSpecial NUDGE_DO trophySheet medalNudge gLockOn gameStart
     SCHOOL fsState fsNext fsPts fsStill fsDate fsBox fsRecord fsBar fsCardAsked schoolMission fsQ fsBusy fsStamp fsShow fsThud fsWingsSvg sigLoad sigFailed sigFont fsName sigSvg fsSigHtml sigWrite fsWings

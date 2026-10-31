@@ -948,6 +948,20 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.122.1 (to-dos #236, #239; relay unchanged): **cut-offs, a look-alike, the limit line.** #236: the header's place
+  line (`updateWhere`) is "VIENNA · 15 KM" (no RADIUS word) in two spans, `.where .wn` (the name) and `.where .wr`
+  (the radius), in a one-line wrapping flex row: when both do not fit the radius wraps below and is clipped (shorten
+  first), and only a name too long on its own is cut with … (at 360 px a name of about 19 letters fits beside the chip).
+  The level card's progress line (`.cuLb`) has the columns `auto minmax(0,1fr) auto`, gap 6 px and .08em letter spacing, so "SENIOR FIRST OFFICER" fits
+  beside "3,000 TO GO" at 360 px (only levels 9 and 10 were cut; every rank and Legend n checked at 360 and 390 px). Today's
+  find box takes the All time search box's rule (`.tools .svFind input, .tdFind .svFind input`: 16 px, 40 px high) and
+  the same inset (`.lbFindBox` has no padding of its own); the search hint is "Search, e.g. OE-LBN, A380, Santorini" so
+  it fits at 360 px. Seen, not changed: "Airport" in the title is clipped at 360 px beside the points chip (before this
+  change too). #239: `gLimLine` (it replaced `gLimHtml`, whose counters had been unused since 1.116, and its `.gLim`
+  and `.gNote` CSS) is one line under the Standby's in `gSbyHtml`, the same `gSbyL` class: the rarity's icon in a
+  grey `.gSbyTg.lim` tag and "Special limit: 3 of 3"; with several rarities at their limit still one line, the count in
+  the tag and "Limits reached". A tap opens `gLimOpen`'s plate "Daily limit": the count of its limit, then "… score
+  again from 00:00 (the relay's `resets`). The other rarities still count." (several: the counts joined by " · ").
 - 1.122 (to-dos #231, #232, #229, #234, #235, #237; relay 103, below): **cleaner League, Today's rows, tickets.**
   #231 (Dave's words, not one of the mockups): `plFoot` (`.plFoot`, engraved like the plate's title, between the bottom
   screws; the brief's rule 7 allows one per panel) holds `resetsT(at)` ("Resets Mon 00:00", the relay's `resets`) on

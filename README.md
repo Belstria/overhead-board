@@ -522,7 +522,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   level 14, fresh each Monday 00:00 (they don't carry over). The covered day counts as a streak day but pays nothing,
   and the next scan goes on (Mon–Wed scanned, no scan Thursday: Friday's first scan is day 5, +125). The Spotters'
   Club's level card ends with This week's streak (scanned days amber, a covered day SBY) and one line, such as "Standby ready",
-  "Standby used Saturday" or, in red, "No standby left: scan by 23:59"; a tap on it or on the week opens the Streak panel: what the streak pays and, once you have one, how the standby works. No more close-pass factors, taper, streak multiplier or combo. Since 1.100 **bingo and trophies pay** too
+  "Standby used Saturday" or, in red, "No standby left: scan by 23:59"; a tap on it or on the week opens the Streak panel: what the streak pays and, once you have one, how the standby works. A rarity at its daily limit adds one more short line under it (since 1.122.1), "Special limit: 3 of 3", or "Limits reached" with the count when several are; a tap opens the Daily limit panel: when it scores again. No more close-pass factors, taper, streak multiplier or combo. Since 1.100 **bingo and trophies pay** too
   (from then on; earlier wins stay unpaid): +50 for each line on the weekly bingo card (rows, columns and diagonals) and +500 more for the full card,
   a new trophy rank +50 to +250 by its medal (bronze 50, silver 100, gold 150, platinum 200, diamond 250) and any other
   trophy +100. They count like every point (the day, the week's league, the level), show their +N on the achievement
