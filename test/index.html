@@ -3569,11 +3569,10 @@ function bingoReset(bg){
   if (!bg || !bg.week) return "";
   let at = +bg.resets || 0;
   if (!at) { const d = new Date(bg.week + "T03:00:00"); d.setDate(d.getDate() + 7); at = +d; }
-  const left = at - Date.now();
-  if (!(left > 0)) return T("New card soon");
-  const t = left >= 48 * 36e5 ? T("{n} days", {n: Math.round(left / 864e5)}) : left >= 36e5 ? T("{n} h", {n: Math.floor(left / 36e5)}) : T("{n} min", {n: Math.max(1, Math.ceil(left / 6e4))});
-  return T("New card {d} (in {t})", {d: new Date(at).toLocaleString(LOC(), {weekday: "short", hour: "2-digit", minute: "2-digit"}), t});
+  return resetsT(at);
 }
+// 1.122: the week's reset, from the relay's time: "Resets Mon 00:00".
+const resetsT = at => !at ? "" : at > Date.now() ? T("Resets {d}", {d: new Date(at).toLocaleString(LOC(), {weekday: "short", hour: "2-digit", minute: "2-digit"})}) : T("Resets soon");
 function trophyText(k){
   const t = TROPHY_TIER.get(k);
   if (t) return [T(t.name), T(t.text, {n: nf.format(t.at)})];
@@ -7873,6 +7872,14 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.122", date: "2026-10-31", notes: [
+    "Today's rows: no more pills. The bubble shows how rare the plane is, a target marks a plane you scanned, and an emergency or a diversion gets a flag.",
+    "Recent flights on Now shows every status word as a pill.",
+    "The league: everyone who scores points is in it, and the rows are cleaner. The league and bingo panels have a small note with the weekly reset.",
+    "Trophies: Won and Left show their counts on the switch.",
+    "Tap the week on your level card for what the streak pays, along with the standby.",
+    "Shorter notes on the scan tickets, and Your route and How points work look like the other panels.",
+  ]},
   {v: "1.121", date: "2026-10-31", notes: [
     "Sky view: a new button lines the labels up on the sun or moon. Put it in the circle, and the camera or the Align button does the rest.",
     "Sky view's title now shows one number: the planes around you.",

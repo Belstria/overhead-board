@@ -2186,6 +2186,11 @@ def checks():
     pw = json.loads(call(f"/game/player?id={mine.get('id', '')}", "test-device")[2]) if mine.get("id") else {}
     expect("the wings in /game/me, the league's rows and the player card (the rank's pin)",
            (type(me.get("wings")), type(mine.get("wings")), type(pw.get("wings"))), (bool, bool, bool))
+    # relay 103: no more opting out: an old settings' "league": false is ignored, a scorer stays in the league
+    call("/me", "test-device", body={"settings": {"league": False}})
+    pw2 = json.loads(call(f"/game/player?id={mine.get('id', '')}", "test-device")[2]) if mine.get("id") else {}
+    expect("an old league: false is ignored: the player's card still there", (pw2.get("id"), pw2.get("me")), (mine.get("id"), True))
+    call("/me", "test-device", body={"settings": {"league": True}})
     # relay 71: Recent points, today's awards per plane (relay 76: the passive tenth, the scan and its extras); the
     # profile's own only
     today = lambda ck: json.loads(call("/game/today", ck)[2])     # noqa: E731
