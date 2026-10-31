@@ -834,7 +834,14 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .verdict[data-ok=meh]>i{background:var(--amber);box-shadow:0 0 8px var(--amber)}
 .verdict[data-ok=bad]{border-color:rgba(199,55,45,.55);background:rgba(199,55,45,.14)}
 .verdict[data-ok=bad]>i{background:var(--c-bad);box-shadow:0 0 8px var(--c-bad)}
-.gIdx{margin:0 0 12px}
+#t-game .secPlate.gClub{margin:10px 0 0}      /* 1.122.2: the second plate under Your level */
+.gRows{display:grid}
+.gRows button{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:44px;font:600 var(--fs-m)/1.2 var(--f-board);color:var(--ink)}
+.gRows button+button{border-top:1px solid rgba(255,255,255,.07)}
+.gRows button:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
+.gRows b{flex:1;font:600 var(--fs-base)/1.2 var(--f-board);color:var(--ink)}
+.gRows span{font:500 var(--fs-s)/1.2 var(--f-board);color:var(--muted)}
+.gRows i{font-style:normal;color:var(--muted);font-size:var(--fs-xl);line-height:1}
 /* 1.116: Favourites & hidden: two rows with their count and Add; the list opens in place; what they do behind the (i) */
 .favPlate{position:relative}
 .iBtn{all:unset;box-sizing:border-box;cursor:pointer;position:absolute;top:6px;right:30px;z-index:2;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;

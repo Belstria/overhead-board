@@ -583,8 +583,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   add up; a plane past its limit in grey with the reason; points from before relay 71 show without times); at its foot a link to the club. The
   **Spotters' Club** (the **Club** key in the app's bottom bar since 1.120; since 1.116 with **tabs** under the header that
   show one part at a time: **Level**, League (with this week's Bingo, the Records and the Trophies under the league), Hangar, Passport and Cards.
-  Level shows your level card, then one line for each of the others, such as "#1 this week · ends 1 Nov" or "0 of 9
-  done"; a tap opens that tab. The level card names the next unlock ("Next unlock · level 10"); a tap on the rank, the
+  Level shows your level card, then a second plate, "Your club", with one row for each of the others, such as "#1",
+  "9 of 138" or "3 of 9"; a tap opens that tab. The level card names the next unlock ("Next unlock · level 10"); a tap on the rank, the
   progress line or the next unlock opens all 20 levels; the rarity counters are in How points work): the
   level, the **league** (this week, or all time, by first name; everyone who scores points is in it, and since 1.122 a small note at
   the bottom of the League and Bingo panels says when the week resets, the League's with last week's winner; since 1.102 each player's **rank insignia** beside their name, from level 19 the name in gold), today, how points work, the collections, records, bingo and trophies (no longer in the
