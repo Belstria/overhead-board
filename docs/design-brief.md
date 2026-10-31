@@ -37,17 +37,15 @@ two days later mockups again carried sentences and a second row of tabs. These r
 **Navigation**
 
 8. **Five keys in the bottom bar.** Never a sixth; a new area lives inside one of the five.
-9. **One row of tabs or segments under the header at most.** Today's exception: the Logbook key carries the Logbook |
-   Spotters' Club switch and the Club's five sub-tabs. Dave's fix (30 Oct, not built): Today moves into the Logbook
-   as a Today | All time row at its top, opening on Today, and the Club takes the freed key. No other exception.
+9. **One row of tabs or segments under the header at most.** No exception.
 10. **Three taps from the bottom bar to any fact at most**: a key, a tab, a row or card. A fourth level means a level
     has to go.
 11. **Panels, not pages.** Anything that opens rises as the bottom sheet with the original plate inside (screws,
     engraved title): no sliding pages, no back header, no new routes. Things that expand in place keep doing so. A
     card with a detail panel opens it on a tap anywhere on the card, with no extra "All N ›" row for it; index rows
     (a label and a one-line state) stay, they are the way into a panel of their own.
-12. **The first screenful answers the screen's question.** Now: what is over me. Today (its own key until it moves
-    into the Logbook): what came. Logbook: what I have ever seen. Club: how am I doing. Radar: what is around.
+12. **The first screenful answers the screen's question.** Now: what is over me. Today (the Logbook's first pane):
+    what came. All time (its second): what I have ever seen. Club: how am I doing. Radar: what is around.
     Settings: what can I change. The rest after a scroll or a tap.
 13. **Empty things fold away.** A category with 0 is hidden or folded with a count. A list inside a card or panel stops
     at five rows and "All N ›" opens the rest; the list a screen exists to show (Today, the league, search) runs on.
@@ -72,7 +70,7 @@ two days later mockups again carried sentences and a second row of tabs. These r
 **The check** (before sending a mockup, before opening a PR)
 
 - Read every card at rest: a sentence? Move it behind a tap. A number without a name? Name it.
-- Count: keys = 5, rows of tabs ≤ 1 (the Club aside), taps to any fact ≤ 3, help lines per screen ≤ 1.
+- Count: keys = 5, rows of tabs ≤ 1, taps to any fact ≤ 3, help lines per screen ≤ 1.
 - Each new page, tab, key, row or setting: what did it replace, or which row does it sit behind?
 - Each notice or ticket: does a stranger know what kind of thing is named and what to do?
 - Each new element: which existing class? Repeated panels: same facts, same height? `CLAUDE.md`'s rules kept?
@@ -96,19 +94,20 @@ in the sheet a tap opens; the engraved plate title on every sheet.
 - **Removed on request, don't bring back**: the list in `CLAUDE.md`. The flap clock left the app's header on 30 Oct
   (Dave's pick) and doesn't return.
 
-## 3. The app today (1.119.1, 30 Oct 2026)
+## 3. The app today (1.120, 31 Oct 2026)
 
 - **Header**: the logo, the style name with the switch to the other style (Overhead ⇄ Airport), the place and radius,
   the points-and-level chip top right ("9,950 pts · paused", "LEVEL 9", the rank's lapel in a progress ring to the next
   level), the connection dot. Nothing else goes in the header.
-- **Bottom bar**: Now, Today, Logbook, Radar, Settings.
+- **Bottom bar**: Now, Logbook, Club, Radar, Settings (four without the Club when there is no game: demo mode, no relay, an old relay).
 - **Now**: the checklist bar for a new user, the plane overhead on the flaps, its picture, the Sky view row, recent
   flights, the notices bar; scan tickets and undo notices rise from below.
-- **Today**: title and filter field, four named numbers, the Highlights card (opens "Today in numbers"), a segmented
-  filter, the timeline rows (time, flight, route, type, marks at the end, a pill when the status earns one).
-- **Logbook**: the Logbook | Spotters' Club switch. Logbook: search, four named numbers, the year card, index rows
-  (Categories, Aircraft types, Airlines, Most seen aircraft, Download as CSV) that open panels. Spotters' Club: sub-tabs
-  Level, League (with Bingo and Trophies under it), Hangar, Passport, Cards.
+- **Logbook**: a Today | All time row, opening on Today. Today: four named numbers, the Highlights card (opens "Today
+  in numbers"), the timeline rows (time, flight, route, type, marks at the end, a pill when the status earns one); a
+  filter icon at the end of the row swaps the numbers and Highlights for the find box and the segmented filters. All
+  time: search, four named numbers, the year card, index rows (Categories, Aircraft types, Airlines, Most seen
+  aircraft, Download as CSV) that open panels.
+- **Club**: sub-tabs Level, League (with Bingo and Trophies under it), Hangar, Passport, Cards.
 - **Radar**: title, (i), a cogwheel chip with the range that opens the range-and-map plate, the radar, the Nearest table.
 - **Sky view**: from Now; AUTO alignment always on with an "apply?" prompt, a mini radar bottom left, edge chips for at
   most three off-screen planes, the count "1 in view · 3 around".
