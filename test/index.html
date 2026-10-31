@@ -4277,7 +4277,7 @@ function viewStatic(g){
 function renderAirport(){ if (!view && page === "aplists") renderApLists(); }
 function rwyChanged(){ if (!view && !switching && !bigFlap.on) drawStatic(); }
 function renderApLists(){
-  for (const [k, list] of [["d", AP.deps], ["a", AP.arrs]]) for (let i = 0; i < 5; i++) {
+  for (const [k, list] of [["d", apShown(AP.deps)], ["a", apShown(AP.arrs)]]) for (let i = 0; i < 5; i++) {
     const e = list[i], id = c => `apl${k}${i}${c}`, d = i * 60;
     setChars(id("time"), e && e.t ? hhmm(new Date(e.t)) : "", d);
     setChars(id("flight"), e ? apFlight(e) : "", d + 20);
@@ -7625,6 +7625,9 @@ async function placesCard(){
    rolls out on the ground. The board shows the two lists in place of the plane overhead (Settings → Board). */
 const airportMode = () => S.mode === "airport";
 const AP_ROWS = 5;
+// 1.123.0.2: hidden planes stay off the Take-offs and Landing lists and the top half; AP.deps and AP.arrs themselves stay whole.
+const apShown = list => userLists.hide.length ? list.filter(e => !hiddenAc(e.ac)) : list;
+const apCut = list => { let n = 0, i = 0; for (; i < list.length && n < AP_ROWS; i++) if (!userLists.hide.length || !hiddenAc(list[i].ac)) n++; return list.slice(0, i); };   // five shown rows, hidden ones before them kept
 const AP = {code: "", lat: null, lon: null, name: "", city: "", asked: "", deps: [], arrs: [], seen: new Map(), rwys: []};
 // The home airport's position: from the board's own table (Vienna), otherwise asked of the relay (18 or newer).
 function airportPos(){
@@ -7700,7 +7703,7 @@ function airportProcess(list){
   deps.sort((a, b) => (a.st === "TAKE-OFF" ? 0 : 1) - (b.st === "TAKE-OFF" ? 0 : 1) || b.t - a.t);
   arrs.sort((a, b) => (a.st === "LANDED" ? 1 : 0) - (b.st === "LANDED" ? 1 : 0) || (a.st === "LANDED" ? b.t - a.t : a.t - b.t));
   rwyTrack([...deps, ...arrs], now);
-  AP.deps = deps.slice(0, AP_ROWS); AP.arrs = arrs.slice(0, AP_ROWS);
+  AP.deps = apCut(deps); AP.arrs = apCut(arrs);
   const line = rwyLine();
   if (line !== AP.rwyLine) { AP.rwyLine = line; if (typeof rwyChanged === "function") rwyChanged(); }
   renderAirport();
@@ -7843,11 +7846,13 @@ function rwyAgain(paint){
 // until the next landing is a few kilometres out or a take-off starts.
 const AP_LINGER_KM = 6;
 function apFocus(which){
-  const coming = AP.arrs.find(e => e.st !== "LANDED"), going = AP.deps[0], landed = AP.arrs.find(e => e.st === "LANDED");
+  // 1.123.0.2: a hidden plane never takes the top half
+  const arrs = apShown(AP.arrs), deps = apShown(AP.deps);
+  const coming = arrs.find(e => e.st !== "LANDED"), going = deps[0], landed = arrs.find(e => e.st === "LANDED");
   const near = coming && coming.dist <= AP_LINGER_KM ? coming : null;
   if (which === "arr") return near || landed || coming || null;
   if (which === "dep") return going || null;
-  return AP.deps.find(e => e.st === "TAKE-OFF") || near || landed || AP.arrs.find(e => e.st === "FINAL") || coming || going || null;
+  return deps.find(e => e.st === "TAKE-OFF") || near || landed || arrs.find(e => e.st === "FINAL") || coming || going || null;
 }
 function apFeature(all){
   if (all) AP.all = all;
@@ -7874,6 +7879,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.123.0.2", date: "2026-10-31", notes: [
+    "A plane you hide no longer shows on the Airport board, on top or in its lists.",
+  ]},
   {v: "1.123.0.1", date: "2026-10-31", notes: [
     "A plane you hide leaves the board at once, and the next one takes its place.",
   ]},
@@ -9870,7 +9878,7 @@ function boardTap(x, y){
     }
   }
   if (page === "aplists") {
-    for (const [k, list] of [["d", AP.deps], ["a", AP.arrs]]) for (let i = 0; i < 5; i++) {
+    for (const [k, list] of [["d", apShown(AP.deps)], ["a", apShown(AP.arrs)]]) for (let i = 0; i < 5; i++) {
       const id = fieldAt(["time", "flight", "city", "st"].map(c => `apl${k}${i}${c}`), x, y), e = list[i];
       if (!id || !e) continue;
       if (id.endsWith("city")) return placeCard(e.info && (k === "d" ? e.info.to : e.info.from));
@@ -9886,7 +9894,7 @@ function boardTap(x, y){
   }
 }
 // The lists changed (a favourite, a hidden plane): draw what depends on them.
-function listsChanged(){ favCounts(); lookAgain(); if (!view) { renderFeatured(); renderPage(); } else if (view === "spotted") renderSpottedBoard(); }   // 1.123.0.1: a hide, a removal or a failed save picks the plane on top again at once
+function listsChanged(){ favCounts(); listsRepick(); if (!view) { renderFeatured(); renderPage(); } else if (view === "spotted") renderSpottedBoard(); }   // 1.123.0.1: a hide, a removal or a failed save picks the plane on top again at once
 function planeAgain(){ if (planeShown && planeTok === cardTok && cardOpenNow()) { const b = planeBody(planeShown); const el = $("cardBox").querySelector(".cardIn"); if (el) { el.innerHTML = `<button class="cardX" type="button" aria-label="${escH(T("Close"))}">×</button>` + b.html; el.querySelector(".cardX").onclick = cardClose; b.wire(el); } } }
 ["pointerdown", "keydown", "touchstart", "touchend"].forEach(ev => addEventListener(ev, () => { audioInit(); keepAwake(); }, {passive: true, capture: true}));
 let idleT = null;
@@ -9946,6 +9954,12 @@ function lookAgain(){
   try { process(lastList, true); } catch (e) { dlog("error", `Couldn't look again: ${e && e.message || e}`); }
 }
 setInterval(lookAgain, 2000);
+// A change to the lists (hide, remove, a failed save putting them back) picks the plane on top again at once: in the Airport style
+// by its own pick (1.123.0.2), which the 2 s look-again never runs.
+function listsRepick(){
+  if (!airportMode()) return lookAgain();
+  try { apFeature(); airportChanged(); } catch (e) { dlog("error", `Couldn't pick the plane again: ${e && e.message || e}`); }
+}
 
 async function start(){
   pickLang();

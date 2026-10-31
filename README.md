@@ -244,7 +244,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   follow them. Favourites are marked FAVOURITE, chime and can notify (since 1.84 they take the top half and chime once
   they are overhead or approaching); hidden planes stay off the board's top half,
   the lists, the radar and the notifications (still counted in the logbook); a plane you hide while it is on top goes at
-  once (1.123.0.1) and the next one, NEXT or NO TRAFFIC takes its place. The board's old Favourites text in
+  once (1.123.0.1; the Airport board's top half and lists too, 1.123.0.2) and the next one, NEXT or NO TRAFFIC takes its place. The board's old Favourites text in
   Settings still works and moves into the list the first time the app opens.
 - **Updates every 5 seconds in the app** (boards: 10, Settings → Update every), and planes on the radar glide: each is
   moved on along its track, and a new position is blended in over a second instead of a jump.

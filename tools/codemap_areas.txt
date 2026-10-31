@@ -320,7 +320,7 @@ changelog: live location|location|place|address|on the go|town
 
 [airport] Airport style: the airport's planes, runways in use, the runway screen, the take-off and landing lists
 test/index.html: AIRPORTS +AP_ICON +AP_PATH +AP_LEVEL +apSvgInner +apSvg +apPaths +drawApIcon +rwyFeat +pageOrder
-    renderAirport rwyChanged renderApLists airportChanged airportMode AP_ROWS AP airportPos queryCenter airportProcess
+    renderAirport rwyChanged renderApLists apShown apCut airportChanged airportMode AP_ROWS AP airportPos queryCenter airportProcess
     rwyFrom RWY_USED rwyGeo rwyMatch rwyTrack rwyInUse rwyLine RWY_MIX RWY_MIX_MS rwyClose rwyMix paintRunwayScreen
     rwyTimer rwyAgain AP_LINGER_KM apFocus apFeature apTimer scheduleAirport apFlight apPlace +nearestAirport
     +nearbyAirports 'pdef("aplists"' 'for (const k of ["d", "a"]) for (let i = 0; i < 5; i++)'
@@ -611,7 +611,7 @@ changelog: flightradar24|fr24|gap|painted as|credits
 [startup] Start and the main loop: poll, start, the first picture, hello to the relay, fullscreen, wake lock, idle cursor
 test/index.html: SNAP_KEY snapShown snapAt snapLoad snapLive snapSave relayV12 sayHello addEventListener("pagehide")
     wakeLock keepAwake toggleFullscreen +tapAt +tapTimer idleT wake ["mousemove","keydown","touchstart"].fo… timer
-    busy lastList lookAgain pollSeq poll start css:body.idle #snapTag
+    busy lastList lookAgain listsRepick pollSeq poll start css:body.idle #snapTag
 tools/app/head.html: #snapTag
 tools/app/main.js: relayV12 sayHello addEventListener("pagehide") start booted run
 relay/serve.py: +board_html /hello /bye

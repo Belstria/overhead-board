@@ -948,12 +948,19 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.123.0.2 (to-do #245; relay unchanged): **a hidden plane no longer shows on the Airport board, on top or in its lists.** `apShown(list)`
+  leaves the planes `hiddenAc` names out of `AP.arrs`/`AP.deps`, which stay whole: `apFocus` (the top half), `renderApLists` and its
+  click handler (board), `renderAirport` (both Now lists and the signature that redraws them) and the app's list-tap handler (`APDP`, `APAP`); the app's Take-off and Landing pages follow `apFocus`.
+  `apCut` keeps five shown rows when `airportProcess` cuts the lists (hidden ones before them stay), so a
+  hidden plane doesn't use a row. `listsRepick()` (both `listsChanged`) re-picks and redraws at once: `lookAgain()` in the Overhead
+  style, `apFeature()` + `airportChanged()` in the Airport style, which the 2 s look-again never ran. A row that a hide frees
+  fills up with the next plane at the next update (5-10 s), not at once.
 - 1.123.0.1 (to-do #244; relay unchanged): **a hidden plane on top goes at once.** `process()` drops `feat` first thing when
   `feat.o` is hidden (`hiddenAc`; a snapshot's `feat` too; not in the Airport style), so neither the pick nor the HOLD branch
   (PASSED for 25 s) can keep it. `lookAgain()` is the 2 s look-again timer's body; both `listsChanged`s (board, `main.js`) call
   it, so a hide, a removal or a failed save (`listsShow`) re-picks at once with `process(lastList, true)`, under the timer's
-  guards. No extra ding: `feat.dinged` and `chimed` are per plane. The Airport style's `apFeature` does not filter hidden planes
-  and is unchanged.
+  guards. No extra ding: `feat.dinged` and `chimed` are per plane. The Airport style: 1.123.0.2
+  (`listsRepick`).
 - 1.123 (to-do #241, Dave's pick C; relay unchanged): **the phone's Logbook, one screen.** `#t-today` and `#t-logbook` are one
   section, `#t-logbook`; `tab` is "logbook" (`TAB_PAGES` has no "today", `tabKey` went). From the top: `.lbSeg` holds the search
   (`#lbFindBox`, 44 px) and the filter icon (`#tdFil`); the strip `#lbStrip` holds three twin plates (`.lbPlate`, `lbPlateHtml`:
