@@ -174,7 +174,7 @@ test/index.html: view viewTimer viewTouched staticSub onMainPage VIEW_NAMES VIEW
     updateRail updatePager railPlate addEventListener("hashchange") +boardTap .rail .cap #railPages @lampOn #viewTools
     #railViews +document.addEventListener("keydown")
 tools/app/head.html: .tools #tabs .cap.ping @ping .tabHead .tabX #tabRow
-tools/app/main.js: ICON TAB_ICONS TABS tab tabTimer onMainPage buildTabs pingNow showTab
+tools/app/main.js: ICON TAB_ICONS TABS TAB_PAGES tabKey clubKey tab tabTimer onMainPage buildTabs pingNow showTab
     addEventListener("hashchange")
 README.md: "- **Views on the board**" "Press **S** for settings"
 changelog: view|rail|button|tab\b|tabs
@@ -186,10 +186,10 @@ test/index.html: SV_ROWS DAY_START_H boardDay todayKey loadLog saveLog SAME_PASS
     altNum svPart svSignature renderSpottedBoard fitText SV_X drawSpottedTable svStep setLegend legendGroups
     legendChip drawLegend SV_TOOLS .svFind +renderSpotted +recentShown
 tools/app/head.html: .flights .fl .chip .legend #svList.wait #svList #svSum #svTools #t-today #todayFacts .dayFacts #todayP
-    #todayTop .tdHead .tdFind .tdNums .tdHl .tlHead .tline .tlFoot .tlCard .tlBg .tlK .tlX .tlWas .tlGone #recentN #recentFoot #recentAll
+    #todayTop .tdFind .tdFil .lbSeg .tdNums .tdHl .tlHead .tline .tlFoot .tlCard .tlBg .tlK .tlX .tlWas .tlGone #recentN #recentFoot #recentAll
 tools/app/main.js: TODAYP spotted logDay rollDay syncSightings fullDay loadFullDay dayList chip distText altText
     rowHtml rowSig svFilter svSig todayList svData SV_TOOLS buildSvTools legendHtml todayNumbers
-    TD_PLATE TD_FACTS todayFactsSig tdSig renderTodayNumbers tdOpen $("tdHl").onclick todayJump renderToday renderLists
+    TD_PLATE TD_FACTS todayFactsSig tdSig renderTodayNumbers tdOpen $("tdHl").onclick tdFilter $("tdFil").onclick todayJump renderToday renderLists
     tlKey plainCode noFlightNo rowName noRoute tlNode rowMarks FLAG_SVG rowInner tlPic tlCardSig tlAsking tlAhead tlAgo tlCardHtml cardLi
     tlHtml tlState tlFinding tlNothing tlOpenId tlTok tlRunning tlCap tlAgain tlBusy tlFill tlWire tlLate tlDone
     tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd tlTap tlOpen tlFold tlScroll sightPlane
@@ -214,7 +214,7 @@ test/index.html: LB_ROWS RV_ROWS LB_CATS LB_RECS LB_RECS.forEach LB_BOX lbBox LB
     .lbSub .pickList +VIEW_FIELDS +layout +drawStatic +BOARD_TIPS +document.addEventListener("keydown") +boardTap
     +#viewTools 'vdef("logbook"'
 tools/app/head.html: .ranks .cats .yearCard .yNums .yFacts .reviewCard .rvTools .yActs .model .lbFindBox
-    #t-logbook.finding #lbFound .lbfPin .seg.lbViews .secPlate .perCard .lbTabs .perHead .perArr .sum.lbFoot .dd
+    #t-logbook.finding #lbFound .lbfPin .seg.lbViews .secPlate .perCard .perHead .perArr .sum.lbFoot .dd
     .seg.catSeg .catRow .lbfRead #lbFindBox #lbLists #lbSum #lbViews #t-logbook #lbNums #lbYear #lbIdx .perMore
     .perMoreIn
 tools/app/main.js: lbCache lbError fetchLogbook lbSig lbView lbViewsBar lbQuery lbFindT lbFindTok lbFindSetup
@@ -440,11 +440,11 @@ tools/test/flows.py: "the game (relay 59)" "relay 71: Recent points" "relay 63: 
 changelog: game|point|level|league|trophy|trophies|bingo|achievement|hangar|medal|spotters' club|lock-on
 
 [skyview] Sky view and Where to look: camera, compass and gyroscope, labels, AUTO, sun and moon, the ribbon, reports
-tools/app/head.html: .look .lookH .lookRow .lookTxt .lookActs #lookCv #arView .arTitle .arIb .arMoved .arZoom .arZoomL .arAsk .arMini .arAround .arTour
+tools/app/head.html: .look .lookH .lookRow .lookTxt .lookActs #lookCv #arView .arTitle .arIb .arMoved .arZoom .arZoomL .arAlignBar .arAlignGo .arAlignPick .arMini .arAround .arTour
     .arTourBox .arTourAct .arTourRing @arPulse .arTourDrag .arTourPlane .arTourLab .arTourFinger @arDragLab
     @arDragFinger .arShut .arFlash @arFlash .arL .arPeekL .arFullL .arGrip .arPeek .arThumb .arPeekT .arSwipe @arNudge
-    .arGhost @arSheetIn css:body.arOpen .skyRow #skyCv .liveAsk .liveGo .liveNo #arAsk #arMini #arMiniCv #arBtn #arBtn2 #arCal #arCard
-    #arClose #arCount #arCv #arFlag #arHint #arInfo #arMoved #arReset #arRib #arShut #arTour #arVid #arZ2 #arZ5 #look #lookDir
+    .arGhost @arSheetIn css:body.arOpen .skyRow #skyCv .liveAsk .liveGo .liveNo #arMini #arMiniCv #arBtn #arBtn2 #arCal #arCard
+    #arClose #arCount #arCv #arFlag #arHint #arInfo #arMoved #arAlign #arAlignBar #arAlignPick #arAlignGo #arRib #arShut #arTour #arVid #arZ2 #arZ5 #look #lookDir
     #lookSub #skyB #skyRow #skySub
 tools/app/main.js: lookHeading lookOn lookRaf lookErr lookErrAt lookWhy lookWhyLogged lookAt drawLook lookWhyDraw
     drawTape lookSoon lookHeadingFrom lookStart arPossible arOn arSince arStream arList arListAt arQ arQt arGap arGapT
@@ -455,12 +455,11 @@ tools/app/main.js: lookHeading lookOn lookRaf lookErr lookErrAt lookWhy lookWhyL
     arClose WMM_EPOCH WMM_C magCache magField magDecl skyBodies arProject arUnproject arPicSig arLoop arSpotIdx arSpotMap arLabel arInfoOf arName arType arTextW arTW arLabelDraw arReportOk arR1 arReport
     $("arFlag").onclick arShotAt arShownN arLocked arLift arSnapping arSnap arBrackets AR_AUTO_MS AR_AUTO_R AR_AUTO_N
     arAutoAt arAutoFinds arAutoLock arAutoPause arAutoSaved arCan arCx AR_AUTO_RATE arFindLog arTurnNow arFindNote arAutoStep arFind arSunCan arSunCx
-    arSunFind AR_ASK_DEG AR_ASK_NEW AR_ASK_QUIET AR_ASK_GONE arAsk arAskGo arAskNo arGlide arAskN arAskShow arAskHide arAskApply
-    arAskNot AR_LABEL_UP arTopOut AR_CHIP_H AR_CHIP_UP AR_CHIP_GAP arChipTurn arBounds arChipBounds arChipsAt arChipsDraw AR_MINI arMiniSig arAroundNow arMini arAroundOpen $("arMini").onclick arBody arBodyAt arBodiesAt arBodiesDraw arBodyEdge AR_RIB arRibSig arRibbon arMove
+    arSunFind AR_ALIGN_R AR_ALIGN_WIN AR_ALIGN_N AR_ALIGN_MS AR_ALIGN_TOL AR_ALIGN_FAR_AZ AR_ALIGN_FAR_EL AR_ALIGN_DONE arAlign arAlignUndo arAlignLog arMoonSaw arAlignT arMoonCan arMoonCx arAlignUp arSunUpAt arAlignNote arAlignSeen arAlignBar arAlignBtn arAlignMoved arAlignShow arAlignOpen arAlignStart arAlignEnd arAlignCancel arAlignDo arAlignBack arAlignReset arAlignPress arAlignStep arMoonFind $("arAlignGo").onclick AR_AUTO_NEAR arAligned arGlide AR_LABEL_UP arTopOut AR_CHIP_H AR_CHIP_UP AR_CHIP_GAP arChipTurn arBounds arChipBounds arChipsAt arChipsDraw AR_MINI arMiniSig arAroundNow arMini arAroundOpen $("arMini").onclick arBody arBodyAt arBodiesAt arBodiesDraw arBodyEdge AR_RIB arRibSig arRibbon arMove
     arWeather arHeight arAimStep arScans arScanned arAimDraw shortType arDragStart arDragMove arDragEnd arMovedNote AR_TOUR arTour
     $("arInfo").onclick arTap arCardSig AR_PEEK_MS arFull arAwayAt arP arPeekHtml arCardRender arSet arRoom arTo
     arPeekWatch arCardDismiss $("arBtn").onclick $("arBtn2").onclick $("skyCv").onclick arTry arGoing arGoLive skyRowRender
-    $("arClose").onclick $("arShut").onclick $("arReset").onclick $("lookCv").onclick lookAuto
+    $("arClose").onclick $("arShut").onclick $("arAlign").onclick $("lookCv").onclick lookAuto
     addEventListener("pointerup") +gLockOn
 relay/serve.py: +metar +sky_json SKY_REPORTS_MAX SKY_REPORT_DROP sky_report_clean sky_report_save /skyreport /sky
 tools/app/WMM.COF: "WMM"

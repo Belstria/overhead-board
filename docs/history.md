@@ -948,11 +948,39 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
-- 1.120.1 (to-do #233; relay 102): **one day for everything, 00:00 to 23:59.** `DAY_START_H = 0` (board) as `DAY_STARTS_H`
+- 1.121.1 (to-do #233; relay 102): **one day for everything, 00:00 to 23:59.** `DAY_START_H = 0` (board) as `DAY_STARTS_H`
   (relay); `reviewTime` is 21:00 to 23:59; `ppToday`, the streak ticket's weekday and `demoReview` no longer step back 3
   hours. A time from a relay's `resets` shows as it is when something starts ("New card Mon 00:00", "score again from
   00:00"); `gLastMin` (a minute before) is the deadline ("scan by 23:59", "The week ends 1 Nov, 23:59", which fixes that line's
   date). Old rows of `test/i18n.js` keep their 03:00 and are unused.
+- 1.121 (to-do #223, Dave's combination of mockups A and B): **align on the sun or moon.** `#arAlign` (the corners, in `#arReset`'s
+  place) opens the step (`arAlignOpen`, `arAlignStart`; `#arView.aligning` hides the labels, chips, mini radar, ribbon, zoom, (i)):
+  the ring at `AR_ALIGN_R` (24 px, `arAimDraw`, its fill = `arAlign.prog`), the target's own dashed ring or edge arrow, one
+  bar in the hint's place (`#arAlignBar`, `arAlignShow`, with "Don't look into the sun" while the sun is the target), ☀ ☾
+  (`#arAlignPick`) when both are up, the Align button `#arAlignGo` (`.arShut`) where the shutter goes. `arAutoStep` hands
+  over to `arAlignStep` while it is open: `arSunFind` (whole picture, as before) or the new `arMoonFind` (only `AR_ALIGN_WIN`
+  px round the middle at the video's resolution: a patch at 60 % of the way from the rim's median to the top, 0.2–4° across,
+  round, alone, not cut; thin moons may be longer); `AR_ALIGN_N` finds in the ring within `AR_ALIGN_MS` agreeing to
+  `AR_ALIGN_TOL` line up (`arAlignDo`: `arGlide`, `arAligned`, `arHold`). `arAlignPress` is the sum alone (the middle of the
+  screen against the body; `AR_ALIGN_FAR_AZ/EL` say "That's not the sun"). Undo `arAlignBack`; Reset `arAlignReset` (⟲'s code), in the
+  bar, shown once anything moved; neither up: `arSunUpAt`. **AUTO's Apply card went (Dave):** `arAsk*` and `#arAsk` are gone: before an alignment AUTO's finds move nothing, after one
+  only finds within `AR_AUTO_NEAR` of the labels or twice that of `arAligned` glide on (a drag sets `arAligned` too). The hint's sun and moon sentences went.
+  The title is one number (`{n} around`). `#arFlag` moved into `.arBot`, bottom right, still `arReportOk()`; the report is v 4 with
+  `align` (the last 12 endings: finder, button, far, cancel, switch, undo, reset, down; tries, seen, inRing, `why` from
+  `arMoonSaw`, the correction) and `alignNow`. Tested only on a fake camera and sensors, never a real sky.
+- 1.120 (to-dos #222, #225, Dave's pick A; Club icon: his pick C, the trophy): **the new bottom bar: Now, Logbook, Club,
+  Radar, Settings.** `TABS` are the keys, `TAB_PAGES` the pages; `t-today` and `t-logbook` stayed two sections, the panes of
+  the Logbook key (`tabKey`; the key opens `today`, the hashes `#today`, `#logbook` and `#game` are as before). `.lbSeg` is the
+  Today | All time row (`.seg.gSeg`, `data-lt`), stuck under the header in both sections; `.lbTabs` and `--lbH` went. `#gSub`
+  sticks directly under the header. `clubKey` hides the Club's key when `gameOk()` is false. Today: `tdFilter` puts
+  `.tdFilOn` on the section, swapping `#tdNums`/`#tdHl` for `#tdFind`, `#svTools`, `#svSum`, `#svPlaces` (back closes it;
+  arriving on Today from elsewhere closes it; `.tdFil.act` is the dot for a filter on behind it). A day without planes:
+  one line, numbers hidden. Swipe: `order` in the handler; never on a plane's row (`swipeRow`, its own swipes) or an open
+  card. Tips: tab-today went, tab-logbook has new words, allplaces comes when the filter opens; no tab-club (no old tip
+  covered the Club's key; gstrip stays). Bug on the way: a notification tapped while the web app was open on anything but
+  Now went to Now (`w.navigate` only changed the hash, which the back guard's popstate took for a back); sw.js now posts
+  `{type: "tab"}` to an open /app/ page.
+
 - 1.119.3 (to-dos #219, #220, #227, #221, #228; relay 101): **the period panels as twins, the standby's one line, the level
   card's taps.** #219: `periodHtml` draws week, month and year alike (`reviewFacts` for all three; `yearFacts` went; `yearReview`
   puts a year in its form), a dash for what's missing or on its way, one "More" (`PER_MORE`). `perLoad`/`perHas`/`perWant`: a
@@ -1856,7 +1884,7 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
-- Relay 102 (1.120.1, to-do #233): **the day starts at 00:00.** `DAY_STARTS_H = 0`: `board_day`, `_next_day_ms`, the
+- Relay 102 (1.121.1, to-do #233): **the day starts at 00:00.** `DAY_STARTS_H = 0`: `board_day`, `_next_day_ms`, the
   league's and bingo's `resets` and `dayStarts` follow. Everything saved is keyed by the date, so nothing moves: past
   `sightings-<day>.json` keep what the old rule put in them (a plane at 00:30 stays with the evening before), and
   `scanDays`, `standby`, `days`, `limits` and `bingoPay` carry on. Install between 03:00 and 23:59: inside 00:00 to 03:00

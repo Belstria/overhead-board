@@ -226,10 +226,9 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .dayFacts button.dayJump:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
 /* 1.115 (to-do #206, Dave's pick B): Today: the title with the filter beside it, four labelled numbers, the Highlights
    card (it raises the day's plate as a sheet, tdOpen), the filter chips, the list */
-.tdHead{display:flex;align-items:center;gap:12px;margin:2px 0 12px}
-.tdHead h2{margin:0;flex:none}
-.tdFind{flex:1;min-width:0}
-.tdFind .svFind{margin:0}
+.tdFind{margin:0 0 12px}
+.tdFind .svFind{display:flex;width:100%;margin:0}
+.tdFind input{flex:1;width:100%}
 .tdNums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 10px}
 .tdNums div{display:flex;flex-direction:column-reverse;text-align:center;padding:10px 4px 9px;border-radius:12px;background:var(--box-bg);border:var(--box-bd)}
 .tdNums dd{margin:0;font:700 var(--fs-2xl)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums}
@@ -579,15 +578,7 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .arIb .arDot{display:none;position:absolute;right:1px;top:1px;width:11px;height:11px;border-radius:50%;background:var(--amber);border:2px solid #111}
 .arIb.moved{box-shadow:0 0 0 2px var(--amber)} .arIb.moved .arDot{display:block}
 .arMoved{position:absolute;right:12px;top:calc(var(--sa-top) + 66px);margin:0;padding:7px 12px;border-radius:999px;color:#fff;font:600 var(--fs-xs)/1 var(--f-board)}
-/* 1.118 (Dave's pick: AUTO always on, no button): when it finds an alignment, a prompt asks (Not now / Apply), in the
-   tour's card look; the zoom buttons get a small label; the mini radar bottom left (above the hint, the dial alone: 88 px to tap) lists the planes around */
-.arAsk{position:absolute;left:12px;right:12px;top:calc(var(--sa-top) + 66px);z-index:6;max-width:440px;margin:0 auto;background:#16171a;border-radius:16px;
-  border:1px solid rgba(255,255,255,.14);padding:14px 16px;display:grid;gap:6px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
-.arAsk[hidden]{display:none}
-.arAsk b{font:700 var(--fs-l)/1.2 var(--f-board);color:var(--amber)}
-.arAsk span{font:500 var(--fs-s)/1.4 var(--f-board);color:#d6d2c6}
-.arAsk .arTourAct{justify-content:flex-end;margin-top:4px}
-.arAsk .cBtn{min-width:96px;margin:0}
+/* 1.118 (Dave's pick: AUTO always on, no button): the zoom buttons get a small label; the mini radar bottom left (above the hint, the dial alone: 88 px to tap) lists the planes around */
 .arZoomL{text-align:center;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:#d6d2c6;text-shadow:0 1px 3px rgba(0,0,0,.8)}
 .arMini{all:unset;box-sizing:border-box;cursor:pointer;position:absolute;left:0;bottom:calc(100% + 10px);display:block;width:88px;height:88px;border-radius:50%}
 .arMini[hidden]{display:none}
@@ -674,6 +665,24 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 #arView .arCard{position:absolute;left:10px;right:10px;bottom:calc(var(--sa-bottom) + 10px);margin:0;max-height:calc(100dvh - var(--sa-top) - 80px);overflow:auto;
   background:linear-gradient(rgba(23,24,27,.96),rgba(16,17,19,.96));touch-action:pan-y}
 /* 1.66: the compass seems off: a note under the top bar until it settles */
+/* 1.121: the report flag bottom right (the owner's), and the align step: its target and the circle, one bar in the hint's place */
+#arView #arFlag{position:absolute;right:0;bottom:calc(100% + 10px)}
+#arMini[hidden]~#arFlag{display:none}
+#arView.alignBar #arHint{display:none}
+#arView.aligning #arMini,#arView.aligning #arFlag,#arView.aligning #arRib,#arView.aligning .arZoom,#arView.aligning #arInfo,#arView.aligning #arAlign,#arView.aligning #arCal,#arView.aligning #arMoved{display:none}
+.arAlignBar{align-self:stretch;display:flex;align-items:center;gap:6px;min-height:48px;padding:6px 8px 6px 14px;border-radius:10px;background:rgba(11,11,12,.78);color:var(--c-paper)}
+.arAlignBar[hidden]{display:none}
+.arAlignBar div{flex:1;min-width:0;display:grid;gap:3px}
+.arAlignBar b{font:700 var(--fs-m)/1.25 var(--f-board)}
+.arAlignBar b .ok{color:var(--amber);font-style:normal}
+.arAlignBar small{font:600 var(--fs-s)/1.2 var(--f-board);color:var(--amber)}
+.arAlignBar em{font:600 var(--fs-s)/1 var(--f-board);font-style:normal;color:#d6d2c6;white-space:nowrap;padding-right:6px}
+.arAlignBar button{all:unset;cursor:pointer;padding:12px 8px;color:#d6d2c6;font:600 var(--fs-s)/1 var(--f-board)}
+.arAlignBar button:focus-visible{outline:2px solid var(--amber)}
+.arAlignGo i{display:grid;place-items:center;color:#17140e;font:700 var(--fs-s)/1 var(--f-board);font-style:normal}
+.arAlignPick{display:flex;gap:10px}
+.arAlignPick[hidden]{display:none}
+.arAlignPick .arIb{font:700 var(--fs-l)/1 var(--f-board);color:var(--amber)}
 #arView .arCal{position:absolute;left:12px;right:12px;top:calc(var(--sa-top) + 106px);margin:0;padding:9px 12px;border-radius:10px;
   background:rgba(15,16,18,.85);color:var(--c-paper);font:500 var(--fs-m)/1.35 var(--f-board)}
 #arView .arCal b{color:var(--amber)}
@@ -830,12 +839,13 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .favRowT:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .favRow .cBtn{margin:0;flex:none}
 .favPlate .favInfo{margin:2px 0 8px}
-/* 1.116 (Dave's pick B): the Club's sub-tabs, stuck under the Logbook · Spotters' Club titles; the names scroll sideways
+/* 1.116 (Dave's pick B): the Club's sub-tabs, stuck under the header (1.120); the names scroll sideways
    (the segmented style of 1.88's jump bar) */
-#gSub{position:sticky;top:calc(var(--topH,0px) + var(--lbH,41px));z-index:4;margin:-12px calc(-1 * var(--gut)) 12px;padding:6px var(--gut);
+#gSub{position:sticky;top:var(--topH,0px);z-index:4;margin:-6px calc(-1 * var(--gut)) 8px;padding:6px var(--gut) 8px;
   background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;box-shadow:0 6px 10px -6px rgba(0,0,0,.8)}
 .seg.jumpSeg{margin:0;overflow-x:auto;scrollbar-width:none}
 .seg.jumpSeg::-webkit-scrollbar{display:none}
+#gSub .seg.jumpSeg{margin:0}
 #gSub .seg.jumpSeg button{flex:none;min-width:auto;padding:0 13px}   /* each name whole: the bar scrolls */
 #t-game .gOff .gGoB{all:unset;cursor:pointer;font-weight:700;color:var(--c-good)}
 #t-game .gOff .gGoB:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
@@ -1648,12 +1658,19 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
    one tap away; a child of the page itself, as sticky only holds within its parent. The line under them stays in from
    the edges, as before.
    The Logbook's period card: Week · Month · Year with earlier and later. */
-.lbTabs{position:sticky;top:var(--topH,0px);z-index:4;display:flex;gap:20px;align-items:flex-end;margin:0 calc(-1 * var(--gut)) 12px;padding:8px var(--gut) 1px;
+/* 1.120 (to-dos #222, #225, Dave's pick A): Today | All time at the top of the Logbook, stuck under the header, with the
+   Today pane's filter icon at the end of the row (an empty place on All time, so the row stays put) */
+.lbSeg{position:sticky;top:var(--topH,0px);z-index:4;grid-column:1/-1;display:flex;gap:8px;margin:-6px calc(-1 * var(--gut)) 8px;padding:6px var(--gut) 8px;
   background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;box-shadow:0 6px 10px -6px rgba(0,0,0,.8)}
-.lbTabs::after{content:"";position:absolute;left:var(--gut);right:var(--gut);bottom:0;height:1px;background:var(--line)}
-.lbTabs button{all:unset;cursor:pointer;padding:0 0 7px;font:700 var(--fs-xl)/1.1 var(--f-board);color:#5c6068}
-.lbTabs button[aria-current=page]{color:var(--ink);box-shadow:inset 0 -3px 0 var(--amber)}
-.lbTabs button:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.lbSeg .seg.gSeg{flex:1 1 0;margin:0}
+.tdFil{all:unset;box-sizing:border-box;cursor:pointer;position:relative;flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);color:var(--muted)}
+.tdFil svg{width:19px;height:19px}
+.tdFil[aria-pressed=true]{color:var(--ink);border-color:var(--amber)}
+.tdFil.act::after{content:"";position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--amber)}   /* a filter is on, its panel closed */
+.tdFil:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.tdFil.gap{visibility:hidden}
+#t-today:not(.tdFilOn) .tdFind,#t-today:not(.tdFilOn) #svTools,#t-today:not(.tdFilOn) #svSum,#t-today:not(.tdFilOn) #svPlaces{display:none}
+#t-today.tdFilOn #tdNums,#t-today.tdFilOn #tdHl{display:none}
 .perHead{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .perHead h3{margin:0}
 .perArr{display:flex;gap:6px}
@@ -1814,13 +1831,12 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
   <video id="arVid" playsinline muted autoplay></video>
   <canvas id="arCv" aria-hidden="true"></canvas>
   <div class="arTop"><div class="arTitle"><b data-t="Sky view">Sky view</b><span id="arCount"></span></div>
-    <button class="arIb" type="button" id="arFlag" aria-label="Send a report to tune Sky view" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h11l-2.5 4L17 12H6"/></svg></button><button class="arIb" type="button" id="arInfo" aria-label="How Sky view works" data-ta="How Sky view works"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><button class="arIb" type="button" id="arReset" aria-label="Line the labels up again" data-ta="Line the labels up again"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg><i class="arDot"></i></button><button class="arIb" type="button" id="arClose" aria-label="Close" data-ta="Close"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <button class="arIb" type="button" id="arInfo" aria-label="How Sky view works" data-ta="How Sky view works"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><button class="arIb" type="button" id="arAlign" aria-label="Line the labels up again" data-ta="Line the labels up again"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/></svg><i class="arDot"></i></button><button class="arIb" type="button" id="arClose" aria-label="Close" data-ta="Close"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="arZoom"><span class="arZoomL" data-t="Zoom">Zoom</span><button class="arIb" type="button" id="arZ2" aria-label="Zoom in two times" aria-pressed="false">×2</button><button class="arIb" type="button" id="arZ5" aria-label="Zoom in five times" aria-pressed="false">×5</button></div>
   <p class="arMoved" id="arMoved" hidden></p>
   <div class="arTour" id="arTour" hidden></div>
   <p class="arCal" id="arCal" hidden></p>
-  <div class="arAsk" id="arAsk" role="alertdialog" aria-live="polite" hidden></div>
-  <div class="arBot"><button class="arMini" type="button" id="arMini" aria-label="Planes around" data-ta="Planes around"><canvas id="arMiniCv" aria-hidden="true"></canvas></button><button class="arShut" type="button" id="arShut" aria-label="Take a picture" hidden><i></i></button><canvas class="arRib" id="arRib" aria-hidden="true"></canvas><p class="arHint" id="arHint"></p></div>
+  <div class="arBot"><button class="arMini" type="button" id="arMini" aria-label="Planes around" data-ta="Planes around"><canvas id="arMiniCv" aria-hidden="true"></canvas></button><button class="arIb" type="button" id="arFlag" aria-label="Send a report to tune Sky view" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h11l-2.5 4L17 12H6"/></svg></button><button class="arShut" type="button" id="arShut" aria-label="Take a picture" hidden><i></i></button><div class="arAlignPick" id="arAlignPick" hidden><button class="arIb" type="button" data-k="sun" aria-label="Sun" data-ta="Sun">☀</button><button class="arIb" type="button" data-k="moon" aria-label="Moon" data-ta="Moon">☾</button></div><button class="arShut arAlignGo" type="button" id="arAlignGo" hidden><i data-t="Align">Align</i></button><canvas class="arRib" id="arRib" aria-hidden="true"></canvas><p class="arHint" id="arHint"></p><div class="arAlignBar" id="arAlignBar" role="status" aria-live="polite" hidden></div></div>
   <div class="rvCard cardish arCard" id="arCard" hidden></div>
 </div>
 <div id="splash" aria-hidden="true">
@@ -1970,8 +1986,9 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
     </div>
   </section>
   <section class="wrap tab cols" id="t-today" hidden>
+    <div class="lbSeg"><div class="seg gSeg" role="group"><button type="button" data-lt="today" aria-pressed="true" data-t="Today">Today</button><button type="button" data-lt="logbook" aria-pressed="false" data-t="All time">All time</button></div><button class="tdFil" type="button" id="tdFil" aria-pressed="false" aria-label="Filter" data-ta="Filter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button></div>
     <div class="lcol">
-      <div class="tdHead"><h2 data-t="Spotted today">Spotted today</h2><div class="tdFind" id="tdFind"></div></div>
+      <div class="tdFind" id="tdFind"></div>
       <dl class="tdNums" id="tdNums"></dl>
       <button type="button" class="tdHl" id="tdHl" hidden></button>
       <div hidden><section class="plate secPlate" style="--cols:1" id="todayTop"><i></i><i></i><i></i><i></i><h3 data-t="Today in numbers">Today in numbers</h3>
@@ -1987,7 +2004,7 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
     </div>
   </section>
   <section class="wrap tab cols" id="t-logbook" hidden>
-    <div class="lbTabs" role="tablist"><button type="button" role="tab" data-lt="logbook" aria-current="page" data-t="Logbook">Logbook</button><button type="button" role="tab" data-lt="game" data-t="Spotters' Club">Spotters' Club</button></div>
+    <div class="lbSeg"><div class="seg gSeg" role="group"><button type="button" data-lt="today" aria-pressed="false" data-t="Today">Today</button><button type="button" data-lt="logbook" aria-pressed="true" data-t="All time">All time</button></div><span class="tdFil gap" aria-hidden="true"></span></div>
     <div class="lcol">
       <div class="tools lbFindBox" id="lbFindBox" hidden></div>
       <div id="lbFound" hidden></div>
@@ -2020,7 +2037,6 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
     </div>
   </section>
   <section class="wrap tab" id="t-game" hidden>
-    <div class="lbTabs" role="tablist"><button type="button" role="tab" data-lt="logbook" data-t="Logbook">Logbook</button><button type="button" role="tab" data-lt="game" aria-current="page" data-t="Spotters' Club">Spotters' Club</button></div>
     <div id="gSub"><div class="seg jumpSeg" role="group" id="gSubSeg"></div></div>
     <div id="gameBox"></div>
   </section>

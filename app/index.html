@@ -722,10 +722,9 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .dayFacts button.dayJump:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
 /* 1.115 (to-do #206, Dave's pick B): Today: the title with the filter beside it, four labelled numbers, the Highlights
    card (it raises the day's plate as a sheet, tdOpen), the filter chips, the list */
-.tdHead{display:flex;align-items:center;gap:12px;margin:2px 0 12px}
-.tdHead h2{margin:0;flex:none}
-.tdFind{flex:1;min-width:0}
-.tdFind .svFind{margin:0}
+.tdFind{margin:0 0 12px}
+.tdFind .svFind{display:flex;width:100%;margin:0}
+.tdFind input{flex:1;width:100%}
 .tdNums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 10px}
 .tdNums div{display:flex;flex-direction:column-reverse;text-align:center;padding:10px 4px 9px;border-radius:12px;background:var(--box-bg);border:var(--box-bd)}
 .tdNums dd{margin:0;font:700 var(--fs-2xl)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums}
@@ -1075,15 +1074,7 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .arIb .arDot{display:none;position:absolute;right:1px;top:1px;width:11px;height:11px;border-radius:50%;background:var(--amber);border:2px solid #111}
 .arIb.moved{box-shadow:0 0 0 2px var(--amber)} .arIb.moved .arDot{display:block}
 .arMoved{position:absolute;right:12px;top:calc(var(--sa-top) + 66px);margin:0;padding:7px 12px;border-radius:999px;color:#fff;font:600 var(--fs-xs)/1 var(--f-board)}
-/* 1.118 (Dave's pick: AUTO always on, no button): when it finds an alignment, a prompt asks (Not now / Apply), in the
-   tour's card look; the zoom buttons get a small label; the mini radar bottom left (above the hint, the dial alone: 88 px to tap) lists the planes around */
-.arAsk{position:absolute;left:12px;right:12px;top:calc(var(--sa-top) + 66px);z-index:6;max-width:440px;margin:0 auto;background:#16171a;border-radius:16px;
-  border:1px solid rgba(255,255,255,.14);padding:14px 16px;display:grid;gap:6px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
-.arAsk[hidden]{display:none}
-.arAsk b{font:700 var(--fs-l)/1.2 var(--f-board);color:var(--amber)}
-.arAsk span{font:500 var(--fs-s)/1.4 var(--f-board);color:#d6d2c6}
-.arAsk .arTourAct{justify-content:flex-end;margin-top:4px}
-.arAsk .cBtn{min-width:96px;margin:0}
+/* 1.118 (Dave's pick: AUTO always on, no button): the zoom buttons get a small label; the mini radar bottom left (above the hint, the dial alone: 88 px to tap) lists the planes around */
 .arZoomL{text-align:center;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:#d6d2c6;text-shadow:0 1px 3px rgba(0,0,0,.8)}
 .arMini{all:unset;box-sizing:border-box;cursor:pointer;position:absolute;left:0;bottom:calc(100% + 10px);display:block;width:88px;height:88px;border-radius:50%}
 .arMini[hidden]{display:none}
@@ -1170,6 +1161,24 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 #arView .arCard{position:absolute;left:10px;right:10px;bottom:calc(var(--sa-bottom) + 10px);margin:0;max-height:calc(100dvh - var(--sa-top) - 80px);overflow:auto;
   background:linear-gradient(rgba(23,24,27,.96),rgba(16,17,19,.96));touch-action:pan-y}
 /* 1.66: the compass seems off: a note under the top bar until it settles */
+/* 1.121: the report flag bottom right (the owner's), and the align step: its target and the circle, one bar in the hint's place */
+#arView #arFlag{position:absolute;right:0;bottom:calc(100% + 10px)}
+#arMini[hidden]~#arFlag{display:none}
+#arView.alignBar #arHint{display:none}
+#arView.aligning #arMini,#arView.aligning #arFlag,#arView.aligning #arRib,#arView.aligning .arZoom,#arView.aligning #arInfo,#arView.aligning #arAlign,#arView.aligning #arCal,#arView.aligning #arMoved{display:none}
+.arAlignBar{align-self:stretch;display:flex;align-items:center;gap:6px;min-height:48px;padding:6px 8px 6px 14px;border-radius:10px;background:rgba(11,11,12,.78);color:var(--c-paper)}
+.arAlignBar[hidden]{display:none}
+.arAlignBar div{flex:1;min-width:0;display:grid;gap:3px}
+.arAlignBar b{font:700 var(--fs-m)/1.25 var(--f-board)}
+.arAlignBar b .ok{color:var(--amber);font-style:normal}
+.arAlignBar small{font:600 var(--fs-s)/1.2 var(--f-board);color:var(--amber)}
+.arAlignBar em{font:600 var(--fs-s)/1 var(--f-board);font-style:normal;color:#d6d2c6;white-space:nowrap;padding-right:6px}
+.arAlignBar button{all:unset;cursor:pointer;padding:12px 8px;color:#d6d2c6;font:600 var(--fs-s)/1 var(--f-board)}
+.arAlignBar button:focus-visible{outline:2px solid var(--amber)}
+.arAlignGo i{display:grid;place-items:center;color:#17140e;font:700 var(--fs-s)/1 var(--f-board);font-style:normal}
+.arAlignPick{display:flex;gap:10px}
+.arAlignPick[hidden]{display:none}
+.arAlignPick .arIb{font:700 var(--fs-l)/1 var(--f-board);color:var(--amber)}
 #arView .arCal{position:absolute;left:12px;right:12px;top:calc(var(--sa-top) + 106px);margin:0;padding:9px 12px;border-radius:10px;
   background:rgba(15,16,18,.85);color:var(--c-paper);font:500 var(--fs-m)/1.35 var(--f-board)}
 #arView .arCal b{color:var(--amber)}
@@ -1326,12 +1335,13 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .favRowT:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .favRow .cBtn{margin:0;flex:none}
 .favPlate .favInfo{margin:2px 0 8px}
-/* 1.116 (Dave's pick B): the Club's sub-tabs, stuck under the Logbook · Spotters' Club titles; the names scroll sideways
+/* 1.116 (Dave's pick B): the Club's sub-tabs, stuck under the header (1.120); the names scroll sideways
    (the segmented style of 1.88's jump bar) */
-#gSub{position:sticky;top:calc(var(--topH,0px) + var(--lbH,41px));z-index:4;margin:-12px calc(-1 * var(--gut)) 12px;padding:6px var(--gut);
+#gSub{position:sticky;top:var(--topH,0px);z-index:4;margin:-6px calc(-1 * var(--gut)) 8px;padding:6px var(--gut) 8px;
   background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;box-shadow:0 6px 10px -6px rgba(0,0,0,.8)}
 .seg.jumpSeg{margin:0;overflow-x:auto;scrollbar-width:none}
 .seg.jumpSeg::-webkit-scrollbar{display:none}
+#gSub .seg.jumpSeg{margin:0}
 #gSub .seg.jumpSeg button{flex:none;min-width:auto;padding:0 13px}   /* each name whole: the bar scrolls */
 #t-game .gOff .gGoB{all:unset;cursor:pointer;font-weight:700;color:var(--c-good)}
 #t-game .gOff .gGoB:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
@@ -2143,12 +2153,19 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
    one tap away; a child of the page itself, as sticky only holds within its parent. The line under them stays in from
    the edges, as before.
    The Logbook's period card: Week · Month · Year with earlier and later. */
-.lbTabs{position:sticky;top:var(--topH,0px);z-index:4;display:flex;gap:20px;align-items:flex-end;margin:0 calc(-1 * var(--gut)) 12px;padding:8px var(--gut) 1px;
+/* 1.120 (to-dos #222, #225, Dave's pick A): Today | All time at the top of the Logbook, stuck under the header, with the
+   Today pane's filter icon at the end of the row (an empty place on All time, so the row stays put) */
+.lbSeg{position:sticky;top:var(--topH,0px);z-index:4;grid-column:1/-1;display:flex;gap:8px;margin:-6px calc(-1 * var(--gut)) 8px;padding:6px var(--gut) 8px;
   background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;box-shadow:0 6px 10px -6px rgba(0,0,0,.8)}
-.lbTabs::after{content:"";position:absolute;left:var(--gut);right:var(--gut);bottom:0;height:1px;background:var(--line)}
-.lbTabs button{all:unset;cursor:pointer;padding:0 0 7px;font:700 var(--fs-xl)/1.1 var(--f-board);color:#5c6068}
-.lbTabs button[aria-current=page]{color:var(--ink);box-shadow:inset 0 -3px 0 var(--amber)}
-.lbTabs button:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.lbSeg .seg.gSeg{flex:1 1 0;margin:0}
+.tdFil{all:unset;box-sizing:border-box;cursor:pointer;position:relative;flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);color:var(--muted)}
+.tdFil svg{width:19px;height:19px}
+.tdFil[aria-pressed=true]{color:var(--ink);border-color:var(--amber)}
+.tdFil.act::after{content:"";position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--amber)}   /* a filter is on, its panel closed */
+.tdFil:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.tdFil.gap{visibility:hidden}
+#t-today:not(.tdFilOn) .tdFind,#t-today:not(.tdFilOn) #svTools,#t-today:not(.tdFilOn) #svSum,#t-today:not(.tdFilOn) #svPlaces{display:none}
+#t-today.tdFilOn #tdNums,#t-today.tdFilOn #tdHl{display:none}
 .perHead{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .perHead h3{margin:0}
 .perArr{display:flex;gap:6px}
@@ -2309,13 +2326,12 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
   <video id="arVid" playsinline muted autoplay></video>
   <canvas id="arCv" aria-hidden="true"></canvas>
   <div class="arTop"><div class="arTitle"><b data-t="Sky view">Sky view</b><span id="arCount"></span></div>
-    <button class="arIb" type="button" id="arFlag" aria-label="Send a report to tune Sky view" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h11l-2.5 4L17 12H6"/></svg></button><button class="arIb" type="button" id="arInfo" aria-label="How Sky view works" data-ta="How Sky view works"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><button class="arIb" type="button" id="arReset" aria-label="Line the labels up again" data-ta="Line the labels up again"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg><i class="arDot"></i></button><button class="arIb" type="button" id="arClose" aria-label="Close" data-ta="Close"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <button class="arIb" type="button" id="arInfo" aria-label="How Sky view works" data-ta="How Sky view works"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><button class="arIb" type="button" id="arAlign" aria-label="Line the labels up again" data-ta="Line the labels up again"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/></svg><i class="arDot"></i></button><button class="arIb" type="button" id="arClose" aria-label="Close" data-ta="Close"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="arZoom"><span class="arZoomL" data-t="Zoom">Zoom</span><button class="arIb" type="button" id="arZ2" aria-label="Zoom in two times" aria-pressed="false">×2</button><button class="arIb" type="button" id="arZ5" aria-label="Zoom in five times" aria-pressed="false">×5</button></div>
   <p class="arMoved" id="arMoved" hidden></p>
   <div class="arTour" id="arTour" hidden></div>
   <p class="arCal" id="arCal" hidden></p>
-  <div class="arAsk" id="arAsk" role="alertdialog" aria-live="polite" hidden></div>
-  <div class="arBot"><button class="arMini" type="button" id="arMini" aria-label="Planes around" data-ta="Planes around"><canvas id="arMiniCv" aria-hidden="true"></canvas></button><button class="arShut" type="button" id="arShut" aria-label="Take a picture" hidden><i></i></button><canvas class="arRib" id="arRib" aria-hidden="true"></canvas><p class="arHint" id="arHint"></p></div>
+  <div class="arBot"><button class="arMini" type="button" id="arMini" aria-label="Planes around" data-ta="Planes around"><canvas id="arMiniCv" aria-hidden="true"></canvas></button><button class="arIb" type="button" id="arFlag" aria-label="Send a report to tune Sky view" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h11l-2.5 4L17 12H6"/></svg></button><button class="arShut" type="button" id="arShut" aria-label="Take a picture" hidden><i></i></button><div class="arAlignPick" id="arAlignPick" hidden><button class="arIb" type="button" data-k="sun" aria-label="Sun" data-ta="Sun">☀</button><button class="arIb" type="button" data-k="moon" aria-label="Moon" data-ta="Moon">☾</button></div><button class="arShut arAlignGo" type="button" id="arAlignGo" hidden><i data-t="Align">Align</i></button><canvas class="arRib" id="arRib" aria-hidden="true"></canvas><p class="arHint" id="arHint"></p><div class="arAlignBar" id="arAlignBar" role="status" aria-live="polite" hidden></div></div>
   <div class="rvCard cardish arCard" id="arCard" hidden></div>
 </div>
 <div id="splash" aria-hidden="true">
@@ -2465,8 +2481,9 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
     </div>
   </section>
   <section class="wrap tab cols" id="t-today" hidden>
+    <div class="lbSeg"><div class="seg gSeg" role="group"><button type="button" data-lt="today" aria-pressed="true" data-t="Today">Today</button><button type="button" data-lt="logbook" aria-pressed="false" data-t="All time">All time</button></div><button class="tdFil" type="button" id="tdFil" aria-pressed="false" aria-label="Filter" data-ta="Filter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button></div>
     <div class="lcol">
-      <div class="tdHead"><h2 data-t="Spotted today">Spotted today</h2><div class="tdFind" id="tdFind"></div></div>
+      <div class="tdFind" id="tdFind"></div>
       <dl class="tdNums" id="tdNums"></dl>
       <button type="button" class="tdHl" id="tdHl" hidden></button>
       <div hidden><section class="plate secPlate" style="--cols:1" id="todayTop"><i></i><i></i><i></i><i></i><h3 data-t="Today in numbers">Today in numbers</h3>
@@ -2482,7 +2499,7 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
     </div>
   </section>
   <section class="wrap tab cols" id="t-logbook" hidden>
-    <div class="lbTabs" role="tablist"><button type="button" role="tab" data-lt="logbook" aria-current="page" data-t="Logbook">Logbook</button><button type="button" role="tab" data-lt="game" data-t="Spotters' Club">Spotters' Club</button></div>
+    <div class="lbSeg"><div class="seg gSeg" role="group"><button type="button" data-lt="today" aria-pressed="false" data-t="Today">Today</button><button type="button" data-lt="logbook" aria-pressed="true" data-t="All time">All time</button></div><span class="tdFil gap" aria-hidden="true"></span></div>
     <div class="lcol">
       <div class="tools lbFindBox" id="lbFindBox" hidden></div>
       <div id="lbFound" hidden></div>
@@ -2515,7 +2532,6 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
     </div>
   </section>
   <section class="wrap tab" id="t-game" hidden>
-    <div class="lbTabs" role="tablist"><button type="button" role="tab" data-lt="logbook" data-t="Logbook">Logbook</button><button type="button" role="tab" data-lt="game" aria-current="page" data-t="Spotters' Club">Spotters' Club</button></div>
     <div id="gSub"><div class="seg jumpSeg" role="group" id="gSubSeg"></div></div>
     <div id="gameBox"></div>
   </section>
@@ -6274,7 +6290,7 @@ function demoLog(){
 }
 
 /* ---------- Spotted today: the relay records every sighting; the app mirrors its list ---------- */
-const DAY_START_H = 0;      // 1.120.1 (to-do #233): one day for everything, 00:00 to 23:59, as the relay
+const DAY_START_H = 0;      // 1.121.1 (to-do #233): one day for everything, 00:00 to 23:59, as the relay
 function boardDay(){ const d = new Date(Date.now() - DAY_START_H * 3600e3); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
 function todayKey(){ return `od.log.${boardDay()}`; }
 function loadLog(){ if (S.demo) return demoLog(); try { return JSON.parse(localStorage.getItem(todayKey()) || "[]"); } catch { return []; } }
@@ -7946,6 +7962,7 @@ function renderTodayNumbers(){
   const sig = [n.planes, n.over, n.airlines, n.types, head, line, LANG].join("|");
   if (sig === tdSig) return;
   tdSig = sig;
+  $("tdNums").hidden = !n.planes;                             // 1.120: a day with no planes yet: one line (renderToday)
   $("tdNums").innerHTML = num(n.planes, "Planes") + num(n.over, "Overhead") + num(n.airlines, "Airlines") + num(n.types, "Types");
   const hl = $("tdHl");
   hl.hidden = !n.planes || !(head || line);
@@ -7961,6 +7978,18 @@ function tdOpen(){
   });
 }
 $("tdHl").onclick = tdOpen;
+// 1.120 (to-do #225, Dave's pick A): the find box, the filter row and the places row sit behind the icon at the end of the
+// Today | All time row; opening it swaps the numbers and Highlights for them. A dot on the icon: a filter is on behind it.
+function tdFilter(on){
+  $("t-today").classList.toggle("tdFilOn", on);
+  $("tdFil").setAttribute("aria-pressed", String(on));
+}
+$("tdFil").onclick = () => {
+  ctlSound.click();
+  const on = !$("t-today").classList.contains("tdFilOn");
+  tdFilter(on);
+  if (on) { window.scrollTo(0, 0); setTimeout(() => appTips("today"), 400); }
+};
 // A's tap: the plane's row in the timeline below, scrolled to and lit gold for a moment (1.115: the row is one line, so
 // without the words of what it was named for). A filter that hides it is cleared first.
 function todayJump(k){
@@ -7989,6 +8018,7 @@ function renderToday(){
   if (tab !== "today") return;
   loadFullDay();
   renderTodayNumbers();
+  $("tdFil").classList.toggle("act", svFilter !== "all" || !!svQuery || allPlaces);
   const d = svData();
   for (const b of $("svTools").querySelectorAll("[data-t]")) {
     const k = b.dataset.t, n = d.counts[k];
@@ -8022,7 +8052,7 @@ function renderToday(){
   L.classList.remove("wait");
   if (!waiting) L.style.minHeight = "";
   tlFill(L, waiting ? tlState(T("Today"), "", T("Loading …")) : d.rows.length ? tlHtml(d.rows, tlOpenId.svList)
-    : liveWaiting() && !allPlaces ? tlFinding() : svFilter === "all" && !svQuery ? tlNothing() : tlState(T("Today"), "", T("None of today's planes match this filter yet.")), open);
+    : liveWaiting() && !allPlaces ? tlFinding() : svFilter === "all" && !svQuery ? `<li class="st">${escH(T("No planes yet today"))}</li>` : tlState(T("Today"), "", T("None of today's planes match this filter yet.")), open);
 }
 function renderLists(){
   renderRecent();
@@ -8895,8 +8925,8 @@ function ppGo(reg){
   scrollTo({top: Math.max(0, el.getBoundingClientRect().top + scrollY - gUnder()), behavior: REDUCED ? "auto" : "smooth"});
   el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit");
 }
-// The Club's sticky top: the header, the Logbook · Spotters' Club titles and (1.116) the sub-tabs.
-const gUnder = () => $("top").offsetHeight + [...document.querySelectorAll("#t-game .lbTabs, #gSub")].reduce((a, e) => a + e.offsetHeight, 0) + 10;
+// The Club's sticky top: the header and (1.116) the sub-tabs.
+const gUnder = () => $("top").offsetHeight + $("gSub").offsetHeight + 10;
 let ppAt = "eu";
 function ppCard(){
   const g0 = (lbData() || {}).game, pp = g0 && g0.passport;
@@ -9901,7 +9931,8 @@ async function arStart(button){
   try { arOff = {h: 0, p: 0, ...JSON.parse(localStorage.getItem("od.ar.off") || "{}")}; } catch {}
   // 1.76: labels lined up before true north was known carry the declination in their drag: taken out once
   if (!arOff.v) { if (arOff.h) { arOff.h -= magDecl(S.lat, S.lon); arOffSave(); } arOff.v = 2; }
-  arAutoFinds = []; arFindLog = []; arAutoLock = null; arAutoPause = 0; arAskHide(); arGlide = null; arMiniSig = ""; arBounds.at = 0;   // 1.118
+  arAutoFinds = []; arFindLog = []; arAutoLock = null; arAutoPause = 0; arAligned = null; arGlide = null; arMiniSig = ""; arBounds.at = 0;   // 1.118
+  arAlignEnd(); arAlignLog = [];
   const v = $("arVid"); v.srcObject = arStream; v.play().catch(() => {});
   v.addEventListener("loadedmetadata", () => {                 // 1.75.2: what the camera gives, for the log
     const tr = arStream && arStream.getVideoTracks()[0], st = tr && tr.getSettings ? tr.getSettings() : {};
@@ -9951,7 +9982,7 @@ function arClose(){
   if (!arOn) return;
   arOn = false; ctlSound.nav();
   dlog("debug", `Sky view closed after ${Math.round((Date.now() - arSince) / 1000)} s`);
-  $("arTour").hidden = true; $("arView").classList.remove("tourBtns"); $("arMoved").hidden = true; arAskHide(); arGlide = null;
+  $("arTour").hidden = true; $("arView").classList.remove("tourBtns"); $("arMoved").hidden = true; arGlide = null; arAlignEnd();
   if (arStream) arStream.getTracks().forEach(t => t.stop());
   arStream = null; $("arVid").srcObject = null;
   arZoom = arZk = arZc = arZcTo = 1; arZBase = null; arZSeq++; arZoomCss(); arZoomBtns();   // 1.99: back to ×1
@@ -10126,26 +10157,22 @@ function arLoop(){
     s.w1 = w1; s.wc = wc; s.box = [bx, by, bw, bh];
     boxes.push(s.box); arHits.push({hex: s.ac.hex, x, y, box: s.box});
   }
-  const view = arUnproject(W / 2, H / 2, R, W, H).az, aim = arAimStep(W, H), chips = arChipsAt(g, outs.slice(0, 3), view, W, H);
+  const view = arUnproject(W / 2, H / 2, R, W, H).az, aim = arAlign ? {cx: W / 2, cy: H / 2, R0: AR_ALIGN_R, k: arAlign.prog} : arAimStep(W, H), chips = arChipsAt(g, outs.slice(0, 3), view, W, H);
   for (const c of chips) arHits.push({hex: c.hex, x: c.box[0] + c.box[2] / 2, y: c.box[1] + c.box[3] / 2, box: c.box});
   const bodies = arBodiesAt(R, here, W, H), marks = bodies.filter(m => !m.pr.edge);
   arShownN = shown.length;
   if (arLocked && shown.some(s => s.ac.hex === arLocked && !s.pr.edge)) arShotAt = Date.now();   // 1.90: only once locked on (the ring full)
-  const shut = $("arShut"), snap = Date.now() - arShotAt < 5000;
+  const shut = $("arShut"), snap = !arAlign && Date.now() - arShotAt < 5000;
   if (shut.hidden === snap) shut.hidden = !snap;
   // 1.90: with the small card open, the shutter sits above it (it was behind it)
   const card = $("arCard"), lift = snap && !card.hidden && !arFull && arP === 0 ? card.offsetHeight + 4 : 0;
   if (lift !== arLift) { arLift = lift; $("arView").style.setProperty("--ar-lift", lift + "px"); }
   // 1.114.6: written only when it changes (every frame, it cost two layouts a frame)
-  const count = inView.length + outs.length ? T(outs.length ? "{n} in view · {m} around" : "{n} in view", {n: inView.length, m: outs.length}) : T("No planes nearby");
+  const count = inView.length + outs.length ? T("{n} around", {n: inView.length + outs.length}) : T("No planes nearby");   // 1.121: one number
   if ($("arCount").textContent !== count) $("arCount").textContent = count;
   const moved = Math.abs(arOff.h) > .5 || Math.abs(arOff.p) > .5;
-  if ($("arReset").classList.contains("moved") !== moved) $("arReset").classList.toggle("moved", moved);   // 1.72.7: the labels were dragged
-  // 1.86: until the labels are lined up, AUTO asks for a look near the sun (it finds it in the picture by itself)
-  const sunUp = arBody && arBody.sun.el > 1 && arBody.sun.el < 75;
-  const hint = Date.now() < arNote.until ? arNote.text : arHeldAt ? arHintText : sunUp ? T("Point the phone near the sun for a moment, without looking into it, to line the labels up.")
-    : marks.some(m => m.k === "sun") ? T("Drag the sky until the sun sits in its dashed ring, without looking into it.")
-    : marks.length ? T("Drag the sky until the moon sits in its dashed ring.") : arHintText;
+  if ($("arAlign").classList.contains("moved") !== moved) $("arAlign").classList.toggle("moved", moved);   // 1.72.7: the labels were moved
+  const hint = Date.now() < arNote.until ? arNote.text : arHintText;   // 1.121: the align button asks for the sun or moon now
   if (hint && $("arHint").textContent !== hint) $("arHint").textContent = hint;
   // 1.114.6: the picture is drawn only when it would differ from the last one: where the phone points (to a quarter
   // pixel), the zoom, the labels (their words and places, to a quarter pixel), the sun and moon, the ring, AUTO's marks
@@ -10153,23 +10180,24 @@ function arLoop(){
   const brk = arAutoLock ? shown.filter(s => !s.pr.edge && arAutoLock.hexes.includes(s.ac.hex)) : [];
   const sig = [W, H, px, Math.round(f * 10), LANG, ...R.map(c => c.map(v => Math.round(v * q)).join(",")), Math.round((arOff.h + arDec) * Math.PI / 180 * q), Math.round(arOff.p * Math.PI / 180 * q),
     (screen.orientation && screen.orientation.angle) || window.orientation || 0, ...bodies.map(m => m.k + Math.round(m.b.az * 100) + "," + Math.round(m.b.el * 100)),
-    aim.R0, Math.round(aim.k * 200), arAutoLock ? (arAutoLock.sun ? "S" : "") + brk.map(s => rq(s.pr.x) + "," + rq(s.pr.y)).join(";") : "",
+    arAlign ? arAlign.k : "", aim.R0, Math.round(aim.k * 200), arAutoLock ? (arAutoLock.sun ? "S" : "") + brk.map(s => rq(s.pr.x) + "," + rq(s.pr.y)).join(";") : "",
     ...top.map(s => [s.ac.hex, s.name, s.sub, s.chip, +s.isFeat, +s.gold, +s.far, s.tier, +(s.ac.hex === arSel || s.ac.hex === arWant),
       s.pr.edge ? "" : rq(s.pr.x) + "," + rq(s.pr.y) + "," + s.box.map(rq).join(",")].join("|")),
     ...chips.map(c => [c.hex, c.name, c.sub, c.a, +c.feat, c.box.join(",")].join("|"))].join("~");
   if (sig !== arPicSig) {
     arPicSig = sig;
     g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, W, H);
-    arBodiesDraw(g, bodies, R, W, H);
+    arBodiesDraw(g, arAlign ? bodies.filter(m => m.k === arAlign.k) : bodies, R, W, H);   // 1.121: the align step: its target and the circle only
     g.textBaseline = "alphabetic";
+    if (!arAlign) {
     for (const s of top) if (!s.pr.edge) arLabelDraw(g, s);
     arChipsDraw(g, chips);                           // 1.118: the planes outside the picture (they were arEdge's arrows)
     for (const s of brk) arBrackets(g, s.pr.x, s.pr.y);
-    if (arAutoLock && arAutoLock.sun) for (const m of marks) if (m.k === "sun") arBrackets(g, m.x, m.y, 32, 10);   // 1.86
+    }
+    if (!arAlign && arAutoLock && arAutoLock.sun) for (const m of marks) if (m.k === "sun") arBrackets(g, m.x, m.y, 32, 10);   // 1.86
     arAimDraw(g, aim);
   }
-  arRibbon(R, W, H);
-  arMini(inView, outs, view, Math.atan(W / 2 / f) * 180 / Math.PI, aroundM);
+  if (!arAlign) { arRibbon(R, W, H); arMini(inView, outs, view, Math.atan(W / 2 / f) * 180 / Math.PI, aroundM); }
   arAutoStep(shown, W, H, marks.filter(m => m.k === "sun"), R);
 }
 // 1.114.6 (L6): Spotted today by hex, built once for each new list: the first entry scanned or locked on, and the
@@ -10255,14 +10283,15 @@ function arReport(){
   const now = Date.now(), t = performance.now(), cv = $("arCv"), W = cv.clientWidth, H = cv.clientHeight, v = $("arVid");
   const c = arQ ? arUnproject(W / 2, H / 2, arQMatrix(arQ), W, H) : null, sun = arBody && arBody.sun, moon = arBody && arBody.moon;
   return {
-    v: 3, app: typeof VERSION === "string" ? VERSION : "", os: /iPhone|iPad/.test(navigator.userAgent) ? "ios" : /Android/.test(navigator.userAgent) ? "android" : "other",
+    v: 4, app: typeof VERSION === "string" ? VERSION : "", os: /iPhone|iPad/.test(navigator.userAgent) ? "ios" : /Android/.test(navigator.userAgent) ? "android" : "other",
     secs: Math.round((now - arSince) / 1000), events: arEvN, gap: arR1(arGap), dec: arR1(arDec), off: {h: arR1(arOff.h), p: arR1(arOff.p)},
     held: arHeldAt ? {secs: Math.round((now - arHeldAt) / 1000), why: arHeldWhy} : null,
     unsure: now - arCalAt < 4000, rate: arR1(arRate), stillSecs: arR1((t - arMovedAt) / 1000),
     facing: c && {az: arR1(c.az), el: arR1(c.el)}, q: arQ && arQ.map(x => Math.round(x * 1e4) / 1e4),
     gapRef: arR1(arGapRef), gapLog: arGapLog.filter((x, i) => i % 4 === 0).map(([gt, rel]) => [Math.round(gt - t), arR1(rel)]),
     raw: arRaw.map(([rt, a, b, g]) => [rt - now, arR1(a), arR1(b), arR1(g)]),
-    auto: {on: true, sun: !!(arAutoLock && arAutoLock.sun), planes: arAutoLock && !arAutoLock.sun ? arAutoLock.hexes.length : 0, ...arAskN, asking: !!arAsk},
+    auto: {on: true, sun: !!(arAutoLock && arAutoLock.sun), planes: arAutoLock && !arAutoLock.sun ? arAutoLock.hexes.length : 0},
+    align: arAlignLog, alignNow: arAlign && arAlignSeen(arAlign),   // 1.121: what the align step saw, how it ended and the correction
     finds: arAutoFinds.map(x => [x.hex === "sun" ? "sun" : "plane", x.t - now, arR1(x.h), arR1(x.p)]),
     // 1.114.6.1: the last 60 finds, counted or not (made while turning), with the turn then (°/s; about the vertical,
     // + to the left); and the phone clock's offset taken off the planes' age (s)
@@ -10368,6 +10397,7 @@ function arAutoStep(shown, W, H, avoid, R){
   const now = Date.now(), v = $("arVid");
   if (arDrag || now < arAutoPause || now - arAutoAt < AR_AUTO_MS || !(v.readyState >= 2) || !v.videoWidth) return;
   arAutoAt = now;
+  if (arAlign) return arAlignStep(v, R, W, H, now);  // 1.121: the align step looks for its target instead
   const turn = arTurnNow(), steady = turn.deg < AR_AUTO_RATE || !arRelQ;   // (no gyroscope: the compass's wobble isn't a turn)
   // 1.86: the sun, anywhere in the picture, says how far off the compass is (up to 45°)
   const sun = arBody && arBody.sun;
@@ -10401,14 +10431,12 @@ function arAutoStep(shown, W, H, avoid, R){
   const h = use.length ? med(use.map(x => x.h)) : 0, p = use.length ? med(use.map(x => x.p)) : 0;
   if (use.length && use.every(x => Math.abs(x.h - h) < 1.5 && Math.abs(x.p - p) < 1.5)) {
     const onSun = use[0].hex === "sun", near = (a, d) => !!a && Math.abs(wrap180(h - a.h)) < d && Math.abs(p - a.p) < d;
-    // 1.118: further off than AR_ASK_DEG (and not what was applied): ask first; declined, not again for a while
-    if (Math.hypot(wrap180(h - arOff.h), p - arOff.p) > AR_ASK_DEG && !near(arAskGo, AR_ASK_DEG * 2)) {
-      if (!(arAskNo && now < arAskNo.until && near(arAskNo, AR_ASK_NEW))) arAskShow({h, p, sun: onSun, hexes: use.map(x => x.hex), at: now});
+    // 1.121 (Dave: the Apply card goes): before an alignment, and when far from it, the labels stay where they are
+    if (!arAligned || (Math.hypot(wrap180(h - arOff.h), p - arOff.p) > AR_AUTO_NEAR && !near(arAligned, AR_AUTO_NEAR * 2))) {
       if (arAutoLock && now - arAutoLock.at > 2000) arAutoLock = null;
       return;
     }
-    if (arAskGo) arAskGo = {h, p};                  // applied: small corrections go on by themselves, as before
-    if (arAsk) arAskHide();
+    arAligned = {h, p};                              // small corrections go on by themselves
     if (!arAutoLock || arAutoLock.sun !== onSun) dlog("debug", `Sky view AUTO: lined up on ${onSun ? "the sun" : use.length === 1 ? "1 plane" : use.length + " planes"}, moved ${(h - arOff.h).toFixed(1)}° across, ${(p - arOff.p).toFixed(1)}° up`);
     arAutoLock = {hexes: use.map(x => x.hex), sun: onSun, at: now};
     const k = 1 - Math.exp(-AR_AUTO_MS / 700);       // glides there in a second or two
@@ -10416,7 +10444,6 @@ function arAutoStep(shown, W, H, avoid, R){
     if (now - arAutoSaved > 5000) { arAutoSaved = now; arOffSave(); }
     arHold(onSun ? "AUTO, on the sun" : "AUTO");
   } else if (arAutoLock && now - arAutoLock.at > 2000) arAutoLock = null;
-  if (arAsk && now - arAsk.at > AR_ASK_GONE) arAskHide();   // nothing found for a while: the question goes
 }
 // Looks for a plane-sized dot in the camera's picture within r of (x, y) on the screen: its screen position, or null.
 // The picture is scaled so the plane (size: its expected span in screen px) comes out about 3 samples across.
@@ -10503,53 +10530,185 @@ function arSunFind(v, R, W, H, sun){
   if (!best || best.cut || second > best.cnt / 3) return null;
   const across = 2 * Math.sqrt(best.cnt / Math.PI) / k * s / arFocal(W, H) * 180 / Math.PI;   // degrees
   if (across < .7 || across > 20 || best.cnt < .45 * best.bw * best.bh || Math.max(best.bw, best.bh) > 1.8 * Math.min(best.bw, best.bh)) return null;
+  best.across = across;
   return Math.abs(wrap180(sun.az - best.az)) > 45 ? null : best;
 }
 // The AUTO switch under the title: off, looking, or lined up on the sun or n planes.
-/* 1.118 (Dave's pick: AUTO always on, with a prompt): what AUTO finds (the sun, or planes in the picture) no longer
-   moves the labels by itself when it is more than AR_ASK_DEG off: a prompt asks first ("Lined up with the sun · The labels
-   sit 12° left of the planes. Move them into place?"). Apply does what AUTO's lock did (the labels glide there and north
-   is held; small corrections after that go on by themselves while it keeps finding the same). Not now leaves the labels
-   and doesn't ask again for AR_ASK_QUIET (3 minutes), unless AUTO then finds an alignment more than AR_ASK_NEW off the
-   declined one. With no find for AR_ASK_GONE the prompt goes by itself. A drag or ⟲ starts over. */
-const AR_ASK_DEG = 2, AR_ASK_NEW = 5, AR_ASK_QUIET = 180000, AR_ASK_GONE = 15000;
-let arAsk = null, arAskGo = null, arAskNo = null, arGlide = null, arAskN = {asked: 0, applied: 0, declined: 0};
-function arAskShow(a){
-  const box = $("arAsk"), dh = wrap180(arOff.h - a.h), dp = a.p - arOff.p, x = Math.round(Math.abs(dh)), y = Math.round(Math.abs(dp));   // dh > 0: left, dp > 0: above
-  const title = T(a.sun ? "Lined up with the sun" : a.hexes.length === 1 ? "Lined up with a plane" : "Lined up with {n} planes", {n: a.hexes.length});
-  const line = (x >= y ? T(dh > 0 ? "The labels sit {n}° left of the planes." : "The labels sit {n}° right of the planes.", {n: x})
-    : T(dp > 0 ? "The labels sit {n}° above the planes." : "The labels sit {n}° below the planes.", {n: y})) + " " + T("Move them into place?");
-  if (!arAsk) {
-    arAskN.asked++;
-    dlog("debug", `Sky view AUTO: found ${a.sun ? "the sun" : a.hexes.length + " plane(s)"}, ${(a.h - arOff.h).toFixed(1)}° across, ${(a.p - arOff.p).toFixed(1)}° up: asks`);
-    box.innerHTML = `<b></b><span></span><div class="arTourAct"><button class="arTourSkip" type="button" data-no>${escH(T("Not now"))}</button>` +
-      `<button class="cBtn" type="button" data-go>${escH(T("Apply"))}</button></div>`;
-    box.querySelector("[data-no]").onclick = arAskNot; box.querySelector("[data-go]").onclick = arAskApply;
-    box.hidden = false;
+/* AUTO after an alignment (1.121; 1.118's Apply card went): finds within AR_AUTO_NEAR of the labels, or twice that of the
+   alignment (arAligned), glide on silently. A drag sets it to where the finger put them; Reset clears it. */
+const AR_AUTO_NEAR = 2;
+let arAligned = null, arGlide = null;
+/* 1.121 (to-do #223, Dave's combination of two mockups): the align button in the top row opens a step: a small circle in
+   the middle, one instruction, the labels away. The phone is aimed by hand, so the picture is searched only around the
+   circle: when the sun (arSunFind) or the moon (arMoonFind) sits in the circle for AR_ALIGN_N finds that agree, the
+   labels glide there (north is held, small AUTO corrections go on from there). Or the Align button, where the shutter
+   goes: where the middle of the screen looks against where the body really is, so the circle's size is the error. Too
+   far off to be it (AR_ALIGN_FAR_*): it says so. Heading and height only: no roll, no field of view. Every ending goes
+   into arAlignLog for the report. Tuned on made-up pictures only: no real sky has seen this yet (to-do #201). */
+const AR_ALIGN_R = 24, AR_ALIGN_WIN = 70, AR_ALIGN_N = 4, AR_ALIGN_MS = 1500, AR_ALIGN_TOL = .7, AR_ALIGN_FAR_AZ = 45, AR_ALIGN_FAR_EL = 10, AR_ALIGN_DONE = 5000;
+let arAlign = null, arAlignUndo = null, arAlignLog = [], arMoonSaw = null, arAlignT = 0;
+const arMoonCan = document.createElement("canvas"), arMoonCx = arMoonCan.getContext("2d", {willReadFrequently: true});
+function arAlignUp(){                                // the bodies that can be aimed at now
+  const here = arHere || {lat: S.lat, lon: S.lon}, b = skyBodies(here.lat, here.lon, Date.now());
+  return [...(b.sun.el > 1 ? ["sun"] : []), ...(b.moon.el > 1 && b.moon.lit >= .04 ? ["moon"] : [])];
+}
+function arSunUpAt(){                                // when the sun is next up, as a time ("" if not within a day: the far north)
+  const here = arHere || {lat: S.lat, lon: S.lon}, now = Date.now();
+  for (let m = 5; m <= 1440; m += 5) if (skyBodies(here.lat, here.lon, now + m * 6e4).sun.el > -.5) return hhmm(new Date(now + m * 6e4));
+  return "";
+}
+function arAlignNote(ending, extra){
+  const a = arAlign, sky = a && arBody && arBody[a.k];
+  arAlignLog.push({ending, ...(a ? {...arAlignSeen(a), az: sky ? arR1(sky.az) : null, el: sky ? arR1(sky.el) : null} : {}), ...extra});
+  if (arAlignLog.length > 12) arAlignLog.shift();
+  dlog("debug", `Sky view align: ${ending}${a ? ` on the ${a.k}` : ""}${extra && extra.dh != null ? `, ${extra.dh}° across, ${extra.dp}° up` : ""}`);
+}
+const arAlignSeen = a => ({k: a.k, secs: arR1((Date.now() - a.t0) / 1000), tries: a.tries, seen: a.seen, inRing: a.inRing, why: a.k === "moon" && arMoonSaw ? arMoonSaw : null});
+function arAlignBar(html){                           // the bar in the hint's place; html "" takes it away
+  const bar = $("arAlignBar");
+  bar.innerHTML = html; bar.hidden = !html; $("arView").classList.toggle("alignBar", !!html);
+  bar.querySelectorAll("[data-a]").forEach(b => { b.onclick = () => { ctlSound.click(); ({cancel: arAlignCancel, reset: arAlignReset, undo: arAlignBack, close: arAlignEnd})[b.dataset.a](); }; });
+}
+const arAlignBtn = (a, t, go) => `<button type="button" class="${go ? "go" : ""}" data-a="${a}">${escH(T(t))}</button>`;
+const arAlignMoved = () => arHeldAt || Math.abs(arOff.h) > .5 || Math.abs(arOff.p) > .5;
+function arAlignShow(text){                          // the step's bar: one instruction (the warning under it while the sun is the target)
+  const a = arAlign, up = arAlignUp();
+  arAlignBar(`<div><b>${escH(text || T(a.k === "sun" ? "Put the sun in the circle" : "Put the moon in the circle"))}</b>${a.k === "sun" ? `<small>${escH(T("Don't look into the sun"))}</small>` : ""}</div>` +
+    (arAlignMoved() ? arAlignBtn("reset", "Reset") : "") + arAlignBtn("cancel", "Cancel"));
+  const pick = $("arAlignPick");
+  pick.hidden = up.length < 2;
+  for (const b of pick.children) { b.classList.toggle("on", b.dataset.k === a.k); b.setAttribute("aria-pressed", b.dataset.k === a.k); }
+}
+function arAlignOpen(){
+  ctlSound.click();
+  clearTimeout(arAlignT); arAlignUndo = null;
+  if (!$("arCard").hidden) arCardDismiss();
+  if (arZoom !== 1) arZoomSet(arZoom);               // the circle means the same at ×1 every time
+  const up = arAlignUp();
+  if (!up.length) {
+    const t = arSunUpAt();
+    arAlignBar(`<div><b>${escH(T("Sun and moon are down"))}</b></div>${t ? `<em>${escH(T("Sun up {t}", {t}))}</em>` : ""}` + (arAlignMoved() ? arAlignBtn("reset", "Reset") : "") + arAlignBtn("close", "Close"));
+    arAlignNote("down");
+    return;
   }
-  arAsk = a;                                         // the newest find; the words only when they change (the buttons stay put)
-  const b = box.querySelector("b"), sp = box.querySelector("span");
-  if (b.textContent !== title) b.textContent = title;
-  if (sp.textContent !== line) sp.textContent = line;
+  arAlignStart(up[0]);
 }
-function arAskHide(){ arAsk = null; const box = $("arAsk"); if (!box.hidden) box.hidden = true; }
-function arAskApply(){
-  const a = arAsk;
-  if (!a) return;
-  ctlSound.click(); arAskN.applied++; arAskHide();
-  const h1 = arOff.h + wrap180(a.h - arOff.h);
-  arGlide = {h0: arOff.h, p0: arOff.p, h1, p1: a.p, t0: performance.now()};
-  arAskGo = {h: h1, p: a.p}; arAskNo = null;
-  arAutoLock = {hexes: a.hexes, sun: a.sun, at: Date.now()};
-  dlog("debug", `Sky view AUTO: applied, lined up on ${a.sun ? "the sun" : a.hexes.length === 1 ? "1 plane" : a.hexes.length + " planes"}`);
-  arHold(a.sun ? "AUTO, on the sun" : "AUTO");
+function arAlignStart(k){
+  arAlign = {k, t0: Date.now(), tries: 0, seen: 0, inRing: 0, finds: [], prog: 0};
+  arMoonSaw = null; arAutoFinds = []; arAutoLock = null; arGlide = null;
+  $("arView").classList.add("aligning"); $("arAlignGo").hidden = false;
+  arAlignShow(); arPicSig = "";
 }
-function arAskNot(){
-  const a = arAsk;
-  if (!a) return;
-  ctlSound.click(); arAskN.declined++; arAskHide();
-  arAskNo = {h: a.h, p: a.p, until: Date.now() + AR_ASK_QUIET};
+function arAlignEnd(){                               // the step (and the bar) away
+  clearTimeout(arAlignT);
+  arAlign = null; $("arView").classList.remove("aligning"); $("arAlignGo").hidden = true; $("arAlignPick").hidden = true;
+  arAlignBar(""); arPicSig = ""; arMiniSig = ""; arRibSig = "";
 }
+function arAlignCancel(){ arAlignNote("cancel"); arAlignEnd(); }
+function arAlignDo(how, h, p, hit){                  // lined up: the labels glide there; Undo for a moment
+  const a = arAlign, h1 = arOff.h + wrap180(h - arOff.h);
+  arAlignNote(how, {dh: arR1(h1 - arOff.h), dp: arR1(p - arOff.p), ...hit, zoom: arR1(arZk * arZc)});
+  arAlignUndo = {h: arOff.h, p: arOff.p, held: arHeldAt, why: arHeldWhy, go: arAligned};
+  arGlide = {h0: arOff.h, p0: arOff.p, h1, p1: p, t0: performance.now()};
+  arAligned = {h: h1, p}; arAutoFinds = []; arAutoLock = null; arAutoPause = Date.now() + 1500;
+  arHold(`align, on the ${a.k} (${how})`);
+  arAlignEnd(); ctlSound.click();
+  arAlignBar(`<div><b><i class="ok">✓</i> ${escH(T("Lined up"))}</b></div>` + arAlignBtn("undo", "Undo"));
+  arAlignT = setTimeout(arAlignEnd, AR_ALIGN_DONE);
+}
+function arAlignBack(){                              // Undo: where the labels were, and north as it was
+  const u = arAlignUndo;
+  if (!u) return arAlignEnd();
+  arAlignNote("undo");
+  arGlide = {h0: arOff.h, p0: arOff.p, h1: u.h, p1: u.p, t0: performance.now()};
+  arAligned = u.go; arAutoFinds = []; arAutoLock = null; arHeldAt = u.held; arHeldWhy = u.why;
+  if (!u.held) arGap = null;
+  arAlignUndo = null; arAlignEnd();
+}
+function arAlignReset(){                             // labels where the compass says (it was the ⟲ button until 1.121)
+  arAlignNote("reset");
+  arOff = {h: 0, p: 0, v: 2}; arAutoFinds = []; arAutoLock = null; arGlide = arAligned = null; $("arMoved").hidden = true; try { localStorage.removeItem("od.ar.off"); } catch {}
+  arHeldAt = 0; arGap = null;                        // 1.86: and north from the compass again, at once
+  arAlignEnd();
+}
+function arAlignPress(){                             // the Align button: the sum alone
+  const a = arAlign, sky = arBody && arBody[a.k], cv = $("arCv"), W = cv.clientWidth, H = cv.clientHeight;
+  ctlSound.click();
+  if (!arQ || !sky) return;
+  const c = arUnproject(W / 2, H / 2, arQMatrix(arQ), W, H), dh = wrap180(sky.az - c.az), dp = sky.el - c.el;
+  if (Math.abs(dh) > AR_ALIGN_FAR_AZ || Math.abs(dp) > AR_ALIGN_FAR_EL) {
+    arAlignNote("far", {dh: arR1(dh), dp: arR1(dp)});
+    arAlignShow(T(a.k === "sun" ? "That's not the sun" : "That's not the moon"));
+    clearTimeout(arAlignT); arAlignT = setTimeout(() => { if (arAlign === a) arAlignShow(); }, 3000);
+    return;
+  }
+  arAlignDo("button", arOff.h + dh, arOff.p + dp, {});
+}
+function arAlignStep(v, R, W, H, now){               // every AUTO step while the step is open
+  const a = arAlign, sky = arBody && arBody[a.k];
+  if (!sky) return;
+  a.tries++;
+  const hit = a.k === "sun" ? arSunFind(v, R, W, H, sky) : arMoonFind(v, R, W, H, sky);
+  a.finds = a.finds.filter(x => now - x.t < AR_ALIGN_MS);
+  if (hit) {
+    a.seen++;
+    if (Math.hypot(hit.x - W / 2, hit.y - H / 2) <= AR_ALIGN_R && (arTurnNow().deg < AR_AUTO_RATE || !arRelQ)) {
+      a.inRing++;
+      a.finds.push({t: now, h: arOff.h + wrap180(sky.az - hit.az), p: arOff.p + sky.el - hit.el, hit});
+    }
+  }
+  a.prog = Math.min(1, a.finds.length / AR_ALIGN_N);
+  if (a.finds.length < AR_ALIGN_N) return;
+  const med = l => [...l].sort((x, y) => x - y)[l.length >> 1], h = med(a.finds.map(x => x.h)), p = med(a.finds.map(x => x.p));
+  if (!a.finds.every(x => Math.abs(wrap180(x.h - h)) < AR_ALIGN_TOL && Math.abs(x.p - p) < AR_ALIGN_TOL)) return;
+  const l = a.finds[a.finds.length - 1].hit;
+  arAlignDo("finder", h, p, {across: arR1(l.across), top: l.top != null ? Math.round(l.top) : null, sky: l.bg != null ? Math.round(l.bg) : null, x: arR1(l.x - W / 2), y: arR1(l.y - H / 2)});
+}
+// The moon in the middle of the picture: a bright patch against the sky just around it, at the video's own resolution.
+// Only AR_ALIGN_WIN px around the circle, because the phone is aimed: a wrong find is no worse than pressing Align. arMoonSaw says what it saw.
+function arMoonFind(v, R, W, H, moon){
+  const vw = v.videoWidth, vh = v.videoHeight, s = Math.max(W / vw, H / vh) * arZc, sw = Math.min(2 * AR_ALIGN_WIN / s, vw, vh), n = Math.min(160, Math.round(sw)), k = n / sw, N = n * n;
+  if (arMoonCan.width !== n) arMoonCan.width = arMoonCan.height = n;
+  arMoonCx.drawImage(v, (vw - sw) / 2, (vh - sw) / 2, sw, sw, 0, 0, n, n);
+  const px = arMoonCx.getImageData(0, 0, n, n).data, L = new Float32Array(N), rim = [], dif = [];
+  let top = 0;
+  for (let q = 0; q < N; q++) {
+    const l = L[q] = .299 * px[q * 4] + .587 * px[q * 4 + 1] + .114 * px[q * 4 + 2], i = q % n, j = (q - i) / n;
+    if (l > top) top = l;
+    if (i < 3 || j < 3 || i >= n - 3 || j >= n - 3) { rim.push(l); if (i) dif.push(Math.abs(l - L[q - 1])); }   // (next to each other: not the sky's slope)
+  }
+  rim.sort((a, b) => a - b); dif.sort((a, b) => a - b);
+  const sky = rim[rim.length >> 1], noise = Math.max(1, 1.5 * dif[dif.length >> 1]), rise = top - sky, see = why => { arMoonSaw = {why, top: Math.round(top), sky: Math.round(sky), noise: arR1(noise)}; return null; };
+  if (rise < Math.max(10, 6 * noise)) return see("flat");   // nothing stands out (a pale moon by day, cloud)
+  const T0 = sky + .6 * rise, lab = new Uint8Array(N), st = new Int32Array(N);
+  let best = null, second = 0;
+  for (let q0 = 0; q0 < N; q0++) {
+    if (lab[q0] || L[q0] < T0) continue;
+    let sp = 0, cnt = 0, sx = 0, sy = 0, x0 = n, x1 = 0, y0 = n, y1 = 0;
+    st[sp++] = q0; lab[q0] = 1;
+    while (sp) {
+      const q = st[--sp], i = q % n, j = (q - i) / n;
+      cnt++; sx += i; sy += j; x0 = Math.min(x0, i); x1 = Math.max(x1, i); y0 = Math.min(y0, j); y1 = Math.max(y1, j);
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        const ii = i + di, jj = j + dj, qq = jj * n + ii;
+        if (ii >= 0 && ii < n && jj >= 0 && jj < n && !lab[qq] && L[qq] >= T0) { lab[qq] = 1; st[sp++] = qq; }
+      }
+    }
+    if (!best || cnt > best.cnt) { if (best) second = Math.max(second, best.cnt); best = {cnt, sx, sy, x0, x1, y0, y1}; } else second = Math.max(second, cnt);
+  }
+  if (!best) return see("none");
+  const bw = best.x1 - best.x0 + 1, bh = best.y1 - best.y0 + 1, across = 2 * Math.sqrt(best.cnt / Math.PI) / k * s / arFocal(W, H) * 180 / Math.PI, thin = moon.lit < .3;
+  if (best.x0 === 0 || best.y0 === 0 || best.x1 === n - 1 || best.y1 === n - 1) return see("edge");   // bigger than the window: cloud
+  if (second > best.cnt / 3) return see("two");
+  if (across < .2 || across > 4) return see("size");
+  if (best.cnt < (thin ? .25 : .45) * bw * bh || Math.max(bw, bh) > (thin ? 3.5 : 1.8) * Math.min(bw, bh)) return see("shape");
+  const x = W / 2 + ((best.sx / best.cnt + .5) / k - sw / 2) * s, y = H / 2 + ((best.sy / best.cnt + .5) / k - sw / 2) * s, d = arUnproject(x, y, R, W, H);
+  if (Math.abs(d.el - moon.el) > AR_ALIGN_FAR_EL || Math.abs(wrap180(moon.az - d.az)) > AR_ALIGN_FAR_AZ) return see("far");
+  see("found");
+  return {x, y, az: d.az, el: d.el, across, top, bg: sky};
+}
+$("arAlignGo").onclick = arAlignPress;
+for (const b of $("arAlignPick").children) b.onclick = () => { ctlSound.click(); if (arAlign && arAlign.k !== b.dataset.k) { arAlignNote("switch"); arAlignStart(b.dataset.k); } };
 
 /* 1.118 (Dave's pick, to-do #205): the planes outside the picture. The three closest (the plane on top first, when it is
    outside) as chips: the flight, its distance and an arrow. A tap opens its card (arHits).
@@ -10800,7 +10959,7 @@ function arAimDraw(g, {cx, cy, R0, k}){
 }
 const shortType = t => String(t || "").replace(/^(Airbus|Boeing|Embraer|Bombardier|De Havilland Canada|ATR) /i, "");
 // Dragging the picture lines the labels up with the planes: sideways turns them, up and down lifts them.
-function arDragStart(e){ arGlide = null; arDrag = {x: e.clientX, y: e.clientY, h: arOff.h, p: arOff.p, moved: false}; e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); }
+function arDragStart(e){ if (arAlign) return; arGlide = null; arDrag = {x: e.clientX, y: e.clientY, h: arOff.h, p: arOff.p, moved: false}; e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); }
 function arDragMove(e){
   if (!arDrag) return;
   if (!arDrag.moved && Math.hypot(e.clientX - arDrag.x, e.clientY - arDrag.y) < 8) return;       // still a tap
@@ -10815,21 +10974,21 @@ function arDragEnd(e){
   if (tap && e && e.type === "pointerup") return arTap(e);
   arOffSave();
   arAutoFinds = []; arAutoLock = null; arAutoPause = Date.now() + 5000;   // 1.76: the finger wins; AUTO waits
-  arAskGo = arAskNo = null; arAskHide();             // 1.118: and asks afresh
+  arAligned = {h: arOff.h, p: arOff.p};              // 1.121: small corrections go on from where the finger put them
   arHold("by hand");
   arMovedNote();
 }
-// 1.72.7: after a drag, a note by ⟲ for a moment: the labels sit where the finger put them, not where the compass says.
+// 1.72.7: after a drag, a note by the align button for a moment: the labels sit where the finger put them, not where the compass says.
 function arMovedNote(){
   const n = $("arMoved");
-  n.textContent = T("Labels moved by hand · ⟲ to undo"); n.hidden = false;
+  n.textContent = T("Labels moved by hand"); n.hidden = false;
   clearTimeout(arMovedNote.t); arMovedNote.t = setTimeout(() => { n.hidden = true; }, 3500);
 }
 // 1.72.7: the walkthrough, the first time Sky view opens and from ⓘ: the ring, the drag, the buttons.
 // 1.118 (Dave's pick A): one thing per step, in one line.
 const AR_TOUR = [["ring", "Hold a plane in the ring", "Its card opens after a moment."],
   ["drag", "Labels beside the planes?", "Drag the sky until they sit on the planes."],
-  ["btns", "The buttons", "⟲ puts the labels back, ⓘ shows these tips, ×2 and ×5 zoom in."]];
+  ["btns", "The buttons", "The corners line the labels up on the sun or moon, ⓘ shows these tips, ×2 and ×5 zoom in."]];
 function arTour(step){
   const box = $("arTour");
   if (step >= AR_TOUR.length) {
@@ -11130,8 +11289,7 @@ function skyRowRender(){
 setInterval(skyRowRender, 1000);
 $("arClose").onclick = arClose;
 $("arShut").onclick = arSnap;
-$("arReset").onclick = () => { ctlSound.click(); arOff = {h: 0, p: 0, v: 2}; arAutoFinds = []; arAutoLock = null; arGlide = arAskGo = arAskNo = null; arAskHide(); $("arMoved").hidden = true; try { localStorage.removeItem("od.ar.off"); } catch {}
-  arHeldAt = 0; arGap = null; };                // 1.86: and north from the compass again, at once
+$("arAlign").onclick = arAlignOpen;
 $("arZ2").onclick = () => arZoomSet(2); $("arZ5").onclick = () => arZoomSet(5);
 { const cv = $("arCv");
   cv.addEventListener("pointerdown", arDragStart); cv.addEventListener("pointermove", arDragMove);
@@ -11146,6 +11304,7 @@ addEventListener("focus", arResume);
 if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => {
   const d = e.data || {};
   if (d.type === "bell") { audioInit(); chime(d.kind === "emergency" ? "emergency" : d.kind === "fav" ? "fav" : "special", {force: true}); }
+  if (d.type === "tab") showTab(d.tab);              // 1.120: a notification tapped while the app is open
 });
 
 // Tap a plane on the radar (or a row of Nearest): it is ringed, and its card comes up from the bottom as a sheet, the one a
@@ -11306,6 +11465,7 @@ function backStep(){
   if (shown($("t-styles"))) return stylesHide;
   const row = [...document.querySelectorAll(".tline li.fl.open")].find(li => li.getClientRects().length);
   if (row) return () => tlFold(row, true);                                 // a plane opened in place in a list: folded
+  if (tab === "today" && $("t-today").classList.contains("tdFilOn")) return () => tdFilter(false);   // 1.120: Today's filters
   if (tab !== "now") return () => showTab("now");
   return null;
 }
@@ -12414,8 +12574,19 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
-  {v: "1.120.1", date: "2026-10-31", notes: [
+  {v: "1.121.1", date: "2026-10-31", notes: [
     "The day now starts at 00:00 for everything: 23:59 is the last minute before the reset.",
+  ]},
+  {v: "1.121", date: "2026-10-31", notes: [
+    "Sky view: a new button lines the labels up on the sun or moon. Put it in the circle, and the camera or the Align button does the rest.",
+    "Sky view's title now shows one number: the planes around you.",
+  ]},
+  {v: "1.120", date: "2026-10-31", notes: [
+    "New bottom bar: Now, Logbook, Club, Radar, Settings.",
+    "The Spotters' Club has its own key.",
+    "Today now sits in the Logbook, beside All time.",
+    "Today's search and filters open from the filter icon.",
+    "A notification tapped while the web app is open now goes to the right page.",
   ]},
   {v: "1.119.3", date: "2026-10-31", notes: [
     "Week, month and year: the same facts in the same order at the same height, and no blank when you switch.",
@@ -14342,29 +14513,34 @@ function welcome(){
 }
 
 /* ---------- tabs: the board's push buttons along the bottom ---------- */
-// Small line icons over the tab names (drawn in the button's ink): a plane, a list, a book, a radar scope, a cogwheel.
+// Small line icons over the tab names (drawn in the button's ink): a plane, a book, a trophy, a radar scope, a cogwheel.
 const ICON = d => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 const TAB_ICONS = {
   now: ICON('<path d="M21 15.5v-1.8l-7.6-4.7V3.7a1.4 1.4 0 0 0-2.8 0V9l-7.6 4.7v1.8l7.6-2.3v5.3l-2 1.5V21l3.4-1 3.4 1v-1.5l-2-1.5v-5.3z" fill="currentColor"/>'),
-  today: ICON('<path d="M5 6h14M5 12h14M5 18h9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>'),
   logbook: ICON('<path d="M6 3.5h10.5a1.5 1.5 0 0 1 1.5 1.5v15H7.5A1.5 1.5 0 0 1 6 18.5zM6 18.5A1.5 1.5 0 0 1 7.5 17H18M9.5 8h5" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" fill="none"/>'),
+  game: ICON('<path d="M7.5 4h9v6a4.5 4.5 0 0 1-9 0zM7.5 6H4c0 3 1.2 4.7 3.8 5.2M16.5 6H20c0 3-1.2 4.7-3.8 5.2M12 14.5V19M8.5 20h7" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" fill="none"/>'),
   radar: ICON('<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M12 12 18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
   settings: ICON('<path d="M18.97 9.84 21.66 10.34 21.66 13.66 18.97 14.16 18.46 15.41 20.00 17.66 17.66 20.00 15.41 18.46 14.16 18.97 13.66 21.66 10.34 21.66 9.84 18.97 8.59 18.46 6.34 20.00 4.00 17.66 5.54 15.41 5.03 14.16 2.34 13.66 2.34 10.34 5.03 9.84 5.54 8.59 4.00 6.34 6.34 4.00 8.59 5.54 9.84 5.03 10.34 2.34 13.66 2.34 14.16 5.03 15.41 5.54 17.66 4.00 20.00 6.34 18.46 8.59Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" fill="none"/><circle cx="12" cy="12" r="3.1" stroke="currentColor" stroke-width="1.9" fill="none"/>'),
 };
-const TABS = [["now", "Now"], ["today", "Today"], ["logbook", "Logbook"], ["radar", "Radar"], ["settings", "Settings"]];
+// 1.120 (to-dos #222, #225): the five keys. The Logbook's key opens on Today, one of its two panes (TAB_PAGES); the Club's
+// goes when there's no game (gameOk: demo mode, no relay, an old relay) and the other four fill the bar.
+const TABS = [["now", "Now"], ["logbook", "Logbook"], ["game", "Club"], ["radar", "Radar"], ["settings", "Settings"]];
+const TAB_PAGES = ["now", "today", "logbook", "game", "radar", "settings"];
+const tabKey = t => t === "today" ? "logbook" : t;
 let tab = "now", tabTimer = null;
 // 1.45: the ding for a new plane on top only sounds on Now, where that plane shows; the chimes play anywhere.
 function onMainPage(){ return tab === "now"; }
 function buildTabs(){
   $("tabRow").innerHTML = TABS.map(([t, name]) => `<button class="cap${T(name).length > 9 ? " long" : ""}" type="button" data-tab="${t}">${TAB_ICONS[t]}<span>${T(name)}</span></button>`).join("");
-  for (const b of $("tabRow").children) b.onclick = () => { audioInit(); ctlSound.press(); showTab(b.dataset.tab); };
+  for (const b of $("tabRow").children) b.onclick = () => { audioInit(); ctlSound.press(); showTab(b.dataset.tab === "logbook" ? "today" : b.dataset.tab); };
+  clubKey();
 }
+function clubKey(){ const b = $("tabRow").querySelector('[data-tab="game"]'); if (b) b.hidden = !gameOk(); }
 function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); if (b) b.classList.toggle("ping", on); }
 // The tips for a tab (1.42): what the tab is, the first time, then what can be done on it. 1.119: one short sentence
 // each, pointing at one thing; the app's own words for the styles and Now's pages (the board keeps MODE_TIP, PAGE_TIPS).
 const TAB_TIPS = {now: "This is Now: the plane over you. Tap the board for its card.",
-  today: "Today: every plane that came by today.",
-  logbook: "Logbook: every plane you've ever spotted.",
+  logbook: "Logbook: today's planes, and every plane you've ever spotted.",
   radar: "Radar: the planes around you right now.",
   settings: "Settings: your place, the look and the sounds."};
 const NOW_TIPS = {mode: "Switch between Overhead, the planes over you, and Airport, the take-offs and landings.",
@@ -14379,13 +14555,14 @@ function appTips(t){
   if (t !== tab || SIDEWAYS.matches || ($("welcome") && !$("welcome").hidden) || !$("t-about").hidden) return;
   const vis = el => el && !el.hidden && el.getClientRects().length ? el : null;
   const tabBtn = x => () => $("tabRow").querySelector(`[data-tab="${x}"]`);
-  tip("tab-" + t, tabBtn(t), T(TAB_TIPS[t]));
+  const key = tabKey(t);
+  if (TAB_TIPS[key]) tip("tab-" + key, tabBtn(key), T(TAB_TIPS[key]));
   if (t === "now") {
     tip("mode", () => $("modes"), T(NOW_TIPS.mode));
     const pageBtn = p => () => vis($("apPick").querySelector(`[data-page="${p}"]`)) || vis($("nowPages").querySelector(`[data-page="${p}"]`));
     if (airportMode()) for (const [p, k] of [["lists", "aplists"], ["dep", "apdep"], ["land", "apland"]]) tip("ap-" + p, pageBtn(p), T(NOW_TIPS[k]));
     else for (const [p, k] of [["lists", "spotted"], ["ac", "aircraft"]]) tip("pg-" + p, pageBtn(p), T(NOW_TIPS[k]));
-    for (const [x] of TABS) if (x !== "now") tip("tab-" + x, tabBtn(x), T(TAB_TIPS[x]));
+    for (const [x] of TABS) if (x !== "now" && TAB_TIPS[x]) tip("tab-" + x, tabBtn(x), T(TAB_TIPS[x]));
     tip("swipe", () => $("recent").querySelector("li.fl[data-more]"), T("Swipe a plane right to make it a favourite, left to hide it."));
     tip("open", () => $("recent").querySelector("li.fl[data-more]"), T("Tap a plane to open its card."));
   }
@@ -14411,18 +14588,18 @@ function showTab(t){
   const rv = /^review-(week|month)-(\d{1,2})$/.exec(t || "");      // a review notification (1.52): the Logbook at that week or month
   if (rv) { review.span = rv[1]; review.back = +rv[2]; lbPeriod = rv[1]; t = "logbook"; }
   aboutHide(); stylesHide();
-  if ((!TABS.some(x => x[0] === t) && !(t === "game" && gameOk())) || SIDEWAYS.matches) t = "now";
+  clubKey();
+  if (!TAB_PAGES.includes(t) || (t === "game" && !gameOk()) || SIDEWAYS.matches) t = "now";
   const was = tab;
   tab = t;
-  for (const [x] of TABS) $("t-" + x).hidden = x !== t;
-  $("t-game").hidden = t !== "game";                 // 1.72: the Game page, opened from the score strip
-  for (const b of $("tabRow").children) { if (b.dataset.tab === (t === "game" ? "logbook" : t)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }   // 1.74: the Spotters' Club is the Logbook's
+  for (const x of TAB_PAGES) $("t-" + x).hidden = x !== t;
+  for (const b of $("tabRow").children) { if (b.dataset.tab === tabKey(t)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
   HERO.off = t !== "now"; TODAYP.off = t !== "today";
   clearInterval(tabTimer); tabTimer = null;
   stopRadar();
   refreshPanels();
   if (t === "now") { pingNow(false); applyMode(); renderFeatured(); renderAircraftInfo(); renderRecent(); }
-  else if (t === "today") { svSig = ""; renderToday(); }
+  else if (t === "today") { if (was !== "today") tdFilter(false); svSig = ""; renderToday(); }
   else if (t === "logbook") { lbSig = ""; fetchLogbook(); tabTimer = setInterval(fetchLogbook, 60000); }
   else if (t === "radar") { rvSig = ""; startRadar(); renderRadarList(); }
   else if (t === "settings") { cockpitOpen(); settingsExtra(); renderFavBox(); setListRender(); }
@@ -14684,15 +14861,17 @@ function gHitDo(){
   el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit");
 }
 document.addEventListener("click", e => { if (e.target.closest && e.target.closest("#t-game .gGoB")) { audioInit(); ctlSound.click(); gGoLive(); } });
-// 1.74: Logbook and Spotters' Club: the title tabs, and a sideways swipe on either page switches to the other.
+// 1.120: Today | All time in the Logbook; a sideways swipe goes Today, All time, Club, but never on a plane's row (it has
+// its own swipes) or anything that scrolls sideways.
 for (const b of document.querySelectorAll("[data-lt]")) b.onclick = () => { if (tab !== b.dataset.lt) { ctlSound.nav(); showTab(b.dataset.lt); } };
-for (const id of ["t-logbook", "t-game"]) { let sw = null;
-  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .bingo, .hgRow, .lyCar, .lyIdx, .ppMap") ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
+for (const id of ["t-today", "t-logbook", "t-game"]) { let sw = null;
+  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .bingo, .hgRow, .lyCar, .lyIdx, .ppMap, .tline li.open") || swipeRow(e.target) ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
   $(id).addEventListener("touchend", e => {
     if (!sw) return;
     const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y; sw = null;
     if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * .6) return;
-    if (tab === "logbook" && dx < 0 && gameOk()) showTab("game"); else if (tab === "game" && dx > 0) showTab("logbook");
+    const order = gameOk() ? ["today", "logbook", "game"] : ["today", "logbook"], to = order[order.indexOf(tab) + (dx < 0 ? 1 : -1)];
+    if (to) showTab(to);
   }, {passive: true}); }
 // 1.73.2: a notice goes when swiped to the right (a finger, or a mouse); a short swipe springs back. 1.113 (to-do #183):
 // to the left too.
@@ -15546,8 +15725,6 @@ function gSubBar(g0){
   let lit = null;
   for (const b of seg.children) { const on = b.dataset.gs === gSub; b.setAttribute("aria-pressed", String(on)); if (on) lit = b; }
   if (lit && seg.dataset.lit !== gSub) { seg.dataset.lit = gSub; seg.scrollTo({left: lit.offsetLeft - (seg.clientWidth - lit.offsetWidth) / 2, behavior: REDUCED ? "auto" : "smooth"}); }
-  const t = document.querySelector("#t-game .lbTabs");
-  if (t && t.offsetHeight) document.documentElement.style.setProperty("--lbH", t.offsetHeight + "px");
   return gSub;
 }
 // To a sub-tab: drawn whole, the page back at its top (under the sticky bars).
@@ -16033,7 +16210,7 @@ function fsWings(a){
 }
 function gameStart(){
   gStripSetup();
-  for (const b of document.querySelectorAll('[data-lt="game"]')) b.hidden = !gameOk();   // 1.74: no Spotters' Club without relay 59
+  clubKey();                                         // 1.74: no Spotters' Club without relay 59
   if (!gameOk()) return;
   gRefresh(true); gLeagueLoad();
   setInterval(() => gRefresh(), 2500);

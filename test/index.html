@@ -2916,7 +2916,7 @@ function demoLog(){
 }
 
 /* ---------- spotted log ---------- */
-const DAY_START_H = 0;      // 1.120.1 (to-do #233): one day for everything, 00:00 to 23:59, as the relay
+const DAY_START_H = 0;      // 1.121.1 (to-do #233): one day for everything, 00:00 to 23:59, as the relay
 function boardDay(){ const d = new Date(Date.now() - DAY_START_H * 3600e3); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
 function todayKey(){ return `od.log.${boardDay()}`; }
 function loadLog(){ if (S.demo) return demoLog(); try { return JSON.parse(localStorage.getItem(todayKey()) || "[]"); } catch { return []; } }
@@ -7873,8 +7873,19 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
-  {v: "1.120.1", date: "2026-10-31", notes: [
+  {v: "1.121.1", date: "2026-10-31", notes: [
     "The day now starts at 00:00 for everything: 23:59 is the last minute before the reset.",
+  ]},
+  {v: "1.121", date: "2026-10-31", notes: [
+    "Sky view: a new button lines the labels up on the sun or moon. Put it in the circle, and the camera or the Align button does the rest.",
+    "Sky view's title now shows one number: the planes around you.",
+  ]},
+  {v: "1.120", date: "2026-10-31", notes: [
+    "New bottom bar: Now, Logbook, Club, Radar, Settings.",
+    "The Spotters' Club has its own key.",
+    "Today now sits in the Logbook, beside All time.",
+    "Today's search and filters open from the filter icon.",
+    "A notification tapped while the web app is open now goes to the right page.",
   ]},
   {v: "1.119.3", date: "2026-10-31", notes: [
     "Week, month and year: the same facts in the same order at the same height, and no blank when you switch.",
