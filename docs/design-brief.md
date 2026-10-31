@@ -13,11 +13,11 @@ two days later mockups again carried sentences and a second row of tabs. These r
 **Text**
 
 1. **At rest, a state shows a label and a value, nothing else.** A label is at most three words ("Standby ready",
-   "Standby used Saturday"); a warning may add what to do on the same line ("No standby left: scan by 03:00"). No
+   "Standby used Saturday"); a warning may add what to do on the same line ("No standby left: scan by 23:59"). No
    sentence on a card, row, chip, ticket or pill at rest. Shorten before truncating.
 2. **The label opens its own explanation when tapped** (a bottom sheet). Sentences live only in there, and the sheet
    is two short lines: what it does, then what you will see ("Miss a day, and your Standby is automatically consumed
-   to keep your streak going" / "That day shows SBY and pays no points. Resets on Monday 03:00"). The (i) by a title
+   to keep your streak going" / "That day shows SBY and pays no points. Resets on Monday 00:00"). The (i) by a title
    explains a whole screen or panel (the Radar, How points work on the Level plate), never one label. "It isn't
    clear" is answered with a tap target, never with a sentence added to the card.
 3. **At most one line of help per screen, and only in an empty state.** Everything longer goes behind the (i).

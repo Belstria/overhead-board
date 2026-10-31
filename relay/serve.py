@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 101
+RELAY_VERSION = 102
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -94,7 +94,7 @@ SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port",
 DATA_DIR = Path(__file__).with_name("data")
 LOGBOOK_FILE = DATA_DIR / "logbook.json"
 SAME_PASS_S = 45 * 60       # the same aircraft within 45 minutes is one pass
-DAY_STARTS_H = 3            # "today" runs from 03:00 to 03:00, so late flights count to the evening they belong to
+DAY_STARTS_H = 0            # relay 102 (to-do #233): one day for everything, 00:00 to 23:59, local time
 LEARN_S = 24 * 3600         # a new logbook spends its first day learning what is normal here
 FR24_API = "https://fr24api.flightradar24.com/api"
 FR24_FILE = DATA_DIR / "fr24.json"
@@ -1273,7 +1273,7 @@ def _game_limits(g, day):
 
 
 def _next_day_ms(day):
-    """When the game day after `day` starts (03:00), in ms."""
+    """When the game day after `day` starts (00:00), in ms."""
     nxt = datetime.datetime.combine(datetime.date.fromisoformat(day) + datetime.timedelta(days=1), datetime.time(DAY_STARTS_H))
     return int(nxt.timestamp() * 1000)
 
@@ -1911,7 +1911,7 @@ def _league_id(pid):
 
 def league_json(me=None):
     """The league (relay 59): every profile that has points and didn't leave it (Settings → Game), this week (Monday
-    03:00 on) and all time, by first name; last week's winner wears the crown. Never places."""
+    00:00 on) and all time, by first name; last week's winner wears the crown. Never places."""
     day = board_day()
     wk = _monday(day)
     last = (datetime.date.fromisoformat(wk) - datetime.timedelta(days=7)).isoformat()
