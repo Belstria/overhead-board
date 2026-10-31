@@ -15771,7 +15771,7 @@ function gSubGo(k){
 // 1.122.2 (to-do #242, Dave's pick: a matching panel): the rows sit on a plate of their own under "Your level", with the
 // Standby row's look; values as short as they go (rule 1).
 function gIndexHtml(g, g0){
-  const L = gLeague, rows = [];
+  const rows = [];
   const row = (k, name, line) => gSubHas(k, g0) && rows.push(`<button type="button" data-gsub="${k}"><b>${escH(T(name))}</b><span>${escH(line)}</span><i aria-hidden="true">\u203a</i></button>`);
   row("league", "League", g.rank ? T("#{n}", {n: g.rank}) : T("No place yet"));
   if (g0) {
