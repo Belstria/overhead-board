@@ -2178,9 +2178,8 @@ function trWire(box, redraw){
 }
 // 1.83 (Dave): a section of the Logbook, the Spotters' Club or the radar on a plate of its own, as Settings' and the
 // radar's controls: screws in the corners, its name engraved between two lines.
-// 1.122 (to-do #231, Dave): a plate's small footnote, engraved like its title, between the bottom screws. It breaks only
-// between its parts.
-const plFoot = (...parts) => { parts = parts.filter(Boolean); return parts.length ? `<p class="plFoot">${parts.map(s => `<span>${escH(s)}</span>`).join(" · ")}</p>` : ""; };
+// 1.122 (to-do #231, Dave): a plate's small footnote, engraved like its title, between the bottom screws. One line a part.
+const plFoot = (...parts) => { parts = parts.filter(Boolean); return parts.length ? `<p class="plFoot">${parts.map(s => `<span>${escH(s)}</span>`).join("")}</p>` : ""; };
 const secPlate = (title, body, cls = "") => `<section class="plate secPlate${cls ? " " + cls : ""}" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${escH(title)}</h3>${body}</section>`;
 // A trophy cup for the trophies list (gold when won, by CSS).
 const CUP = '<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10c0 5-1.5 8-5 8.5C8.5 11 7 8 7 3zM11 11.5h2l.5 4h-3zM8 16h8v2.2H8z"/><path d="M7 4.5C4.5 4.5 4 8 7.5 9M17 4.5c2.5 0 3 3.5-.5 4.5" fill="none" stroke-width="1.6"/></svg>';

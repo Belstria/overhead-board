@@ -1829,7 +1829,7 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .secPlate .seg{margin:0 0 4px}
 /* 1.122 (to-do #231): a plate's footnote: its title's engraving, smaller, between the bottom screws */
 .plFoot{grid-column:1/-1;margin:2px 12px -12px;font:600 var(--fs-tag)/1.35 var(--f-board);letter-spacing:.1em;text-transform:uppercase;text-align:center;color:rgba(214,208,194,.55);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
-.plFoot span{display:inline-block;color:inherit;margin:0}
+.plFoot span{display:block;color:inherit;margin:0}
 .perCard .perHead{gap:10px}
 .perCard .perHead .seg{flex:1;margin:0}
 .perCard .perHead .perArr{margin-left:auto}
@@ -9364,9 +9364,8 @@ function trWire(box, redraw){
 }
 // 1.83 (Dave): a section of the Logbook, the Spotters' Club or the radar on a plate of its own, as Settings' and the
 // radar's controls: screws in the corners, its name engraved between two lines.
-// 1.122 (to-do #231, Dave): a plate's small footnote, engraved like its title, between the bottom screws. It breaks only
-// between its parts.
-const plFoot = (...parts) => { parts = parts.filter(Boolean); return parts.length ? `<p class="plFoot">${parts.map(s => `<span>${escH(s)}</span>`).join(" · ")}</p>` : ""; };
+// 1.122 (to-do #231, Dave): a plate's small footnote, engraved like its title, between the bottom screws. One line a part.
+const plFoot = (...parts) => { parts = parts.filter(Boolean); return parts.length ? `<p class="plFoot">${parts.map(s => `<span>${escH(s)}</span>`).join("")}</p>` : ""; };
 const secPlate = (title, body, cls = "") => `<section class="plate secPlate${cls ? " " + cls : ""}" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${escH(title)}</h3>${body}</section>`;
 // A trophy cup for the trophies list (gold when won, by CSS).
 const CUP = '<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10c0 5-1.5 8-5 8.5C8.5 11 7 8 7 3zM11 11.5h2l.5 4h-3zM8 16h8v2.2H8z"/><path d="M7 4.5C4.5 4.5 4 8 7.5 9M17 4.5c2.5 0 3 3.5-.5 4.5" fill="none" stroke-width="1.6"/></svg>';
