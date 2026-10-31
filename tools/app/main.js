@@ -932,7 +932,7 @@ function lbFindSetup(){
   box.hidden = (window.OVERHEAD_RELAY_VERSION || 0) < 55 || !relay() || S.demo;
   if (box.hidden || box.firstChild) return;
   box.innerHTML = `<span class="svFind"><input type="search" data-q enterkeyhint="search" autocomplete="off" spellcheck="false" ` +
-    `placeholder="${escH(T((window.OVERHEAD_RELAY_VERSION || 0) >= 63 ? "Search the logbook, e.g. OE-LBN, A380, Santorini" : "Search the logbook, e.g. OE-LBN, A380, OS 802"))}" aria-label="${escH(T("Search the logbook"))}">` +
+    `placeholder="${escH(T((window.OVERHEAD_RELAY_VERSION || 0) >= 63 ? "Search, e.g. OE-LBN, A380, Santorini" : "Search, e.g. OE-LBN, A380, OS 802"))}" aria-label="${escH(T("Search the logbook"))}">` +
     `<button type="button" data-qx aria-label="${escH(T("Clear"))}" hidden>×</button></span>`;
   const inp = box.querySelector("[data-q]"), x = box.querySelector("[data-qx]");
   const set = v => { lbQuery = v; x.hidden = !v; clearTimeout(lbFindT); lbFindT = setTimeout(lbFind, v ? 350 : 0); };
@@ -5633,8 +5633,12 @@ function updateWhere(){
   // 1.90: before the first fix only FINDING YOU … (the place is an old one, and the line fits a phone); 1.93.0.1: then
   // only ON THE GO until live location has the name of where it is (placeNow)
   const name = placeNow();
-  $("where").textContent = liveWaiting() ? "◉ " + T("FINDING YOU …") : S.live && !name ? "◉ " + (liveStale() ? T("FINDING YOU …") : clean(T("On the go"))) :
-    `${S.live ? "◉ " : ""}${liveStale() ? T("FINDING YOU …") + "  ·  " : ""}${lab}${clean(name)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`;
+  // 1.122.1 (to-do #236): "VIENNA · 15 KM" (the word RADIUS went); two spans in one row: when both do not fit the radius
+  // wraps and is clipped (head.html's .where), and only a name too long on its own is cut with …
+  const w = $("where"), put = (a, r) => { w.innerHTML = `<span class="wn">${escH(a)}</span>` + (r ? `<span class="wr"> · ${escH(r)}</span>` : ""); };
+  if (liveWaiting()) put("◉ " + T("FINDING YOU …"));
+  else if (S.live && !name) put("◉ " + (liveStale() ? T("FINDING YOU …") : clean(T("On the go"))));
+  else put(`${S.live ? "◉ " : ""}${liveStale() ? T("FINDING YOU …") + " · " : ""}${lab}${clean(name)}`, `${+S.radiusKm || 15} KM`);
 }
 function liveShow(){ updateWhere(); renderRecent(); renderToday(); }     // live location found its position, or lost it (1.90: and the lists)
 function tickClock(){
@@ -6551,7 +6555,7 @@ function renderGame(){
       `<div class="gTiles"><div><b>${nf.format(g.today || 0)}</b><span>${escH(T("Points today"))}</span></div>` +
       // 1.96: This week is the week's points, as in the league (it was your place there; that stays beside it)
       `<div><b>${nf.format(g.week || 0)}</b><span>${escH(g.rank ? T("This week · #{n}", {n: g.rank}) : T("This week"))}</span></div><div><b>${g.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` +
-      gLimHtml(g, true) + gSbyHtml(g), "gHero") + gIndexHtml(g, g0);
+      gSbyHtml(g, gLimLine(g)), "gHero") + gIndexHtml(g, g0);
   } else if (sub === "league") {
     const L = gLeague, rows = L ? (gAll ? L.allTime : L.rows) : null;
     let lg = `<div class="seg gSeg" role="group"><button type="button" data-ga="0" aria-pressed="${!gAll}">${escH(T("This week"))}</button><button type="button" data-ga="1" aria-pressed="${gAll}">${escH(T("All time"))}</button></div>`;
@@ -6594,6 +6598,7 @@ function renderGame(){
   if ($("gHow")) $("gHow").onclick = gHowCard;
   if ($("cuOpen")) $("cuOpen").onclick = careerOpen;
   if ($("gSby")) $("gSby").onclick = gSbyOpen;
+  if ($("gLim")) $("gLim").onclick = gLimOpen;
   if ($("gWkB")) $("gWkB").onclick = gSbyOpen;
   for (const b of box.querySelectorAll("[data-gsub]")) b.onclick = () => { ctlSound.nav(); const k = b.dataset.gsub; if (G_PARTS[k]) gGoPlate(G_PARTS[k]); else gSubGo(k); };
   trWire(box, renderGame);
@@ -6658,9 +6663,9 @@ const gSbyUsed = g => { const s = g && g.standby; return s && s.today > 0 && s.w
 // 1.119.3 (to-do #220, Dave's B2): one line under the week, the tag and a short state; all the explaining behind a tap.
 // A reset is when something starts (00:00); the last minute before it is the deadline (23:59).
 const gLastMin = ms => ms - 60000;
-function gSbyHtml(g){
+function gSbyHtml(g, lim){          // lim: the limit line (gLimLine), under the Standby's
   const s = g.standby, R = gRules();
-  if (!s || !s.week) return "";
+  if (!s || !s.week) return lim ? `<div class="gSbyWk">${lim}</div>` : "";
   const t = s.today, used = s.week.lastIndexOf("b"), from = gSbyFrom(R);
   const risk = s.allow && !s.left && !g.scannedToday && (g.streak || 0) > 0 && s.week[t - 1] !== "b";   // the day after one: that it was used
   const line = !s.allow ? T("Standby from level {n}", {n: from}) : s.left ? T("Standby ready")
@@ -6671,7 +6676,7 @@ function gSbyHtml(g){
   return `<div class="gSbyWk"><span class="gTileL">${escH(T("This week's streak"))}</span>` +
     `<button class="gWk gWkB" type="button" id="gWkB" aria-label="${escH(T("This week's streak"))}">${s.week.map((c, i) => `<i class="${cls(c, i)}" title="${escH(sbyDay(i, "long"))}">${escH(c === "b" ? T("SBY") : sbyDay(i, "narrow"))}</i>`).join("")}</button>` +
     `<button class="gHow gSbyL" type="button" id="gSby"><span><span class="gSbyTg${s.left ? "" : " off"}">${escH(T("SBY"))}</span><b class="${risk ? "warn" : ""}">${escH(line)}</b>` +
-    (fresh ? `<u>${escH(T("NEW"))}</u>` : "") + `</span><i>›</i></button></div>`;
+    (fresh ? `<u>${escH(T("NEW"))}</u>` : "") + `</span><i>›</i></button>${lim || ""}</div>`;
 }
 const gSbyFrom = R => R && R.standby ? R.standby[R.standby.length - 1][0] : 6;
 // A plate in the bottom sheet, its title engraved (Dave's rule for every sheet), as the Logbook's panels.
@@ -6688,19 +6693,29 @@ function gSbyOpen(){
     `<p class="sum">${escH(T("That day shows SBY and pays no points. Resets on {d} {h}", {d: mon, h}))}</p>` : ""));
   try { if (!localStorage.getItem(ACH_KEY + ".sby")) { localStorage.setItem(ACH_KEY + ".sby", "1"); renderGame(); } } catch {}
 }
-// 1.96 (to-do #127, Dave's L3): today's planes by rarity against their limits on the Game page, five counters, and a
-// note for each rarity that reached its limit, with when it starts again.
-// 1.116: notes only (the level card): the counters went, a rarity at its limit still says so.
-function gLimHtml(g, notes){
-  const R = gRules(), L = g.limits;
-  if (!R || !L) return "";
-  const tiers = TIER_DRUM.slice(1), full = tiers.filter(t => L[t] && L[t][0] >= L[t][1]);
-  const h = g.resets ? hhmm(new Date(g.resets)) : "00:00";
-  return (notes ? "" : `<div class="gLim">${tiers.map(t => { const [n, m] = L[t] || [0, R.limit[t]];
-    return `<div class="${n >= m ? "full" : ""}" style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><b>${nf.format(Math.min(n, m))}<small>/${nf.format(m)}</small></b>` +
-      `<i><u style="width:${Math.min(100, Math.round(n / m * 100))}%"></u></i><span>${escH(gTierT(t))}</span></div>`; }).join("")}</div>`) +
-    full.map(t => `<div class="gNote"><img class="tico" src="${tierIcon(t)}" alt=""><div>${escH(T("{t} limit reached: {m} of {m} today", {t: gTierT(t), m: nf.format(L[t][1])}))}` +
-      `<small>${escH(T("{t} planes score again from {h}. The other rarities still count.", {t: gTierT(t), h}))}</small></div></div>`).join("");
+// 1.96 (to-do #127): a note for each rarity that reached its limit (1.116: the counters went). 1.122.1 (to-do #239, rule 1):
+// a rarity at its limit is one line under the Standby's, the same class: its icon in the
+// tag and "Special limit: 3 of 3"; with several at once still one line ("Limits reached", their count in the tag).
+// The tap opens the sheet (gLimOpen) with the explanation and the time from the relay's resets.
+const gLimFull = g => { const L = g.limits || {}; return TIER_DRUM.slice(1).filter(t => L[t] && L[t][0] >= L[t][1]); };
+function gLimLine(g){
+  const full = gLimFull(g), L = g.limits;
+  if (!full.length) return "";
+  const m = t => nf.format(L[t][1]);
+  const line = full.length === 1 ? T("{t} limit: {n} of {m}", {t: gTierT(full[0]), n: m(full[0]), m: m(full[0])}) : T("Limits reached");
+  return `<button class="gHow gSbyL" type="button" id="gLim"><span><span class="gSbyTg off lim">${full.length === 1 ? `<img class="tico" src="${tierIcon(full[0])}" alt="">` : escH(nf.format(full.length))}</span>` +
+    `<b>${escH(line)}</b></span><i>›</i></button>`;
+}
+// The sheet: what is full today (a rarity's count of its limit), then when it scores again.
+function gLimOpen(){
+  ctlSound.nav();
+  const g = gme || {}, L = g.limits || {}, full = gLimFull(g), h = g.resets ? hhmm(new Date(g.resets)) : "00:00";
+  if (!full.length) return;
+  const m = t => nf.format(L[t][1]);
+  plateSheet(T("Daily limit"), `<p class="sum">${escH(full.length === 1 ? T("{t} limit reached: {m} of {m} today", {t: gTierT(full[0]), m: m(full[0])})
+      : full.map(t => `${gTierT(t)} ${m(t)} of ${m(t)}`).join(" · "))}</p>` +
+    `<p class="sum">${escH(full.length === 1 ? T("{t} planes score again from {h}. The other rarities still count.", {t: gTierT(full[0]), h})
+      : T("They score again from {h}. The other rarities still count.", {h}))}</p>`);
 }
 // 1.79: How points work, a card. 1.96 (to-do #127): the rules on one screen, from the relay: each rarity's points within
 // the circle and with a scan, today's planes against the limits, the extras and the daily streak.

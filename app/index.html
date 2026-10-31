@@ -786,7 +786,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .tools{display:flex;flex-wrap:wrap;gap:12px 14px;margin:14px 0 4px;padding:3px;--k:.86}
 .tools .cap{margin:0}
 .tools .svFind{flex:1 1 100%;--k:1}
-.tools .svFind input{width:100%;height:40px;font-size:var(--fs-input)}
+.tools .svFind input,.tdFind .svFind input{width:100%;height:40px;font-size:var(--fs-input)}   /* 1.122.1: Today's find box and All time's search box are one look (16 px, no zoom on a phone; 40 px high) */
 #tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:12px 0 calc(12px + var(--sa-bottom));background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
   box-shadow:0 -1px 0 rgba(255,255,255,.05),0 -2px 0 rgba(0,0,0,.7),0 -8px 18px rgba(0,0,0,.38)}
 #tabs .wrap{display:flex;gap:9px;--k:.88}
@@ -1266,7 +1266,7 @@ html.daylight .devTile{background:#fbf8f1;border-color:#d3cab7}
 html.daylight .cups li:not(.on):not(.medal) .cup{stroke:rgba(25,25,25,.3)}
 html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} html.daylight .cups li.m2{--m:#b07d0c} html.daylight .cups li.m3{--m:#23806f} html.daylight .cups li.m4{--m:#4467cc}
 /* 1.65: the whole logbook searched; while a search shows, the logbook's own parts step aside */
-.lbFindBox{margin:8px 0 4px}
+.lbFindBox{margin:8px 0 4px;padding:0}
 #t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding #lbNums,#t-logbook.finding #lbYear,#t-logbook.finding #lbIdx,#t-logbook.finding .rcol{display:none!important}
 #lbFound .lbfHead{margin:10px 0 6px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
 #lbFound ol{list-style:none;margin:0;padding:0}
@@ -1365,7 +1365,10 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .apPick{display:none;gap:12px;margin:2px 0 14px}
 .apPick .cap{flex:1;height:40px;margin:0;font-size:var(--fs-xs)}
 #t-now.ap .apPick{display:flex}
-.title .where{all:unset;display:block;max-width:100%;cursor:pointer;margin:5px 0 0;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.title .where{all:unset;display:flex;flex-wrap:wrap;height:1em;max-width:100%;cursor:pointer;margin:5px 0 0;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden}
+/* 1.122.1: "NAME · 15 KM" on one line; when both do not fit, the radius wraps below and is clipped (shorten), and only a
+   name too long on its own is cut with … */
+.where .wn{max-width:100%;overflow:hidden;text-overflow:ellipsis}.where .wr{flex:none;white-space:pre}
 .seg.svPlaces,.seg.lbViews,.seg.gSeg,.seg.svFilters,.seg.lbPer,.seg.catSeg,.seg.trSeg,.seg.logSeg,.seg.jumpSeg{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
 .seg.svPlaces[hidden],.seg.lbViews[hidden]{display:none}
 .seg.svPlaces button,.seg.lbViews button,.seg.gSeg button,.seg.svFilters button,.seg.lbPer button,.seg.catSeg button,.seg.trSeg button,.seg.logSeg button,.seg.jumpSeg button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
@@ -1771,6 +1774,7 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 #t-game .gSbyL u{text-decoration:none;font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.1em;padding:3px 6px;border-radius:4px;background:var(--amber);color:#17140e}
 .gSbyTg{flex:none;display:inline-grid;place-items:center;width:44px;height:30px;border:1.5px solid var(--amber);border-radius:6px;color:var(--amber);font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.04em;background:repeating-linear-gradient(45deg,rgba(240,180,41,.2) 0 4px,transparent 4px 8px)}
 .gSbyTg.off{border-color:#3a3c42;color:var(--label2);background:none}
+.gSbyTg.lim .tico{width:18px;height:18px}   /* 1.122.1: a rarity at its limit: its icon in the tag (several: their count) */
 #cardBox .lbIn .gWk{margin:10px 0 0}
 /* 1.119.3: the level card's rank, mini route and next unlock open the route: one button laid over them, nothing drawn;
    the plate's (i) sits between the engraved line's end and the screw, the line stopped short of it on both sides */
@@ -1809,16 +1813,6 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 #cardBox .rpList .fl.lim{opacity:.6} #cardBox .rpList .fl.lim .pts{color:var(--muted)}
 #cardBox .rpList .fl .meta.lim span{color:var(--muted)}
 #cardBox .rpList .fl .meta.stk span:first-child{color:var(--amber)}
-/* 1.96 (Dave's L3): the Game page's limits: five counters, a note for each rarity that reached its limit */
-.gLim{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;border-top:1px solid rgba(255,255,255,.07);padding-top:10px;margin-top:10px}
-.gLim div{display:grid;gap:4px;justify-items:start;min-width:0}
-.gLim .tico{width:16px;height:16px}
-.gLim b{font:700 var(--fs-m)/1 var(--f-board);font-variant-numeric:tabular-nums} .gLim b small{font-size:var(--fs-tag);color:var(--muted)}
-.gLim span{font:600 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.02em;text-transform:uppercase;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gLim i{display:block;width:100%;height:4px;border-radius:2px;background:#2a2b30;overflow:hidden} .gLim i u{display:block;height:100%;background:var(--lamp)}
-.gLim .full b{color:#e7a39d} .gLim .full i u{background:#e7a39d}
-.gNote{display:flex;gap:10px;align-items:flex-start;margin-top:10px;background:#1f1416;border:1px solid #5a2a2d;border-radius:8px;padding:9px 11px;font:600 var(--fs-s)/1.35 var(--f-board);color:var(--ink)}
-.gNote .tico{width:18px;height:18px;margin-top:1px} .gNote small{display:block;color:var(--muted);font-size:var(--fs-xs)}
 #cardBox .gRule{margin:8px 0 0;line-height:1.4}
 /* 1.83 (Dave): each section on a plate of its own, as Settings' and the radar's (secPlate in main.js) */
 .secPlate{--pt:14px;--px:14px;margin:16px 0 0;padding:var(--pt) var(--px) 22px;gap:8px}     /* the bottom screws clear of the last line */
@@ -1939,8 +1933,8 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .cuLn i{flex:1;position:relative;height:3px;margin:0 2px;background:repeating-linear-gradient(90deg,#4a4d55 0 6px,transparent 6px 11px)}
 .cuLn i b{position:absolute;left:0;top:0;bottom:0;width:var(--p);background:var(--amber)}
 .cuLn .cuP{position:absolute;left:var(--p);top:50%;margin:-13px 0 0 -13px;transform:rotate(90deg)}
-.cuLb{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:baseline}
-.cuLb small{font:600 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cuLb{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px;align-items:baseline}
+.cuLb small{font:600 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .cuLb .go{text-align:center}
 .cuLb small:last-child{text-align:right;color:var(--ink)} .cuLb .go{color:var(--amber)}
 .cuStop{display:flex;align-items:center;gap:10px;background:#121315;border-radius:8px;padding:9px 10px}
 .cuStop>span{min-width:0} .cuStop b{display:block;font:700 var(--fs-m)/1.2 var(--f-board)}
@@ -8118,7 +8112,7 @@ function lbFindSetup(){
   box.hidden = (window.OVERHEAD_RELAY_VERSION || 0) < 55 || !relay() || S.demo;
   if (box.hidden || box.firstChild) return;
   box.innerHTML = `<span class="svFind"><input type="search" data-q enterkeyhint="search" autocomplete="off" spellcheck="false" ` +
-    `placeholder="${escH(T((window.OVERHEAD_RELAY_VERSION || 0) >= 63 ? "Search the logbook, e.g. OE-LBN, A380, Santorini" : "Search the logbook, e.g. OE-LBN, A380, OS 802"))}" aria-label="${escH(T("Search the logbook"))}">` +
+    `placeholder="${escH(T((window.OVERHEAD_RELAY_VERSION || 0) >= 63 ? "Search, e.g. OE-LBN, A380, Santorini" : "Search, e.g. OE-LBN, A380, OS 802"))}" aria-label="${escH(T("Search the logbook"))}">` +
     `<button type="button" data-qx aria-label="${escH(T("Clear"))}" hidden>×</button></span>`;
   const inp = box.querySelector("[data-q]"), x = box.querySelector("[data-qx]");
   const set = v => { lbQuery = v; x.hidden = !v; clearTimeout(lbFindT); lbFindT = setTimeout(lbFind, v ? 350 : 0); };
@@ -12586,6 +12580,12 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.122.1", date: "2026-10-31", notes: [
+    "The place line in the header fits a narrow phone: \"Vienna · 15 km\".",
+    "The next rank's name is no longer cut off on the level card.",
+    "Today's filter and All time's search look the same, and the search hint fits.",
+    "A rarity at its daily limit is one short line under the standby; tap it for the explanation.",
+  ]},
   {v: "1.122", date: "2026-10-31", notes: [
     "Today's rows: no more pills. The bubble shows how rare the plane is, a target marks a plane you scanned, and an emergency or a diversion gets a flag.",
     "Recent flights on Now shows every status word as a pill.",
@@ -14708,8 +14708,12 @@ function updateWhere(){
   // 1.90: before the first fix only FINDING YOU … (the place is an old one, and the line fits a phone); 1.93.0.1: then
   // only ON THE GO until live location has the name of where it is (placeNow)
   const name = placeNow();
-  $("where").textContent = liveWaiting() ? "◉ " + T("FINDING YOU …") : S.live && !name ? "◉ " + (liveStale() ? T("FINDING YOU …") : clean(T("On the go"))) :
-    `${S.live ? "◉ " : ""}${liveStale() ? T("FINDING YOU …") + "  ·  " : ""}${lab}${clean(name)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`;
+  // 1.122.1 (to-do #236): "VIENNA · 15 KM" (the word RADIUS went); two spans in one row: when both do not fit the radius
+  // wraps and is clipped (head.html's .where), and only a name too long on its own is cut with …
+  const w = $("where"), put = (a, r) => { w.innerHTML = `<span class="wn">${escH(a)}</span>` + (r ? `<span class="wr"> · ${escH(r)}</span>` : ""); };
+  if (liveWaiting()) put("◉ " + T("FINDING YOU …"));
+  else if (S.live && !name) put("◉ " + (liveStale() ? T("FINDING YOU …") : clean(T("On the go"))));
+  else put(`${S.live ? "◉ " : ""}${liveStale() ? T("FINDING YOU …") + " · " : ""}${lab}${clean(name)}`, `${+S.radiusKm || 15} KM`);
 }
 function liveShow(){ updateWhere(); renderRecent(); renderToday(); }     // live location found its position, or lost it (1.90: and the lists)
 function tickClock(){
@@ -15676,7 +15680,7 @@ function renderGame(){
       `<div class="gTiles"><div><b>${nf.format(g.today || 0)}</b><span>${escH(T("Points today"))}</span></div>` +
       // 1.96: This week is the week's points, as in the league (it was your place there; that stays beside it)
       `<div><b>${nf.format(g.week || 0)}</b><span>${escH(g.rank ? T("This week · #{n}", {n: g.rank}) : T("This week"))}</span></div><div><b>${g.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` +
-      gLimHtml(g, true) + gSbyHtml(g), "gHero") + gIndexHtml(g, g0);
+      gSbyHtml(g, gLimLine(g)), "gHero") + gIndexHtml(g, g0);
   } else if (sub === "league") {
     const L = gLeague, rows = L ? (gAll ? L.allTime : L.rows) : null;
     let lg = `<div class="seg gSeg" role="group"><button type="button" data-ga="0" aria-pressed="${!gAll}">${escH(T("This week"))}</button><button type="button" data-ga="1" aria-pressed="${gAll}">${escH(T("All time"))}</button></div>`;
@@ -15719,6 +15723,7 @@ function renderGame(){
   if ($("gHow")) $("gHow").onclick = gHowCard;
   if ($("cuOpen")) $("cuOpen").onclick = careerOpen;
   if ($("gSby")) $("gSby").onclick = gSbyOpen;
+  if ($("gLim")) $("gLim").onclick = gLimOpen;
   if ($("gWkB")) $("gWkB").onclick = gSbyOpen;
   for (const b of box.querySelectorAll("[data-gsub]")) b.onclick = () => { ctlSound.nav(); const k = b.dataset.gsub; if (G_PARTS[k]) gGoPlate(G_PARTS[k]); else gSubGo(k); };
   trWire(box, renderGame);
@@ -15783,9 +15788,9 @@ const gSbyUsed = g => { const s = g && g.standby; return s && s.today > 0 && s.w
 // 1.119.3 (to-do #220, Dave's B2): one line under the week, the tag and a short state; all the explaining behind a tap.
 // A reset is when something starts (00:00); the last minute before it is the deadline (23:59).
 const gLastMin = ms => ms - 60000;
-function gSbyHtml(g){
+function gSbyHtml(g, lim){          // lim: the limit line (gLimLine), under the Standby's
   const s = g.standby, R = gRules();
-  if (!s || !s.week) return "";
+  if (!s || !s.week) return lim ? `<div class="gSbyWk">${lim}</div>` : "";
   const t = s.today, used = s.week.lastIndexOf("b"), from = gSbyFrom(R);
   const risk = s.allow && !s.left && !g.scannedToday && (g.streak || 0) > 0 && s.week[t - 1] !== "b";   // the day after one: that it was used
   const line = !s.allow ? T("Standby from level {n}", {n: from}) : s.left ? T("Standby ready")
@@ -15796,7 +15801,7 @@ function gSbyHtml(g){
   return `<div class="gSbyWk"><span class="gTileL">${escH(T("This week's streak"))}</span>` +
     `<button class="gWk gWkB" type="button" id="gWkB" aria-label="${escH(T("This week's streak"))}">${s.week.map((c, i) => `<i class="${cls(c, i)}" title="${escH(sbyDay(i, "long"))}">${escH(c === "b" ? T("SBY") : sbyDay(i, "narrow"))}</i>`).join("")}</button>` +
     `<button class="gHow gSbyL" type="button" id="gSby"><span><span class="gSbyTg${s.left ? "" : " off"}">${escH(T("SBY"))}</span><b class="${risk ? "warn" : ""}">${escH(line)}</b>` +
-    (fresh ? `<u>${escH(T("NEW"))}</u>` : "") + `</span><i>›</i></button></div>`;
+    (fresh ? `<u>${escH(T("NEW"))}</u>` : "") + `</span><i>›</i></button>${lim || ""}</div>`;
 }
 const gSbyFrom = R => R && R.standby ? R.standby[R.standby.length - 1][0] : 6;
 // A plate in the bottom sheet, its title engraved (Dave's rule for every sheet), as the Logbook's panels.
@@ -15813,19 +15818,29 @@ function gSbyOpen(){
     `<p class="sum">${escH(T("That day shows SBY and pays no points. Resets on {d} {h}", {d: mon, h}))}</p>` : ""));
   try { if (!localStorage.getItem(ACH_KEY + ".sby")) { localStorage.setItem(ACH_KEY + ".sby", "1"); renderGame(); } } catch {}
 }
-// 1.96 (to-do #127, Dave's L3): today's planes by rarity against their limits on the Game page, five counters, and a
-// note for each rarity that reached its limit, with when it starts again.
-// 1.116: notes only (the level card): the counters went, a rarity at its limit still says so.
-function gLimHtml(g, notes){
-  const R = gRules(), L = g.limits;
-  if (!R || !L) return "";
-  const tiers = TIER_DRUM.slice(1), full = tiers.filter(t => L[t] && L[t][0] >= L[t][1]);
-  const h = g.resets ? hhmm(new Date(g.resets)) : "00:00";
-  return (notes ? "" : `<div class="gLim">${tiers.map(t => { const [n, m] = L[t] || [0, R.limit[t]];
-    return `<div class="${n >= m ? "full" : ""}" style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><b>${nf.format(Math.min(n, m))}<small>/${nf.format(m)}</small></b>` +
-      `<i><u style="width:${Math.min(100, Math.round(n / m * 100))}%"></u></i><span>${escH(gTierT(t))}</span></div>`; }).join("")}</div>`) +
-    full.map(t => `<div class="gNote"><img class="tico" src="${tierIcon(t)}" alt=""><div>${escH(T("{t} limit reached: {m} of {m} today", {t: gTierT(t), m: nf.format(L[t][1])}))}` +
-      `<small>${escH(T("{t} planes score again from {h}. The other rarities still count.", {t: gTierT(t), h}))}</small></div></div>`).join("");
+// 1.96 (to-do #127): a note for each rarity that reached its limit (1.116: the counters went). 1.122.1 (to-do #239, rule 1):
+// a rarity at its limit is one line under the Standby's, the same class: its icon in the
+// tag and "Special limit: 3 of 3"; with several at once still one line ("Limits reached", their count in the tag).
+// The tap opens the sheet (gLimOpen) with the explanation and the time from the relay's resets.
+const gLimFull = g => { const L = g.limits || {}; return TIER_DRUM.slice(1).filter(t => L[t] && L[t][0] >= L[t][1]); };
+function gLimLine(g){
+  const full = gLimFull(g), L = g.limits;
+  if (!full.length) return "";
+  const m = t => nf.format(L[t][1]);
+  const line = full.length === 1 ? T("{t} limit: {n} of {m}", {t: gTierT(full[0]), n: m(full[0]), m: m(full[0])}) : T("Limits reached");
+  return `<button class="gHow gSbyL" type="button" id="gLim"><span><span class="gSbyTg off lim">${full.length === 1 ? `<img class="tico" src="${tierIcon(full[0])}" alt="">` : escH(nf.format(full.length))}</span>` +
+    `<b>${escH(line)}</b></span><i>›</i></button>`;
+}
+// The sheet: what is full today (a rarity's count of its limit), then when it scores again.
+function gLimOpen(){
+  ctlSound.nav();
+  const g = gme || {}, L = g.limits || {}, full = gLimFull(g), h = g.resets ? hhmm(new Date(g.resets)) : "00:00";
+  if (!full.length) return;
+  const m = t => nf.format(L[t][1]);
+  plateSheet(T("Daily limit"), `<p class="sum">${escH(full.length === 1 ? T("{t} limit reached: {m} of {m} today", {t: gTierT(full[0]), m: m(full[0])})
+      : full.map(t => `${gTierT(t)} ${m(t)} of ${m(t)}`).join(" · "))}</p>` +
+    `<p class="sum">${escH(full.length === 1 ? T("{t} planes score again from {h}. The other rarities still count.", {t: gTierT(full[0]), h})
+      : T("They score again from {h}. The other rarities still count.", {h}))}</p>`);
 }
 // 1.79: How points work, a card. 1.96 (to-do #127): the rules on one screen, from the relay: each rarity's points within
 // the circle and with a scan, today's planes against the limits, the extras and the daily streak.
