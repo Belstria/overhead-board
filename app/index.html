@@ -12421,11 +12421,13 @@ function rwyAgain(paint){
 // until the next landing is a few kilometres out or a take-off starts.
 const AP_LINGER_KM = 6;
 function apFocus(which){
-  const coming = AP.arrs.find(e => e.st !== "LANDED"), going = AP.deps[0], landed = AP.arrs.find(e => e.st === "LANDED");
+  // 1.123.0.2: a hidden plane never takes the top half (the lists still show it)
+  const arrs = userLists.hide.length ? AP.arrs.filter(e => !hiddenAc(e.ac)) : AP.arrs, deps = userLists.hide.length ? AP.deps.filter(e => !hiddenAc(e.ac)) : AP.deps;
+  const coming = arrs.find(e => e.st !== "LANDED"), going = deps[0], landed = arrs.find(e => e.st === "LANDED");
   const near = coming && coming.dist <= AP_LINGER_KM ? coming : null;
   if (which === "arr") return near || landed || coming || null;
   if (which === "dep") return going || null;
-  return AP.deps.find(e => e.st === "TAKE-OFF") || near || landed || AP.arrs.find(e => e.st === "FINAL") || coming || going || null;
+  return deps.find(e => e.st === "TAKE-OFF") || near || landed || arrs.find(e => e.st === "FINAL") || coming || going || null;
 }
 function apFeature(all){
   if (all) AP.all = all;
@@ -12595,6 +12597,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.123.0.2", date: "2026-10-31", notes: [
+    "A plane you hide no longer takes the top of the Airport board.",
+  ]},
   {v: "1.123.0.1", date: "2026-10-31", notes: [
     "A plane you hide leaves the board at once, and the next one takes its place.",
   ]},
@@ -14154,7 +14159,7 @@ document.addEventListener("touchend", swipeDone, {passive: true});
 document.addEventListener("touchcancel", swipeDone, {passive: true});
 // a swipe isn't also a tap on what it started on
 document.addEventListener("click", e => { if (Date.now() - swipeEnded < 400 && swipeRow(e.target)) { e.stopPropagation(); e.preventDefault(); } }, true);
-function listsChanged(){ svSig = recentSig = rvSig = ""; lookAgain(); renderLists(); renderFeatured(); renderFavBox(); if (tab === "radar") renderRadarList(); }
+function listsChanged(){ svSig = recentSig = rvSig = ""; listsRepick(); renderLists(); renderFeatured(); renderFavBox(); if (tab === "radar") renderRadarList(); }
 // A picture found late (planeBody asks): the open plane card takes it while it still shows that plane (1.93.1.1: not
 // only the radar's), the radar's with where its plane is now.
 function planeAgain(){
@@ -14815,6 +14820,12 @@ function lookAgain(){
   try { process(lastList, true); } catch (e) { dlog("error", `Couldn't look again: ${e && e.message || e}`); }
 }
 setInterval(lookAgain, 2000);
+// A change to the lists (hide, remove, a failed save putting them back) picks the plane on top again at once: in the Airport style
+// by its own pick (1.123.0.2), which the 2 s look-again never runs.
+function listsRepick(){
+  if (!airportMode()) return lookAgain();
+  try { apFeature(); } catch (e) { dlog("error", `Couldn't pick the plane again: ${e && e.message || e}`); }
+}
 
 // A phone in a pocket doesn't need updates every ten seconds: back to full speed as soon as the app is looked at.
 document.addEventListener("visibilitychange", () => {

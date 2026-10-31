@@ -611,7 +611,7 @@ changelog: flightradar24|fr24|gap|painted as|credits
 [startup] Start and the main loop: poll, start, the first picture, hello to the relay, fullscreen, wake lock, idle cursor
 test/index.html: SNAP_KEY snapShown snapAt snapLoad snapLive snapSave relayV12 sayHello addEventListener("pagehide")
     wakeLock keepAwake toggleFullscreen +tapAt +tapTimer idleT wake ["mousemove","keydown","touchstart"].fo… timer
-    busy lastList lookAgain pollSeq poll start css:body.idle #snapTag
+    busy lastList lookAgain listsRepick pollSeq poll start css:body.idle #snapTag
 tools/app/head.html: #snapTag
 tools/app/main.js: relayV12 sayHello addEventListener("pagehide") start booted run
 relay/serve.py: +board_html /hello /bye
