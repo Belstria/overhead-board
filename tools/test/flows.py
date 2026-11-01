@@ -2778,6 +2778,16 @@ def browser_checks(browser):
                     bad.append(f"a tap on the card's pop-up landed on {got}, not {code}")
             if e("window.__many"):
                 bad.append("two things of one scan on screen at once")
+    # 1.125 (to-do #251): the unlock sound: never stacked, and only a trophy's card has it
+    if e("""(() => { const was = [S.chimes, actx, nightOn, unlockEnd], ctx = new OfflineAudioContext(1, 4800, 48000); let n = [];
+        const se = soundE; soundE = (c, o, t) => n.push(+t.toFixed(3));
+        const fake = {state: 'running', currentTime: 10}; S.chimes = true; actx = fake; nightOn = false; unlockEnd = 0;
+        const so = sfxOut; sfxOut = () => ctx.destination;
+        const a = unlockSound(), b = unlockSound(), c = achUnlock([{k: 'x:y'}]), d = achUnlock([{k: 'x:y'}, {k: 'tr:beluga'}]);
+        S.chimes = false; const f = unlockSound();
+        soundE = se; sfxOut = so; [S.chimes, actx, nightOn, unlockEnd] = was;
+        return JSON.stringify([a, b, c, d, f, n]) !== JSON.stringify([true, true, false, true, false, [10.03, 10.88, 11.73]]) ? JSON.stringify([a, b, c, d, f, n]) : ""; })()"""):
+        bad.append("the unlock sound: stacked, or on the wrong card")
     # 1.125 (to-do #250): a medal's pop-up, in the line, one at a time; its tap; the medal in the Trophies list
     won = """(lbData().game.trophies = {...(lbData().game.trophies || {}), airlines25: "2026-10-14", airlines50: "2026-11-01"},
       lbData().game.trophyCounts = {...(lbData().game.trophyCounts || {}), airlines: 50}, 1)"""

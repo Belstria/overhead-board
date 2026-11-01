@@ -959,6 +959,11 @@ The repository is public: no addresses, keys or personal data here either.
   carry a class (`.mdFace.mN`, `.dim`); so no gradient ids in the page, and the Roman numeral is in paths (`mdRoman`) as a
   picture can't reach the fonts. `.cups.md`: the 44 px column in Trophies and the sheet, singles keep the cup, centred. Removed
   `html.daylight .cups li:not(.on):not(.medal) .cup` (a dark stroke on a dark plate: the cup couldn't be seen).
+- 1.125 also (to-do #251, Dave's pick E, Wooden rise): `unlockSound` (`soundE`, `usPartial`, `usNoise`; `fanfare`'s guard) for a
+  medal (`medalSound`), a trophy without ranks (`achUnlock`, asked by `achNext`; other achievements and the board keep
+  `fanfare`), `ppNew` and `lyNew`. It plays as the pop-up rises; those two then drop `fsThud` at 640 ms, which fell in its
+  tail, and keep the buzz there (no E, chimes off or at night: the thud as before). `unlockEnd`: a pop-up swiped away at once
+  brings the next 0.3 s later, so the next sound waits for the last one to end.
 - 1.124.1 (to-do #248, #249; relay unchanged): **The Today plate stays, the tier bar shows all four.** `renderTodayNumbers`:
   `#tdPlate` is never hidden (no `hidden` in head.html); `wait` (relay v5 and the day's first answer not in: `sightRev === null`,
   `fullDay.all` for All places, `liveWaiting()`) draws "–" for the four numbers, then the real ones, 0 on an empty day.

@@ -7127,7 +7127,7 @@ function achNext(){
     list.map(a => `<h3>${escH(a.title + (a.pts ? " +" + nf.format(a.pts) : ""))}</h3><p class="achTx">${escH(a.text)}</p>`).join("") +
     `<div class="achBar"><i style="animation-duration:${ACH_MS}ms"></i></div>`, el => el.classList.add("ach"));
   confetti();
-  fanfare();
+  if (!(typeof achUnlock === "function" && achUnlock(list))) fanfare();   // 1.125: the app's trophy has the unlock sound
   achTimer = setTimeout(() => { if (cardTok === tok && cardOpenNow()) cardClose(); achTimer = setTimeout(achNext, 1500); }, ACH_MS);
 }
 // A short burst of paper bits over the page (fewer and shorter on the weaker TVs; none with reduced motion).
@@ -7887,6 +7887,7 @@ const CHANGELOG = [
   {v: "1.125", date: "2026-11-01", notes: [
     "A new medal comes as a small paper pop-up: it swings in on its ribbon, one thing at a time, and a tap opens that trophy.",
     "Trophies show their real medals: won in their metal, dim until you win them.",
+    "Medals, trophies, passport stamps and frequent flyer cards share one new unlock sound.",
   ]},
   {v: "1.124.1", date: "2026-11-01", notes: [
     "The Logbook's Today numbers are there on a day with no planes yet, at 0.",

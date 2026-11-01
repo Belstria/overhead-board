@@ -415,7 +415,7 @@ tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad 
     gLeague gLeagueAt gAll gAnimT gLvFrom gStripSetup gRingP gLapSet gRingSet gGoPlate gHit gHitDo gGoing gGoLive gGoShow gSay gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gAwShort nwWord gWhoNw gAwFoil gPop gWho gAwards gScanPops SKY_ICO gAwsBox gAwTimer gAwTap GL_GAP GL_STUCK gLine GL_TIX gLineOn gLineAdd gTixAside gTixUp gLineRun gPassFill TIX_MS RIP_AFTER RIP_MS POP_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
     gCoins gLvT gLevelUp gJingle gRip gGold gBurst gLeagueLoad gPlates gPlateSplit renderGame G_SUBS G_PARTS LY_TAU LY_FAST TIX_MIN gSub gSubHas gSubBar gSubGo gIndexHtml gLimFull gLimLine gLimOpen gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gLastMin gSbyHtml gSbyFrom plateSheet gSbyOpen
     RK_MET RK_CLOTH RK_WF RK_STAR RK_PLANE RK_LADDER rkDefs rkStar rkWings rkCap rankTitle rankIns
-    medalSound medalFree medalPop achSpecial NUDGE_DO trophySheet medalNudge gLockOn gameStart
+    usPartial usNoise US_LEVEL_E soundE unlockEnd unlockSound achUnlock medalSound medalFree medalPop achSpecial NUDGE_DO trophySheet medalNudge gLockOn gameStart
     SCHOOL fsState fsNext fsPts fsStill fsDate fsBox fsRecord fsBar fsCardAsked schoolMission fsQ fsBusy fsStamp fsShow fsThud fsWingsSvg sigLoad sigFailed sigFont fsName sigSvg fsSigHtml sigWrite fsWings
     MST MST_NAME MST_TO mstSteps mstOf mstMul mstNext mstBar mstHtml
     LY LY_NAME LY_TO LY_COL lySteps lyOf lyCode lyKnown lyInfo lyName lyWritten lyCol lyTicket lyAt lySort lyFlipped LY_RING LY_INK lyInk lyStill lyHow lyLogo lyNew lyGoTo lyLetter lyWhen lyList lyCardHtml walletHtml lyWire

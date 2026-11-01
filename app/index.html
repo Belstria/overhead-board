@@ -4345,7 +4345,7 @@ function achNext(){
     list.map(a => `<h3>${escH(a.title + (a.pts ? " +" + nf.format(a.pts) : ""))}</h3><p class="achTx">${escH(a.text)}</p>`).join("") +
     `<div class="achBar"><i style="animation-duration:${ACH_MS}ms"></i></div>`, el => el.classList.add("ach"));
   confetti();
-  fanfare();
+  if (!(typeof achUnlock === "function" && achUnlock(list))) fanfare();   // 1.125: the app's trophy has the unlock sound
   achTimer = setTimeout(() => { if (cardTok === tok && cardOpenNow()) cardClose(); achTimer = setTimeout(achNext, 1500); }, ACH_MS);
 }
 // A short burst of paper bits over the page (fewer and shorter on the weaker TVs; none with reduced motion).
@@ -8587,7 +8587,8 @@ function lyNew(r, n){
   el.out = () => { if (!el.isConnected || el.classList.contains("out")) return; el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); gTixBack(); }, 350); };
   gAwTap(el, () => lyGoTo(icao, r.airline.scans));
   gAwTimer(el, POP_MS);
-  setTimeout(() => { fsThud(); try { navigator.vibrate && navigator.vibrate(30); } catch {} }, still ? 0 : 640);
+  const rang = unlockSound();                                   // 1.125: as it rises; then no thud under its tail, the buzz as the card lands
+  setTimeout(() => { if (!rang) fsThud(); try { navigator.vibrate && navigator.vibrate(30); } catch {} }, still ? 0 : 640);
   if (!still) setTimeout(() => { const f = el.querySelector(".lyFr"); if (f) { f.classList.remove("shine"); void f.offsetWidth; f.classList.add("shine"); } }, 820);
   return el;
 }
@@ -9100,7 +9101,8 @@ function ppNew(r){
     };
     el.out = () => { if (!el.isConnected || el.classList.contains("out")) return; cancelAnimationFrame(raf); el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); gTixBack(); }, 350); };
     gAwTap(el, () => ppGoTo(c0, r));
-    setTimeout(() => { fsThud(); try { navigator.vibrate && navigator.vibrate(30); } catch {} }, still ? 0 : 640);   // as the stamp lands
+    const rang = unlockSound();                                 // 1.125: as it rises; then no thud under its tail, the buzz as the stamp lands
+    setTimeout(() => { if (!rang) fsThud(); try { navigator.vibrate && navigator.vibrate(30); } catch {} }, still ? 0 : 640);
     setTimeout(inkIn, still ? 0 : 760);
     gAwTimer(el, POP_MS);
     return el;
@@ -12743,6 +12745,7 @@ const CHANGELOG = [
   {v: "1.125", date: "2026-11-01", notes: [
     "A new medal comes as a small paper pop-up: it swings in on its ribbon, one thing at a time, and a tap opens that trophy.",
     "Trophies show their real medals: won in their metal, dim until you win them.",
+    "Medals, trophies, passport stamps and frequent flyer cards share one new unlock sound.",
   ]},
   {v: "1.124.1", date: "2026-11-01", notes: [
     "The Logbook's Today numbers are there on a day with no planes yet, at 0.",
@@ -16283,10 +16286,57 @@ async function playerCard(id){
     (ra ? `<li class="on" style="--lamp:${TIER_COL[ra.tier] || TIER_COL.uncommon}">${CUP}<span class="name">${escH(T("Rarest catch"))} <span class="s">${escH(ra.name || TYPES[ra.code] || ra.code)}</span></span><span class="n">${escH(T(TIER_NAME[ra.tier] || ""))}</span></li>` : "") +
     (b ? `<li class="on">${CUP}<span class="name">${escH(T("Best this week"))} <span class="s">${escH([b.type, b.flight].filter(Boolean).join(" · "))}</span></span><span class="n">${nf.format(b.pts || 0)}</span></li>` : "") + `</ul></div>`, el => { scPics(el); if (p.me) scEmpWire(el); });
 }
+/* 1.125 (to-do #251, Dave's pick E): the unlock sound, Wooden rise, the same for a medal, a trophy, a passport's stamp and a
+   frequent flyer card: three marimba bars up and a fourth ringing on, with a soft tail. It plays into sfxOut, about 0.84 s. */
+function usPartial(ctx, out, f, t, amp, dec, att = .006){       // one decaying partial: a quick ramp up (no click), an exponential fall, a short ramp to silence
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = "sine"; o.frequency.value = f;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(amp, t + att);
+  g.gain.exponentialRampToValueAtTime(amp * .001, t + att + dec);
+  g.gain.linearRampToValueAtTime(0, t + att + dec + .02);
+  o.connect(g).connect(out); o.start(t); o.stop(t + att + dec + .04);
+}
+function usNoise(ctx, out, t, len, freq, q, amp, seed){         // a mallet's contact: filtered noise, a fixed seed, so every play is the same sound
+  const n = Math.max(32, Math.floor(ctx.sampleRate * len)), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0);
+  let s = seed * 2654435761 >>> 0;
+  for (let i = 0; i < n; i++) {
+    s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0;
+    d[i] = (s / 2147483648 - 1) * Math.min(1, i / 24) * (1 - i / n) ** 3;
+  }
+  const src = ctx.createBufferSource(), fl = ctx.createBiquadFilter(), g = ctx.createGain();
+  src.buffer = b; fl.type = "bandpass"; fl.frequency.value = freq; fl.Q.value = q; g.gain.value = amp;
+  src.connect(fl).connect(g).connect(out); src.start(t);
+}
+const US_LEVEL_E = .501;
+function soundE(ctx, out, t0){
+  const o = ctx.createGain(); o.gain.value = US_LEVEL_E; o.connect(out);
+  const bar = (f, t, amp, dec) => {
+    usPartial(ctx, o, f, t, amp, dec, .004);
+    usPartial(ctx, o, f * 3.93, t, amp * .16, dec * .16, .002);
+    usPartial(ctx, o, f * 9.2, t, amp * .03, dec * .06, .001);
+    usNoise(ctx, o, t, .012, 1900, 1, amp * .35, 23);
+  };
+  [[587.33, 0, .24], [783.99, .105, .26], [880, .21, .28]].forEach(([f, dt, a]) => bar(f, t0 + dt, a, .3));
+  bar(1174.66, t0 + .315, .34, .62);
+  usPartial(ctx, o, 1174.66, t0 + .325, .05, 1.05, .05);        // the soft tail, swelling out of the last note
+  usPartial(ctx, o, 587.33, t0 + .325, .05, .9, .05);
+}
+// True if it plays (the guard is fanfare's). The line spaces the pop-ups, but one swiped straight away brings the next 0.3 s later: it never stacks, it waits for the last one.
+let unlockEnd = 0;
+function unlockSound(){
+  if (!S.chimes || nightOn || !actx || actx.state !== "running") return false;
+  const t0 = Math.max(actx.currentTime + .03, unlockEnd);
+  unlockEnd = t0 + .85;
+  soundE(actx, sfxOut(), t0);
+  return true;
+}
+// achNext's card (the app's; the board keeps its fanfare): a trophy without ranks plays the unlock sound, other achievements return false and keep theirs.
+const achUnlock = list => list.some(a => /^tr:/.test(a.k)) && unlockSound();
 /* 1.125 (to-do #250, Dave's pick: A, and the medal swings into the paper frame): a rank won is a paper pop-up, a twin of the
    card's and the passport's, standing in the scan's line (gLine). A tap opens that trophy. Other achievements, and the
    board, keep their card: achNext asks achSpecial first (dry: only whether it is a medal). */
-const medalSound = () => { fanfare(); try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch {} };   // the medal's sound and buzz, as it rises
+const medalSound = () => { unlockSound(); try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch {} };   // the medal's sound and buzz, as it rises
 // It waits for a sheet to close (one opened by a tap on the medal before it, say): the pop-ups rise under a sheet.
 const medalFree = () => new Promise(res => { const go = () => cardOpenNow() ? setTimeout(go, 300) : res(); go(); });
 function medalPop(a, id, tr, L){
