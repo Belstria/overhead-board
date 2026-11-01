@@ -3285,6 +3285,7 @@ def browser_checks(browser):
         bad.append(f"the invite field didn't open this site's link: {pg.url[:60]}")
     ctx.close()
     logbook_list_checks(browser, bad)
+    demo_rows_checks(browser, bad)
     for b_ in bad:
         print("flow:", b_)
     print("the app's saves hold" if not bad else f"{len(bad)} app save check(s) failed")
@@ -3399,6 +3400,46 @@ def sky_read_checks(browser):
         print("flow:", b_)
     print("Sky view reads the camera only where a find could count, and still finds" if not bad else f"{len(bad)} Sky view read check(s) failed")
     return bad
+
+
+def demo_rows_checks(browser, bad):
+    """To-do #243: in demo mode the sample rows (no id, no hex) of Recent flights and of the day's list start closed, a
+    tap opens that row and only that row, another tap moves the card, and a tap on the card's fold closes it."""
+    ctx = browser.new_context(viewport={"width": 390, "height": 844})
+    ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: bad.append(f"demo rows page error: {e}"))
+    pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
+    pg.goto(BASE + "/app/?demo")
+    pg.wait_for_selector("#recent li.fl", timeout=20000)
+
+    def count(sel):
+        return pg.evaluate("s => [document.querySelectorAll(s + ' li.fl.open').length, document.querySelectorAll(s + ' li.fl').length]", sel)
+
+    def check(sel, what):
+        o, n = count(sel)
+        if n < 5 or o:
+            bad.append(f"demo mode: {what} starts with {o} of {n} rows open")
+            return
+        pg.click(f"{sel} li.fl >> nth=1")
+        pg.wait_for_timeout(700)
+        first = pg.evaluate("s => [...document.querySelectorAll(s + ' li.fl')].findIndex(l => l.classList.contains('open'))", sel)
+        if count(sel)[0] != 1 or first != 1:
+            bad.append(f"demo mode: a tap on {what}'s 2nd row left {count(sel)[0]} open (index {first})")
+        pg.click(f"{sel} li.fl:not(.open) >> nth=3")
+        pg.wait_for_timeout(700)
+        if count(sel)[0] != 1:
+            bad.append(f"demo mode: {what} shows {count(sel)[0]} cards after a tap on another row")
+        pg.click(f"{sel} li.fl.open [data-fold]")
+        pg.wait_for_timeout(700)
+        if count(sel)[0] != 0:
+            bad.append(f"demo mode: {what}'s card didn't fold")
+    check("#recent", "Recent flights")
+    pg.click("#tabs button:has-text('Logbook')")
+    pg.wait_for_selector("#svList li.fl", timeout=10000)
+    pg.wait_for_timeout(500)
+    check("#svList", "the day's list")
+    ctx.close()
 
 
 def levelup_checks(browser):

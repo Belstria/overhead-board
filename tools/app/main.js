@@ -522,7 +522,7 @@ const altText = ft => typeof ft === "number" ? altNum(ft) + (S.units === "metric
    remark's colour: the time, the flight, the route's codes and the remark, then quietly its airline, type and closest
    pass. A tap opens its card in place (Dave's option 1); the airline, places and type open theirs from the card. A
    plane without a flight number goes by its registration (or its owner); without a route the row says why. */
-const tlKey = e => String(e.id || e.hex || "");
+const tlKey = e => String(e.id || e.hex || (e.sample && e.flight) || "");     // demo rows have neither: their flight number is unique
 const plainCode = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 const noFlightNo = e => { const f = plainCode(e.flight); return !f || f === plainCode(e.reg) || f === plainCode(e.hex); };     // it flies under its registration
 const rowName = e => noFlightNo(e) ? e.reg || e.owner || e.flight || String(e.hex || "").toUpperCase() : e.flight || plainCode(e.callsign);
@@ -594,7 +594,7 @@ function tlCardHtml(e){
 const cardLi = (e, now) => `<li class="fl open" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e, now)}">${tlCardHtml(e)}</li>`;
 // 1.115 (Dave's pick B): the rows one after another, newest first; the quarter-hour and hour headings went (every
 // row has its time).
-const tlHtml = (list, open, now) => list.map(e => tlKey(e) === open ? cardLi(e, now) : rowHtml(e, now)).join("");
+const tlHtml = (list, open, now) => list.map(e => open && tlKey(e) === open ? cardLi(e, now) : rowHtml(e, now)).join("");
 // The empty list: why, on the rail (the newest-first line it will be)
 const tlState = (head, title, text, find) => `<li class="tg"><b>${escH(head)}</b></li><li class="st${find ? " find" : ""}">${title ? `<b>${escH(title)}</b>` : ""}${escH(text)}</li>`;
 const tlFinding = () => tlState(T("Now"), T("Finding where you are …"), T("The planes show once live location has found you."), true);
@@ -966,7 +966,7 @@ function lblHtml(rows, open, grow){
   let out = "", day = null, inner = "";
   for (const e of rows) {
     if (e.day !== day) { if (day !== null) out += lblDayLi(day, inner, grow && !out); day = e.day; inner = ""; }
-    inner += tlKey(e) === open ? cardLi(e) : rowHtml(e);
+    inner += open && tlKey(e) === open ? cardLi(e) : rowHtml(e);
   }
   return day === null ? "" : out + lblDayLi(day, inner, grow && !out);
 }
@@ -4966,7 +4966,7 @@ function setMode(md){
   poll(true);                                       // the new style picks its plane from fresh positions
   setTimeout(() => appTips("now"), 900);            // the first time in this style: its pages
 }
-function showModes(){ for (const b of document.querySelectorAll("#modes [data-mode]")) b.setAttribute("aria-pressed", String(b.dataset.mode === (S.mode || "overhead"))); }
+function showModes(){ for (const b of document.querySelectorAll("#modes [data-mode]")) b.setAttribute("aria-pressed", String(b.dataset.mode === (S.mode || "overhead"))); headFit(); }
 // Which of the two the Now tab shows.
 function applyMode(){
   showModes();
@@ -6308,7 +6308,20 @@ function gStripSetup(){
     `<circle class="gRt" cx="24" cy="24" r="21"/><circle class="gRa" id="gRa" cx="24" cy="24" r="21" pathLength="100" stroke-dasharray="0 100"/></svg>` +
     `<span class="gLap" id="gLap"></span></span>`;
   box.onclick = () => { audioInit(); ctlSound.nav(); gGoPlate("gHero"); };
+  if (window.ResizeObserver) new ResizeObserver(headFit).observe(box);
+  headFit();
 }
+// To-do #240 (Dave's pick B): when "Overhead ⇄ Airport" would be cut off beside the chip (a narrow phone, big numbers),
+// the header gets the class "tight": the chip drops "paused" and shows its points dimmed instead (head.html). It is
+// measured with the class off, so nothing changes at a width where the title fits.
+function headFit(){
+  const top = $("top"), h = $("modes");
+  if (!top || !h) return;
+  top.classList.remove("tight");
+  if (h.scrollWidth > h.clientWidth + 1) top.classList.add("tight");
+}
+window.addEventListener("resize", headFit);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(headFit);
 // 1.114.2: to a plate of the Club's page (switching to the page first), below the sticky top and the tabs; it lights up
 // for a moment, as the passport's regions do.
 // A page drawn again meanwhile (the points or the league came in) keeps the light and the place (gHit).
@@ -6727,6 +6740,8 @@ function gStripRender(g, anim){
   if ($("gLvTxt").textContent !== lv) $("gLvTxt").textContent = lv;
   if ($("gOff").textContent !== pz) $("gOff").textContent = pz;
   $("gOff").hidden = !off;
+  box.setAttribute("aria-label", T("Spotters' Club") + (off ? " · " + T("paused") : ""));     // headFit may drop the word
+  headFit();
 }
 // 1.116.1 (to-do #209): the chip's ring, how far the points are from this level's start to the next (careerPts, the
 // Club's level card's numbers). A player kept above their points (relay 96) shows an empty ring, never a negative one.

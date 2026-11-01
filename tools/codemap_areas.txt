@@ -82,7 +82,7 @@ test/index.html: +liveShow swapSign placeModeSwitch setMode tickClock updateFoot
     .dot #modeSw #dot #pip #statusText +drawStatic
 tools/app/head.html: #top .where #mark .title .clockbox .dot .status #dot #modes .stOk .verdict +.gHead
 tools/app/main.js: drawMark setMode showModes applyMode $("dot").onclick statusLine updateFooter statusVerdict stMore statusCard
-    updateWhere liveShow tickClock
+    updateWhere liveShow tickClock headFit
 README.md: "The footer shows the name" "- **Connection** (1.38)"
 changelog: title|header|clock|footer|status line|the dot
 
