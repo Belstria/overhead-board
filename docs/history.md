@@ -948,6 +948,34 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.127.0.2 (to-do #253; relay unchanged): **Sky view reads the camera only where a find could count, one read a frame.**
+  Dave's flag report of 1 Nov (app 1.124.1, Android, sun up, 2 planes around): 44 fps, 16 long frames of about 69 ms in
+  the last 120, every 7 or 8 frames, in step with `arAutoStep` (`AR_AUTO_MS` 160); his of 30 Oct (sun down, no planes): a
+  steady 60. A 60 ms wait put into each read here gave 48 fps and 15 frames of 67 ms with **one** read a step, and 129 ms
+  frames with three, so it looks like one read of about 50 ms on his phone, the sun's: its picture is only 160 px, so the
+  cost must be getting the video frame, not the size (inferred; the report now says). `arAutoStep` split into `arAutoPlan`
+  (what this step reads), `arAutoRead` (one read a frame, so a step with a sun and planes no longer takes one long frame)
+  and `arAutoSum` (the old end of the step, unchanged: thresholds, the glide). Left out: everything before an alignment
+  (arAligned is null at every opening; finds moved nothing and are cleared when one is made) and while turning faster than
+  `AR_AUTO_RATE` (finds didn't count), except one read per `AR_AUTO_LOG_MS` on the owner's phone so `findLog` still
+  measures the camera's delay; the sun when the whole video is out of arSunFind's reach (`arSunCould`: it takes finds up
+  to 6° off the sun's height and 45° off its direction, up to 45° being how far off a compass can be); the sun:
+  after 3 reads with nothing burnt out, a read every 480 ms until the phone turns or
+  something shows; a plane after `AR_PLANE_MISS` (16) reads in a row with nothing, the same; planes while the sun
+  decides alone; every other read once `AR_AUTO_PLENTY` (8) finds of it are in the 2.5 s window. The align step skips
+  its read while turning (its finds couldn't count) and is otherwise as it was. Why 16 misses: a simulation with a plane
+  found in 3 reads of 10 was locked 54% of the time at every step, 35% with 5 misses, 48% with 8; 16 is the whole
+  window empty. Not taken: a worker with `VideoFrame`, `createImageBitmap` and a GPU canvas, all of which can only be judged on a phone;
+  the report (`v` 5) is what decides. `timing` has the last 60 reads as parallel lists (`camKind` sun/plane/align, `camAgo`,
+  `camDraw`, `camData`, `camAll`, `camW`, `camH`, `camHit`), `camCost` (reads and ms per kind since opening) and `camSkip` (left out, by
+  reason). Parallel because `sky_report_clean` turns a list inside a list at that depth into null. Measured here with the
+  simulated 60 ms read (fps, frames over 40 ms in 120): before an alignment, sun away, 2 planes 6 fps, 32 → 60, 0 (the
+  owner 59, 1); aligned, sun out of reach 48, 15 → 60, 0; aligned, sun in the picture 48, 15 → 54, 7; aligned, a plane with
+  a dot 48, 15 → 52, 7; aligned, 2 planes with nothing to find 24, 30 → 50, 10; turning with the sun near and 2 planes 5, 31 → 60, 0.
+  AUTO's lock: a plane 0.45 s → 0.46 s; the sun, appearing while the phone is
+  still after nothing burnt out, 0.31 s → 0.50 s (the slower look; a turn resets it). **Headless has no camera cost**: these
+  show what the reads' number and spacing do, not what a phone will measure. `drawImage` took 3-9 ms here and
+  `getImageData` 0.1, on a software canvas.
 - 1.127.0.1 (to-do #257, Dave's LX-ECV card: broken image under "Photo · airport-data.com"; no relay change): **a photo that doesn't load, whichever source, gives way to the next.** adsbdb's address for LX-ECV answers 404, and `planePic` handed it out without a check while `picFailed`, the hero's `img.onerror` and the board's `#photoImg` `onerror` only handled Planespotters'. Now `psBad` is a Map (address → when) with a 30-minute memory (`picIsDead`, so a network blip doesn't hide a photo for the session), `picDead(src)` records a failure (a model picture also goes through `modelForget`, which drops it from the week's keep), and `planePic` skips a dead Planespotters, own or model photo (a dead model picture: none). Every card image (`.cPicW img`: the plane card, Sky view's card, the rows' cards, the Spotted card) uses `picFailed`; the hero calls `picDead` then `renderAircraftInfo`; the board's `#photoImg` drops its broken `src` when nothing is left and `placePhoto` hides the frame. The share picture's `noPs` path and the hangar (own `hgBad`, never `planePic`) are unchanged. Flows: `1.127.0.1: a photo that doesn't load`.
 - 1.127 (to-do #254, Dave's pick B, amber, and the day sticking as in C; relay 105, below): **The Logbook's list goes back across days.** Strip: Today, period, All time (`LB_PLATES`, the
   markup's order). Everything is `lbl*` in main.js beside `renderToday`, which hands over to `lblSync` when `lblOn()` (relay 105 or newer, no demo, not on Today); `lblLeave` gives the list back to `tlFill`. 2026 and All time share `lbl.rows` and its pages (`lblKey`: place, filter,

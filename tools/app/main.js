@@ -3227,7 +3227,7 @@ async function arStart(button){
   try { arOff = {h: 0, p: 0, ...JSON.parse(localStorage.getItem("od.ar.off") || "{}")}; } catch {}
   // 1.76: labels lined up before true north was known carry the declination in their drag: taken out once
   if (!arOff.v) { if (arOff.h) { arOff.h -= magDecl(S.lat, S.lon); arOffSave(); } arOff.v = 2; }
-  arAutoFinds = []; arFindLog = []; arAutoLock = null; arAutoPause = 0; arAligned = null; arGlide = null; arMiniSig = ""; arBounds.at = 0;   // 1.118
+  arAutoFinds = []; arFindLog = []; arAutoQ = []; arPlaneMiss = {}; arAutoLogAt = arSunMiss = arSunWait = 0; arCamLog = []; arCamCost = {}; arCamSkip = {}; arAutoLock = null; arAutoPause = 0; arAligned = null; arGlide = null; arMiniSig = ""; arBounds.at = 0;   // 1.118
   arAlignEnd(); arAlignLog = [];
   const v = $("arVid"); v.srcObject = arStream; v.play().catch(() => {});
   v.addEventListener("loadedmetadata", () => {                 // 1.75.2: what the camera gives, for the log
@@ -3580,7 +3580,7 @@ function arReport(){
   const now = Date.now(), t = performance.now(), cv = $("arCv"), W = cv.clientWidth, H = cv.clientHeight, v = $("arVid");
   const c = arQ ? arUnproject(W / 2, H / 2, arQMatrix(arQ), W, H) : null, sun = arBody && arBody.sun, moon = arBody && arBody.moon;
   return {
-    v: 4, app: typeof VERSION === "string" ? VERSION : "", os: /iPhone|iPad/.test(navigator.userAgent) ? "ios" : /Android/.test(navigator.userAgent) ? "android" : "other",
+    v: 5, app: typeof VERSION === "string" ? VERSION : "", os: /iPhone|iPad/.test(navigator.userAgent) ? "ios" : /Android/.test(navigator.userAgent) ? "android" : "other",
     secs: Math.round((now - arSince) / 1000), events: arEvN, gap: arR1(arGap), dec: arR1(arDec), off: {h: arR1(arOff.h), p: arR1(arOff.p)},
     held: arHeldAt ? {secs: Math.round((now - arHeldAt) / 1000), why: arHeldWhy} : null,
     unsure: now - arCalAt < 4000, rate: arR1(arRate), stillSecs: arR1((t - arMovedAt) / 1000),
@@ -3599,7 +3599,12 @@ function arReport(){
     screen: {w: W, h: H, video: [v.videoWidth || 0, v.videoHeight || 0], focal: Math.round(arFocal(W, H)), zoom: arR1(arZk * arZc), camZoom: arR1(arZk), turned: (screen.orientation && screen.orientation.angle) || 0},
     planes: arShownN,
     // 1.95.0.2: the last 120 gaps between readings and between frames (ms), the readings each frame had, the turn (°/s)
-    timing: {ahead: AR_AHEAD, reads: arTim.reads, frames: arTim.frames, fresh: arTim.fresh, turn: arR1(Math.hypot(...arW) * 180 / Math.PI)},
+    // 1.127.0.2 (v 5): the camera's last 60 reads, oldest first, one list per column (the relay drops a list in a list this
+    // deep): kind (sun, plane, align), ms before now, ms in drawImage, in getImageData, in all (with the search), size,
+    // found. camCost: reads and ms per kind since Sky view opened; camSkip: the steps' reads left out, by reason.
+    timing: {ahead: AR_AHEAD, reads: arTim.reads, frames: arTim.frames, fresh: arTim.fresh, turn: arR1(Math.hypot(...arW) * 180 / Math.PI),
+      camKind: arCamLog.map(x => x.k), camAgo: arCamLog.map(x => x.t - now), camDraw: arCamLog.map(x => arR1(x.draw)), camData: arCamLog.map(x => arR1(x.data)), camAll: arCamLog.map(x => arR1(x.all)),
+      camW: arCamLog.map(x => x.w), camH: arCamLog.map(x => x.h), camHit: arCamLog.map(x => x.hit), camCost: arCamCost, camSkip: arCamSkip},
   };
 }
 $("arFlag").onclick = async () => {
@@ -3690,30 +3695,115 @@ function arFindNote(f, turn, used){
   if (used) arAutoFinds.push(f);
 }
 const arCan = document.createElement("canvas"), arCx = arCan.getContext("2d", {willReadFrequently: true});
+/* 1.127.0.2 (to-do #253): a read of the camera's picture holds up the thread the labels are drawn on (Dave's report of
+   1 Nov: 16 frames of 69 ms in 120, in step with AUTO; none with the sun down and no planes). So a step reads only what
+   could count, and one read a frame:
+   - before an alignment finds move nothing (they are cleared when one is made), and while the phone turns they don't
+     count: no reads, but on the owner's phone (whose reports are read) one every AR_AUTO_LOG_MS, for arFindLog;
+   - the sun: not when the whole picture is too far from it for arSunFind to accept a find (arSunCould); not every
+     step while the picture has nothing burnt out and the phone is still; not while its finds count anyway (see plenty);
+   - planes: not while the sun decides alone; not every step once AR_PLANE_MISS reads in a row found nothing, so the whole
+     2.5 s are empty (sooner cost faint planes their lock in a simulation: 5 misses took the time locked from 54% to 35%
+     for a plane found in 3 reads of 10, 16 barely any);
+   - plenty: with AR_AUTO_PLENTY finds in the 2.5 s (4 or 5 are asked for) every second step is enough.
+   arCamLog and arCamCost say in the report what the reads cost; arCamSkip what was left out. */
+const AR_AUTO_LOG_MS = 1600, AR_AUTO_PLENTY = 8, AR_PLANE_MISS = 16;
+let arAutoQ = [], arAutoN = 0, arAutoLogAt = 0, arPlaneMiss = {}, arSunMiss = 0, arSunWait = 0, arSunTop = 0, arCamLog = [], arCamCost = {}, arCamSkip = {}, arCamLast = null;
 function arAutoStep(shown, W, H, avoid, R){
   const now = Date.now(), v = $("arVid");
-  if (arDrag || now < arAutoPause || now - arAutoAt < AR_AUTO_MS || !(v.readyState >= 2) || !v.videoWidth) return;
-  arAutoAt = now;
-  if (arAlign) return arAlignStep(v, R, W, H, now);  // 1.121: the align step looks for its target instead
-  const turn = arTurnNow(), steady = turn.deg < AR_AUTO_RATE || !arRelQ;   // (no gyroscope: the compass's wobble isn't a turn)
+  if (arDrag || now < arAutoPause || !(v.readyState >= 2) || !v.videoWidth) { arAutoQ = []; return; }
+  if (!arAutoQ.length) {
+    if (now - arAutoAt < AR_AUTO_MS) return;
+    arAutoAt = now;
+    if (arAlign) return arAlignStep(v, R, W, H, now);  // 1.121: the align step looks for its target instead
+    arAutoQ = arAutoPlan(v, shown, W, H, avoid, R, now);
+    if (!arAutoQ.length) return arAutoSum(now);
+  } else if (arAlign) { arAutoQ = []; return; }
+  arAutoRead(arAutoQ.shift(), v, shown, W, H, R, now);
+  if (!arAutoQ.length) arAutoSum(now);
+}
+// What this step reads: "sun", or a plane's hex
+function arAutoPlan(v, shown, W, H, avoid, R, now){
+  const steady = arTurnNow().deg < AR_AUTO_RATE || !arRelQ, counts = !!arAligned && steady, q = [], n = ++arAutoN;   // (no gyroscope: the compass's wobble isn't a turn)
+  const skip = k => { arCamSkip[k] = (arCamSkip[k] || 0) + 1; }, plenty = hex => counts && n % 2 && arAutoFinds.filter(x => x.hex === hex).length >= AR_AUTO_PLENTY;
+  if (!steady) { arSunMiss = arSunWait = 0; arPlaneMiss = {}; }
+  if (!counts) {
+    skip(steady ? "unaligned" : "turning");
+    if (!arReportOk() || now - arAutoLogAt < AR_AUTO_LOG_MS) return q;
+    arAutoLogAt = now;
+  }
   // 1.86: the sun, anywhere in the picture, says how far off the compass is (up to 45°)
   const sun = arBody && arBody.sun;
   if (sun && sun.el > 1 && sun.el < 75) {
-    const hit = arSunFind(v, R, W, H, sun);
-    if (hit) {
-      arFindNote({hex: "sun", t: now, h: arOff.h + wrap180(sun.az - hit.az), p: arOff.p + sun.el - hit.el}, turn, steady);
-      arSunLast = {t: now, h: wrap180(sun.az - hit.az), p: sun.el - hit.el};   // 1.90: how far off the sun's ring was, for the report
-    }
+    if (!arSunCould(v, R, W, H, sun)) skip("sunFar");
+    else if (now < arSunWait) skip("sunNone");
+    else if (plenty("sun")) skip("plenty");
+    else q.push("sun");
   }
+  if (arAutoLock && arAutoLock.sun && now - arAutoLock.at < 500) { skip("sunDecides"); return q; }
   const f = arFocal(W, H), r = f * Math.tan(AR_AUTO_R * Math.PI / 180);
   const near = shown.filter(o => !o.pr.edge && o.d < 15000 && o.el > 2 && o.pr.x > 0 && o.pr.x < W && o.pr.y > 0 && o.pr.y < H);
   for (const o of near.slice(0, 3)) {
     if (near.some(q => q !== o && Math.hypot(q.pr.x - o.pr.x, q.pr.y - o.pr.y) < r * 1.3)) continue;   // two planes close: which is which?
     if (avoid.some(a => Math.hypot(a.x - o.pr.x, a.y - o.pr.y) < r * 1.6)) continue;                      // the sun's glare
-    const span = {A1: 11, A2: 20, A5: 65, A7: 11}[o.ac.category] || 35;                             // wingspan or rotor, metres
-    const hit = arFind(v, W, H, o.pr.x, o.pr.y, r, span / o.d * f);
-    if (hit) arFindNote({hex: o.ac.hex, t: now, h: arOff.h - Math.atan((hit.x - o.pr.x) / f) * 180 / Math.PI, p: arOff.p + Math.atan((hit.y - o.pr.y) / f) * 180 / Math.PI}, turn, steady);
+    const m = arPlaneMiss[o.ac.hex];
+    if (m && now < m.wait) skip("planeNone");
+    else if (plenty(o.ac.hex)) skip("plenty");
+    else q.push(o.ac.hex);
   }
+  return counts || !q.length ? q : [q[n % q.length]];
+}
+function arAutoRead(what, v, shown, W, H, R, now){
+  const turn = arTurnNow(), steady = turn.deg < AR_AUTO_RATE || !arRelQ;
+  if (what === "sun") {
+    const sun = arBody && arBody.sun;
+    if (!sun) return;
+    const hit = arCamTime("sun", () => arSunFind(v, R, W, H, sun));
+    if (hit) {
+      arSunMiss = arSunWait = 0;
+      arFindNote({hex: "sun", t: now, h: arOff.h + wrap180(sun.az - hit.az), p: arOff.p + sun.el - hit.el}, turn, steady);
+      arSunLast = {t: now, h: wrap180(sun.az - hit.az), p: sun.el - hit.el};   // 1.90: how far off the sun's ring was, for the report
+    } else if (arSunTop >= 245) arSunMiss = arSunWait = 0;   // something burnt out, not taken: it may be the sun
+    else if (++arSunMiss >= 3) arSunWait = now + AR_AUTO_MS * 2.5;
+    return;
+  }
+  const o = shown.find(x => x.ac.hex === what);
+  if (!o || o.pr.edge) return;
+  const f = arFocal(W, H), r = f * Math.tan(AR_AUTO_R * Math.PI / 180);
+  const span = {A1: 11, A2: 20, A5: 65, A7: 11}[o.ac.category] || 35;                             // wingspan or rotor, metres
+  const hit = arCamTime("plane", () => arFind(v, W, H, o.pr.x, o.pr.y, r, span / o.d * f));
+  const m = arPlaneMiss[o.ac.hex] || (arPlaneMiss[o.ac.hex] = {n: 0, wait: 0});
+  if (hit) { m.n = m.wait = 0; arFindNote({hex: o.ac.hex, t: now, h: arOff.h - Math.atan((hit.x - o.pr.x) / f) * 180 / Math.PI, p: arOff.p + Math.atan((hit.y - o.pr.y) / f) * 180 / Math.PI}, turn, steady); }
+  else if (++m.n >= AR_PLANE_MISS) m.wait = now + AR_AUTO_MS * 2.5;
+}
+// Could arSunFind accept anything in this picture? Its find must be within 6° of the sun's height and 45° of its direction,
+// and in the video (all of it, the part the screen crops too), so: how far is that region from the camera's axis? Errs on yes.
+function arSunCould(v, R, W, H, sun){
+  const rad = Math.PI / 180, f = arFocal(W, H), shift = f * Math.tan(arOff.p * rad), s = Math.max(W / v.videoWidth, H / v.videoHeight) * arZc;
+  const c = arUnproject(W / 2, H / 2 + shift, R, W, H), reach = Math.atan((Math.hypot(v.videoWidth, v.videoHeight) / 2 * s + Math.abs(shift)) / f) / rad + 2;
+  const da = Math.max(0, Math.abs(wrap180(c.az - sun.az)) - 45) * rad;
+  return [-6, -3, 0, 3, 6].some(d => Math.acos(Math.min(1, Math.sin(c.el * rad) * Math.sin((sun.el + d) * rad) + Math.cos(c.el * rad) * Math.cos((sun.el + d) * rad) * Math.cos(da))) / rad <= reach);
+}
+// The camera's picture into a canvas and back, timed for the report (arCamTime keeps it).
+function arGrab(cx, w, h, draw){
+  const t0 = performance.now();
+  draw();
+  const t1 = performance.now(), px = cx.getImageData(0, 0, w, h).data;
+  arCamLast = {draw: t1 - t0, data: performance.now() - t1, w, h};
+  return px;
+}
+function arCamTime(kind, find){
+  arCamLast = null;
+  const t = performance.now(), hit = find(), all = performance.now() - t;
+  if (arCamLast) {
+    arCamLog.push({k: kind, t: Date.now(), ...arCamLast, all, hit: hit ? 1 : 0});
+    if (arCamLog.length > 60) arCamLog.shift();
+    arCamCost[kind + "N"] = (arCamCost[kind + "N"] || 0) + 1; arCamCost[kind + "Ms"] = arR1((arCamCost[kind + "Ms"] || 0) + all);
+  }
+  return hit;
+}
+// After a step's reads: do the finds agree?
+function arAutoSum(now){
   arAutoFinds = arAutoFinds.filter(x => now - x.t < 2500);
   // a plane counts when most of its last finds agree (within 0.7°; the sun, 4 finds within 1.2°); the planes counted
   // must agree with each other. 1.86: the sun, once found, decides alone (where it is is known exactly).
@@ -3751,8 +3841,7 @@ function arFind(v, W, H, x, y, r, size){
   const k = Math.min(1, AR_AUTO_N / (2 * vr), 3 / Math.max(1, size / s)), w = Math.round((x1 - x0) * k), h = Math.round((y1 - y0) * k);
   if (w < 24 || h < 24) return null;
   if (arCan.width !== w || arCan.height !== h) { arCan.width = w; arCan.height = h; }
-  arCx.drawImage(v, x0, y0, x1 - x0, y1 - y0, 0, 0, w, h);
-  const px = arCx.getImageData(0, 0, w, h).data, w1 = w + 1, I = new Float64Array(w1 * (h + 1));
+  const px = arGrab(arCx, w, h, () => arCx.drawImage(v, x0, y0, x1 - x0, y1 - y0, 0, 0, w, h)), w1 = w + 1, I = new Float64Array(w1 * (h + 1));
   for (let j = 0; j < h; j++) for (let i = 0, row = 0; i < w; i++) {   // the brightness, summed (an integral image)
     const q = (j * w + i) * 4; row += .299 * px[q] + .587 * px[q + 1] + .114 * px[q + 2];
     I[(j + 1) * w1 + i + 1] = I[j * w1 + i + 1] + row;
@@ -3797,10 +3886,10 @@ const arSunCan = document.createElement("canvas"), arSunCx = arSunCan.getContext
 function arSunFind(v, R, W, H, sun){
   const vw = v.videoWidth, vh = v.videoHeight, k = 160 / Math.max(vw, vh), w = Math.round(vw * k), h = Math.round(vh * k), n = w * h;
   if (arSunCan.width !== w || arSunCan.height !== h) { arSunCan.width = w; arSunCan.height = h; }
-  arSunCx.drawImage(v, 0, 0, w, h);
-  const px = arSunCx.getImageData(0, 0, w, h).data, L = new Float32Array(n);
+  const px = arGrab(arSunCx, w, h, () => arSunCx.drawImage(v, 0, 0, w, h)), L = new Float32Array(n);
   let top = 0;
   for (let q = 0; q < n; q++) { L[q] = .299 * px[q * 4] + .587 * px[q * 4 + 1] + .114 * px[q * 4 + 2]; if (L[q] > top) top = L[q]; }
+  arSunTop = top;
   if (top < 245) return null;                        // nothing burnt out: no sun in the picture, or it is behind cloud
   const T = top - 10, lab = new Uint8Array(n), st = new Int32Array(n), s = Math.max(W / vw, H / vh) * arZc;
   let best = null, second = 0;
@@ -3944,12 +4033,13 @@ function arAlignPress(){                             // the Align button: the su
 function arAlignStep(v, R, W, H, now){               // every AUTO step while the step is open
   const a = arAlign, sky = arBody && arBody[a.k];
   if (!sky) return;
-  a.tries++;
-  const hit = a.k === "sun" ? arSunFind(v, R, W, H, sky) : arMoonFind(v, R, W, H, sky);
+  const still = arTurnNow().deg < AR_AUTO_RATE || !arRelQ;   // 1.127.0.2: turning, a find can't go in the ring's count: no read
+  if (still) a.tries++;
+  const hit = still ? arCamTime("align", () => a.k === "sun" ? arSunFind(v, R, W, H, sky) : arMoonFind(v, R, W, H, sky)) : null;
   a.finds = a.finds.filter(x => now - x.t < AR_ALIGN_MS);
   if (hit) {
     a.seen++;
-    if (Math.hypot(hit.x - W / 2, hit.y - H / 2) <= AR_ALIGN_R && (arTurnNow().deg < AR_AUTO_RATE || !arRelQ)) {
+    if (Math.hypot(hit.x - W / 2, hit.y - H / 2) <= AR_ALIGN_R) {
       a.inRing++;
       a.finds.push({t: now, h: arOff.h + wrap180(sky.az - hit.az), p: arOff.p + sky.el - hit.el, hit});
     }
@@ -3966,8 +4056,7 @@ function arAlignStep(v, R, W, H, now){               // every AUTO step while th
 function arMoonFind(v, R, W, H, moon){
   const vw = v.videoWidth, vh = v.videoHeight, s = Math.max(W / vw, H / vh) * arZc, sw = Math.min(2 * AR_ALIGN_WIN / s, vw, vh), n = Math.min(160, Math.round(sw)), k = n / sw, N = n * n;
   if (arMoonCan.width !== n) arMoonCan.width = arMoonCan.height = n;
-  arMoonCx.drawImage(v, (vw - sw) / 2, (vh - sw) / 2, sw, sw, 0, 0, n, n);
-  const px = arMoonCx.getImageData(0, 0, n, n).data, L = new Float32Array(N), rim = [], dif = [];
+  const px = arGrab(arMoonCx, n, n, () => arMoonCx.drawImage(v, (vw - sw) / 2, (vh - sw) / 2, sw, sw, 0, 0, n, n)), L = new Float32Array(N), rim = [], dif = [];
   let top = 0;
   for (let q = 0; q < N; q++) {
     const l = L[q] = .299 * px[q * 4] + .587 * px[q * 4 + 1] + .114 * px[q * 4 + 2], i = q % n, j = (q - i) / n;

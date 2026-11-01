@@ -3291,6 +3291,116 @@ def browser_checks(browser):
     return bad
 
 
+def sky_read_checks(browser):
+    """1.127.0.2 (to-do #253): Sky view reads the camera only where a find could count, and AUTO and the align step still find.
+    A made-up camera (a sky, a burnt-out sun, a faint dot), made-up sensors and the sun put where wanted. Headless has none of a
+    phone's cost for a read: this counts reads and finds, it says nothing about how long a read takes on a phone."""
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    bad = []
+    ctx = browser.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True, permissions=["geolocation"], geolocation={"latitude": 48.2085, "longitude": 16.3731},
+                              user_agent="Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36")
+    ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+    ctx.add_init_script(r"""(() => {
+      try { localStorage.setItem("od.ar.tour", "1"); } catch {}
+      const c = document.createElement("canvas"); c.width = 720; c.height = 1280; const g = c.getContext("2d");
+      window.__cam = {sun: null, dot: null};
+      setInterval(() => { const o = window.__cam, gr = g.createLinearGradient(0, 0, 0, 1280); gr.addColorStop(0, "#3f73c4"); gr.addColorStop(1, "#8fb7e6"); g.fillStyle = gr; g.fillRect(0, 0, 720, 1280);
+        if (o.sun) { g.fillStyle = "#fff"; g.beginPath(); g.arc(o.sun[0], o.sun[1], 46, 0, 7); g.fill(); }
+        if (o.dot) { g.fillStyle = "rgba(0,0,0,.22)"; g.fillRect(o.dot[0] - o.dot[2], o.dot[1] - o.dot[2], 2 * o.dot[2], 2 * o.dot[2]); } }, 33);
+      try { window.DeviceOrientationEvent.requestPermission = async () => "granted"; } catch {}
+      Object.defineProperty(navigator.mediaDevices || {}, "getUserMedia", {value: async () => c.captureStream(30)});
+      window.__head = {a: 0, spin: 0};
+      setInterval(() => { const h = window.__head; h.a = (h.a + h.spin / 60 + 360) % 360; if (typeof DeviceOrientationEvent === "undefined") return;
+        for (const n of ["deviceorientationabsolute", "deviceorientation"]) window.dispatchEvent(new DeviceOrientationEvent(n, {alpha: h.a, beta: 118, gamma: 0, absolute: n !== "deviceorientation"})); }, 1000 / 60);
+    })();""")
+
+    def hooked(route):
+        r = route.fetch()
+        t = r.text()
+        i = t.rindex("})();")
+        route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+    ctx.route("**/app/", hooked)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: bad.append(f"page error: {e}"))
+    e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
+    pg.goto(BASE + "/app/")
+    pg.wait_for_function("window.__e && __e('!!gme')", timeout=20000)
+    pg.wait_for_timeout(1000)
+    e("S.live = true; arOpen(); 1")
+    pg.wait_for_timeout(1500)
+    e(r"""(() => { const real = arAutoStep; window.__planes = 0;
+      arAutoStep = (s, W, H, a, R) => { window.__W = W; window.__H = H; window.__R = R;
+        return real(window.__planes ? [{pr: {edge: false, x: W / 2 + 60, y: H / 2 + 200}, d: 6000, el: 30, ac: {hex: "abc001", category: "A3"}}] : [], W, H, a, R); };
+      window.__video = (x, y) => { const v = $("arVid"), s = Math.max(window.__W / v.videoWidth, window.__H / v.videoHeight) * arZc; return [v.videoWidth / 2 + (x - window.__W / 2) / s, v.videoHeight / 2 + (y - window.__H / 2) / s]; };
+      arBodyAt = Infinity; arBody = {...skyBodies(48.2, 16.37, Date.now())}; arBody.moon = {...arBody.moon, el: -30}; return 1; })()""")
+    e("$('arVid').muted = true; $('arVid').play().catch(() => {}); 1")                   # (a headless browser's autoplay)
+    pg.wait_for_function("window.__R && document.getElementById('arVid').videoWidth && !document.getElementById('arVid').paused", timeout=15000)
+
+    def scene(aligned=True, sun=None, in_pic=False, planes=0, dot=False, spin=0, wait=2500):
+        e(f"""arAutoFinds = []; arFindLog = []; arAutoLock = null; arAutoPause = 0; arOff = {{h: 0, p: 0, v: 2}}; arAligned = {'({h: 0, p: 0})' if aligned else 'null'}; arPlaneMiss = {{}}; arSunMiss = arSunWait = 0;
+              window.__planes = {planes}; window.__head.spin = {spin}; window.__cam.sun = null; window.__cam.dot = null; 1""")
+        pg.wait_for_timeout(700)
+        e("""(() => { const W = window.__W, H = window.__H, R = window.__R, c = arUnproject(W / 2, H / 2, R, W, H), p = arUnproject(W / 2 + 40, H / 2 - 120, R, W, H);
+              arBody.sun = {...arBody.sun, az: %s, el: %s}; %s %s return 1; })()""" % (
+            "p.az" if in_pic else f"(c.az + {sun or 0}) % 360", "p.el" if in_pic else ("c.el" if sun is not None else "-20"),
+            "window.__cam.sun = window.__video(W / 2 + 40, H / 2 - 120);" if in_pic else "", "window.__cam.dot = [...window.__video(W / 2 + 60, H / 2 + 200), Math.max(3, 35 / 6000 * arFocal(W, H) / (Math.max(W / $('arVid').videoWidth, H / $('arVid').videoHeight) * arZc) / 2)];" if dot else ""))
+        pg.wait_for_timeout(200)
+        e("arCamLog = []; 1")
+        pg.wait_for_timeout(wait)
+        return e("({reads: arCamLog.length, lock: arAutoLock && (arAutoLock.sun ? 'sun' : 'plane'), turn: arTurnNow().deg})")
+
+    r = scene(aligned=False, sun=150, planes=1, dot=True)
+    if r["reads"]:
+        bad.append(f"a guest's Sky view read the camera {r['reads']} times before any alignment")
+    r = scene(sun=150)
+    if r["reads"]:
+        bad.append(f"the camera was read {r['reads']} times for a sun on the other side")
+    r = scene(sun=10, planes=1, spin=20)
+    if r["turn"] < 10 or r["reads"]:
+        bad.append(f"while turning (at {r['turn']:.0f}°/s) the camera was read {r['reads']} times")
+    r = scene(sun=10, wait=3000)
+    if not 3 <= r["reads"] <= 10:
+        bad.append(f"with no sun in a picture where it could be: {r['reads']} reads in 3 s, expected a slower look, not none")
+    r = scene(in_pic=True, wait=3000)
+    if r["lock"] != "sun" or r["reads"] < 6:
+        bad.append(f"AUTO didn't line up on the sun in the picture: {r}")
+    r = scene(sun=None, planes=1, dot=True, wait=3000)
+    if r["lock"] != "plane":
+        bad.append(f"AUTO didn't line up on a plane's dot: {r}")
+    r = scene(sun=None, planes=1, wait=5000)
+    if not 12 <= r["reads"] <= 24:
+        bad.append(f"a plane with nothing to find: {r['reads']} reads in 5 s, expected every step for 2.5 s, then slower")
+    wrong = e(r"""(() => { const v = $("arVid"), W = window.__W, H = window.__H, vw = v.videoWidth, vh = v.videoHeight, rnd = (a, b) => a + Math.random() * (b - a), off = arOff; let wrong = 0;
+      for (let n = 0; n < 3000; n++) { const a = rnd(0, 3.14), b = rnd(-1.5, 3.2), g = rnd(0, 6.28), q = [Math.cos(a) * Math.cos(b / 2), Math.sin(a) * Math.cos(g), Math.sin(a) * Math.sin(g), Math.cos(a) * Math.sin(b / 2)], l = Math.hypot(...q), R = arQMatrix(q.map(x => x / l));
+        arOff = {h: rnd(-30, 30), p: rnd(-12, 12), v: 2};
+        const s = Math.max(W / vw, H / vh) * arZc, d = arUnproject(W / 2 + (rnd(0, vw) - vw / 2) * s, H / 2 + (rnd(0, vh) - vh / 2) * s, R, W, H), sun = {az: (d.az + rnd(-45, 45) + 360) % 360, el: d.el + rnd(-6, 6)};
+        if (sun.el > 1 && sun.el < 75 && !arSunCould(v, R, W, H, sun)) wrong++; }
+      arOff = off; return wrong; })()""")
+    if wrong:
+        bad.append(f"arSunCould said no {wrong} times where arSunFind could accept a find")
+    scene(sun=None, wait=0)
+    e("""(() => { const W = window.__W, H = window.__H, p = arUnproject(W / 2 + 10, H / 2 + 10, window.__R, W, H); arBody.sun = {...arBody.sun, az: (p.az + 3) % 360, el: p.el + 1}; window.__cam.sun = window.__video(W / 2 + 10, H / 2 + 10); arAlignStart("sun"); return 1; })()""")
+    pg.wait_for_timeout(3000)
+    a = e("({open: !!arAlign, how: (arAlignLog[arAlignLog.length - 1] || {}).ending, h: arAligned && arAligned.h, kinds: arCamLog.map(x => x.k)})")
+    if a["open"] or a["how"] != "finder" or abs((a["h"] or 0) - 3) > .5 or "align" not in a["kinds"]:
+        bad.append(f"the align step didn't finish on the sun: {a}")
+    m = e("""(() => { const W = window.__W, H = window.__H; arCamTime("align", () => arMoonFind($("arVid"), window.__R, W, H, {az: 0, el: 30})); const l = arCamLog[arCamLog.length - 1]; return [l.k, l.w, l.h]; })()""")
+    if m[0] != "align" or not m[1] or m[1] != m[2]:
+        bad.append(f"the moon finder's read wasn't timed: {m}")
+    t = serve.sky_report_clean(e("arReport()"))
+    tm = t.get("timing") or {}
+    n = len(tm.get("camKind") or [])
+    if t.get("v") != 5 or not n or any(len(tm.get(k) or []) != n for k in ("camAgo", "camDraw", "camData", "camAll", "camW", "camH", "camHit")) or "alignN" not in (tm.get("camCost") or {}) or not tm.get("camSkip"):
+        bad.append(f"the report doesn't carry the reads after the relay's cleaning: v{t.get('v')} {sorted(tm)} {tm.get('camCost')} {tm.get('camSkip')}")
+    ctx.close()
+    for b_ in bad:
+        print("flow:", b_)
+    print("Sky view reads the camera only where a find could count, and still finds" if not bad else f"{len(bad)} Sky view read check(s) failed")
+    return bad
+
+
 def levelup_checks(browser):
     """1.126.1.1 (to-do #256): a level-up shows where it can be seen, once. The app's /game/me answers are patched to a level
     the checks choose; the card is looked for with elementFromPoint (a card behind Sky view is "shown" but not on top)."""
