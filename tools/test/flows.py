@@ -46,6 +46,7 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
   phone, is sent again and reaches the profile; favourites show at once and go back when they can't be saved (1.64);
   the Remarks by style: Overhead white and only a delay over 30 min, Airport amber with ON TIME and the gate (1.88);
   a Planespotters photo first, credited and linked, never for the share picture, none of another aircraft (1.93)
+- the Now tab's Sky view row (1.128): each state, In range through the relay's list, the ★ the same, its key, label and strip
 - the private page (relay 99): the QR code and the two ways in, nothing of the board; the invite field opens only this
   site's /join/ link and refuses another site's, a bare //host, javascript: and another path
 """
@@ -2907,6 +2908,104 @@ def logbook_list_checks(browser, bad):
     ctx.close()
 
 
+def sky_row_checks(browser, bad):
+    """1.128 (to-do #258): the area under the plane's picture. Each state from made-up planes through skyState(); In range at
+    17 km through the relay's list and for a moment after the circle; scanned, and a later pass; no flip on the edge; the
+    number steady; the same answer for Sky view's ★; the key opens Sky view, Go live goes live, the strip starts the compass."""
+    ctx = browser.new_context(viewport={"width": 390, "height": 844}, permissions=["geolocation"], geolocation={"latitude": 48.2085, "longitude": 16.3731})
+    ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+
+    def hooked(route):
+        r = route.fetch()
+        t = r.text()
+        i = t.rindex("})();")
+        route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+    ctx.route("**/app/", hooked)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: bad.append(f"sky row: page error: {e}"))
+    pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'));")
+    pg.goto(BASE + "/app/")
+    pg.wait_for_function("window.__e && __e('!!gme')", timeout=20000)
+    r = pg.evaluate("""__e(`(() => {
+      const keep = {feat, gme, spotted, liveAt, live: S.live, demo: S.demo, why: lookWhy}, out = {};
+      const mk = (o = {}) => { const {ac, ...r} = o; return {hex: "aa0001", o: {alt: 10000, tcpa: 60, cpa: 2, ...r, ac: {hex: "aa0001", gs: 450, lat: 48, lon: 16, ...ac}}}; };
+      const L = km => ({km, brg: 90, up: 20, alt: 10000, dir: "E"});
+      const reset = () => { gNearAt.clear(); arScans.clear(); skyMem = {hex: "", k: "", s: null, num: null, numAt: 0, lookAt: 0}; spotted = []; arSpotIdx = {src: null, n: -1, map: null}; gme = {...keep.gme, scan: [], scanKm: 15, km: 15, scanSet: undefined, goldSet: undefined}; S.live = true; S.demo = false; liveAt = 1; lookWhy = ""; };
+      const st = (name, f, km) => { feat = f; const s = skyState(km == null ? null : L(km)); out[name] = [s.k, s.num == null ? null : Math.round(s.num * 10) / 10]; };
+      try {
+        reset(); st("closing", mk(), 18.1);
+        reset(); st("in", mk(), 12);
+        reset(); gme.scan = [{hex: "aa0001"}]; st("in17", mk({tcpa: -60, cpa: 3}), 17);
+        reset(); st("edge1", mk(), 14.9); st("edge2", mk(), 15.2); gNearAt.clear(); st("edge3", mk(), 15.2);
+        reset(); st("passing", mk({cpa: 22}), 26);
+        reset(); st("away", mk({tcpa: -60, cpa: 3}), 24);
+        reset(); spotted = [{hex: "aa0001", scan: 1}]; st("done", mk(), 8);
+        reset(); spotted = [{hex: "aa0001", scan: 1}]; gme.scan = [{hex: "aa0001"}]; st("laterPass", mk(), 8);
+        reset(); gme.scan = [{hex: "aa0001"}]; arScans.add("aa0001"); st("justScanned", mk(), 8);
+        reset(); gme.limits = {uncommon: [3, 3]}; st("pastLimit", mk(), 8);
+        reset(); st("ground", mk({ac: {alt_baro: "ground"}}), 8);
+        reset(); st("none", null, null);
+        reset(); S.demo = true; st("off", mk(), 12);
+        reset(); S.live = false; st("nolive", mk(), 12);
+        reset(); liveAt = 0; st("finding", mk(), 12);
+        reset(); lookWhy = "90 km away"; st("far", mk(), null);
+        reset(); lookWhy = "no position"; st("nopos", mk(), null);
+        reset(); lookWhy = "no height"; st("noheight", mk(), null);
+        reset(); skyMem.hex = "aa0001"; skyMem.k = "closing"; st("closingHolds", mk({cpa: 15.5}), 20);
+        skyMem.k = "passing"; st("passingHolds", mk({cpa: 15.5}), 20);
+        skyMem.k = "closing"; st("goingHolds", mk({tcpa: -2}), 20); skyMem.k = "away"; st("awayHolds", mk({tcpa: 5}), 20);
+        // the number: only falls, once a second
+        reset(); skyNum({k: "closing", num: 3.1}, true); skyMem.numAt = 0; const n1 = skyNum({k: "closing", num: 3.3}, false); skyMem.numAt = 0; const n2 = skyNum({k: "closing", num: 3.0}, false); const n3 = skyNum({k: "closing", num: 2.5}, false); skyMem.numAt = 0; const n4 = skyNum({k: "closing", num: 3.9}, false);
+        out.nums = [n1, n2, n3, n4]; out.km = [skyKm(3.14), skyKm(12.6)];
+        // the ★ answers as the row does
+        const chip = (ac, km) => { const s = {ac: {hex: "aa0001", ...ac}, d: km * 1000, alt: 10000}; arSpotIdx = {src: null, n: -1, map: null}; arLabel(s, true, arSpotMap()); return s.chip.charAt(0); };
+        reset(); gme.scan = [{hex: "aa0001"}]; out.star17 = chip({}, 17);
+        reset(); out.star20 = chip({}, 20);
+        reset(); out.starGround = chip({alt_baro: "ground"}, 8);
+        reset(); spotted = [{hex: "aa0001", scan: 1, gs: 5}]; out.starDone = chip({}, 8);
+        reset(); spotted = [{hex: "aa0001", scan: 1, gs: 5}]; gme.scan = [{hex: "aa0001"}]; out.starLater = chip({}, 8);
+      } catch (e) { out.error = String(e && e.stack || e); }
+      feat = keep.feat; gme = keep.gme; spotted = keep.spotted; liveAt = keep.liveAt; S.live = keep.live; S.demo = keep.demo; lookWhy = keep.why; gNearAt.clear(); arScans.clear();
+      arSpotIdx = {src: null, n: -1, map: null}; skyMem = {hex: "", k: "", s: null, num: null, numAt: 0, lookAt: 0};
+      return out; })()`)""")
+    want = {"closing": ["closing", 3.1], "in": ["in", None], "in17": ["in", None], "edge1": ["in", None], "edge2": ["in", None], "edge3": ["closing", .2],
+            "passing": ["passing", 22], "away": ["away", 24], "done": ["done", None], "laterPass": ["in", None], "justScanned": ["done", None],
+            "pastLimit": ["in", None], "ground": ["ground", None], "none": ["none", None], "off": ["off", None], "nolive": ["nolive", None],
+            "finding": ["finding", None], "far": ["far", None], "nopos": ["nopos", None], "noheight": ["noheight", None],
+            "closingHolds": ["closing", 5], "passingHolds": ["passing", 15.5], "goingHolds": ["closing", 5], "awayHolds": ["away", 20],
+            "nums": [3.1, 3.0, 3.0, 3.9], "km": ["3.1", "13"], "star17": "★", "star20": "N", "starGround": "N", "starDone": "✓", "starLater": "★"}
+    if r.get("error"):
+        bad.append(f"sky row: {r['error'][:300]}")
+    for k, v in want.items():
+        if r.get(k) != v:
+            bad.append(f"sky row: {k}: {r.get(k)} (should be {v})")
+    # the real row: Go live goes live and stays on Now; the key opens Sky view; the label opens its two lines; the strip starts the compass
+    pg.evaluate("__e('if (S.live) liveStop(); arOpen = () => { window.__opened = 1; }; lookOn = false; lookHeading = null; lookStart = () => { window.__compass = 1; }; 1')")
+    pg.wait_for_function("__e('skyMem.k') === 'nolive' && !document.getElementById('look').hidden", timeout=10000)
+    if pg.inner_text("#skyKeyT") != "Go live" or "hot" not in pg.get_attribute("#arBtn", "class"):
+        bad.append("sky row: no live location: the key doesn't say Go live in amber")
+    if not pg.evaluate("document.getElementById('look').getBoundingClientRect().height") <= 129:
+        bad.append("sky row: the area is taller than the one it replaced")
+    pg.click("#skyVal")
+    if pg.locator(".secPlate h3").last.inner_text().lower() != "scan needs" or pg.locator(".secPlate .sum").count() < 2:
+        bad.append("sky row: the label doesn't open its two lines")
+    pg.evaluate("__e('cardClose(); 1')")
+    pg.wait_for_timeout(400)
+    pg.click("#lookCv")
+    if not pg.evaluate("window.__compass"):
+        bad.append("sky row: the strip's tap doesn't start the compass")
+    pg.click("#arBtn")
+    pg.wait_for_function("__e('S.live && !liveWaiting() && skyMem.k !== \"nolive\" && skyMem.k !== \"finding\"')", timeout=20000)
+    if pg.evaluate("window.__opened"):
+        bad.append("sky row: Go live opened Sky view")
+    pg.click("#arBtn")
+    if not pg.evaluate("window.__opened"):
+        bad.append("sky row: the key doesn't open Sky view")
+    pg.evaluate("__e('liveStop(); 1')")
+    pg.wait_for_timeout(600)
+    ctx.close()
+
+
 def browser_checks(browser):
     """The app's saves, in a browser. The app's code runs inside one function; a copy of the page with an eval inside
     it (window.__e) lets the checks call it."""
@@ -3286,6 +3385,7 @@ def browser_checks(browser):
     ctx.close()
     logbook_list_checks(browser, bad)
     demo_rows_checks(browser, bad)
+    sky_row_checks(browser, bad)
     for b_ in bad:
         print("flow:", b_)
     print("the app's saves hold" if not bad else f"{len(bad)} app save check(s) failed")

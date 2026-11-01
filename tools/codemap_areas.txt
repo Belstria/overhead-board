@@ -441,13 +441,12 @@ tools/test/flows.py: "the game (relay 59)" "relay 71: Recent points" "relay 63: 
 changelog: game|point|level|league|trophy|trophies|bingo|achievement|hangar|medal|spotters' club|lock-on
 
 [skyview] Sky view and Where to look: camera, compass and gyroscope, labels, AUTO, sun and moon, the ribbon, reports
-tools/app/head.html: .look .lookH .lookRow .lookTxt .lookActs #lookCv #arView .arTitle .arIb .arMoved .arZoom .arZoomL .arAlignBar .arAlignGo .arAlignPick .arMini .arAround .arTour
+tools/app/head.html: .look .lookActs #lookCv #arView .arTitle .arIb .arMoved .arZoom .arZoomL .arAlignBar .arAlignGo .arAlignPick .arMini .arAround .arTour
     .arTourBox .arTourAct .arTourRing @arPulse .arTourDrag .arTourPlane .arTourLab .arTourFinger @arDragLab
     @arDragFinger .arShut .arFlash @arFlash .arL .arPeekL .arFullL .arGrip .arPeek .arThumb .arPeekT .arSwipe @arNudge
-    .arGhost @arSheetIn css:body.arOpen .skyRow #skyCv .liveAsk .liveGo .liveNo #arMini #arMiniCv #arBtn #arBtn2 #arCal #arCard
-    #arClose #arCount #arCv #arFlag #arHint #arInfo #arMoved #arAlign #arAlignBar #arAlignPick #arAlignGo #arRib #arShut #arTour #arVid #arZ2 #arZ5 #look #lookDir
-    #lookSub #skyB #skyRow #skySub
-tools/app/main.js: lookHeading lookOn lookRaf lookErr lookErrAt lookWhy lookWhyLogged lookAt drawLook lookWhyDraw
+    .arGhost @arSheetIn css:body.arOpen .skyRow .skyR .skyKey .skyVal .skyLk .liveAsk .liveGo .liveNo #arMini #arMiniCv #arBtn #arCal #arCard
+    #arClose #arCount #arCv #arFlag #arHint #arInfo #arMoved #arAlign #arAlignBar #arAlignPick #arAlignGo #arRib #arShut #arTour #arVid #arZ2 #arZ5 #look #skyKeyT #skyVal #skyL #skyV #skyLk #skyLkV
+tools/app/main.js: lookHeading lookOn lookRaf lookWhy lookWhyLogged lookAt drawLook skyMem skyFeatAt skyKm skyState skyNum skyLookText skyPut SKY_DIM SKY_WORDS skyOpen gNearAt G_NEAR_HOLD gCanScan gScanGx
     drawTape lookSoon lookHeadingFrom lookStart arPossible arOn arSince arStream arList arListAt arQ arQt arGap arGapT
     arWatch arHere arRaf arDrag arHits arSel arOff arDec arHintText arAlt arOffSave AR_AIM_R AR_AIM_MS arAim arRaw
     arCalAt AR_GAP_TAU AR_GAP_MAX AR_GAP_SETTLE AR_GAP_STEADY AR_STILL_MS arAbsR arAbsT arRelQ arRelT arLastQ arRate
@@ -459,12 +458,12 @@ tools/app/main.js: lookHeading lookOn lookRaf lookErr lookErrAt lookWhy lookWhyL
     arSunFind AR_ALIGN_R AR_ALIGN_WIN AR_ALIGN_N AR_ALIGN_MS AR_ALIGN_TOL AR_ALIGN_FAR_AZ AR_ALIGN_FAR_EL AR_ALIGN_DONE arAlign arAlignUndo arAlignLog arMoonSaw arAlignT arMoonCan arMoonCx arAlignUp arSunUpAt arAlignNote arAlignSeen arAlignBar arAlignBtn arAlignMoved arAlignShow arAlignOpen arAlignStart arAlignEnd arAlignCancel arAlignDo arAlignBack arAlignReset arAlignPress arAlignStep arMoonFind $("arAlignGo").onclick AR_AUTO_NEAR arAligned arGlide AR_LABEL_UP arTopOut AR_CHIP_H AR_CHIP_UP AR_CHIP_GAP arChipTurn arBounds arChipBounds arChipsAt arChipsDraw AR_MINI arMiniSig arAroundNow arMini arAroundOpen $("arMini").onclick arBody arBodyAt arBodiesAt arBodiesDraw arBodyEdge AR_RIB arRibSig arRibbon arMove
     arWeather arHeight arAimStep arScans arScanned arAimDraw shortType arDragStart arDragMove arDragEnd arMovedNote AR_TOUR arTour
     $("arInfo").onclick arTap arCardSig AR_PEEK_MS arFull arAwayAt arP arPeekHtml arCardRender arSet arRoom arTo
-    arPeekWatch arCardDismiss $("arBtn").onclick $("arBtn2").onclick $("skyCv").onclick arTry arGoing arGoLive skyRowRender
+    arPeekWatch arCardDismiss $("arBtn").onclick $("skyVal").onclick $("skyLk").onclick arTry arGoing arGoLive
     $("arClose").onclick $("arShut").onclick $("arAlign").onclick $("lookCv").onclick lookAuto
     addEventListener("pointerup") +gLockOn
 relay/serve.py: +metar +sky_json SKY_REPORTS_MAX SKY_REPORT_DROP sky_report_clean sky_report_save /skyreport /sky
 tools/app/WMM.COF: "WMM"
-README.md: "- **Where to look**" "- **Sky view** (Now"
+README.md: "- **The Sky view row**" "- **Sky view** (Now"
 tools/test/flows.py: "Sky view's reports (relay 72)"
 tools/test/run_test_relay.py: "SKY_REPORTS_MAX"
 tools/test/sky_jitter.js: "const arPossible"

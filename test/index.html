@@ -7898,6 +7898,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.128", date: "2026-11-01", notes: [
+    "The area under the plane's picture is now one slim row above the compass: Sky view, the scan and which way to look.",
+    "It says when the plane is in range to scan, or how far it still has to come (Scannable in), and the key turns amber when you can.",
+    "A plane back for another pass the same day can be scanned again in Sky view.",
+  ]},
   {v: "1.127.1", date: "2026-11-01", notes: [
     "Header: when the title would be cut off beside the points, the chip drops \"paused\" and shows its points dimmed.",
     "Demo mode: the day's list starts with every flight closed, and a tap opens only the one you touched.",
