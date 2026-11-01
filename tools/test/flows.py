@@ -2785,6 +2785,21 @@ def browser_checks(browser):
     if got != [False, "Aer Lingus", "XQ", True]:
         bad.append(f"an airline outside the table: {got}")
 
+    # 1.124.1 (to-do #249): the By tier index always has four cells, those with no cards dim and named with a 0 (only one-scan
+    # airlines: three dim and Member 12); the thumb's pick skips a dim cell
+    got = e("""(() => { const was = lySort; lySort = 'tier';
+        const w = {}; for (const k of ['AUA','DLH','RYR','SWR','BAW','AFR','KLM','UAE','THY','LOT','EZY','WZZ']) w[k] = 1;
+        const d = document.createElement('div'); d.innerHTML = walletHtml({wallet: w, walletInfo: {}}); lySort = was;
+        return [...d.querySelectorAll('.lyIdx.tier > i')].map(i => i.textContent + (i.classList.contains('dim') ? ' dim' : '')); })()""")
+    if got != ["Platinum0 dim", "Gold0 dim", "Silver0 dim", "Member12"]:
+        bad.append(f"the By tier index with Member cards only: {got}")
+    # 1.124.1 (to-do #248): the Logbook's Today plate stays, at 0, on a day with no planes yet; "–" before the day's first answer
+    got = e("""(() => { const was = [relayStats, sightRev, spotted, S]; S = {...S, live: false}; showTab('logbook'); const ph = () => [$('tdPlate').hidden, $('tdPlate').textContent];
+        spotted = []; relayStats = {planes: 0, airlines: 0, types: 0, overhead: 0}; sightRev = '1'; tdSig = ''; renderTodayNumbers(); const day = ph();
+        sightRev = null; tdSig = ''; renderTodayNumbers(); const wait = ph(); [relayStats, sightRev, spotted, S] = was; tdSig = ''; return [day, wait]; })()""")
+    if got != [[False, "Today›0Planes0Overhead0Airlines0Types"], [False, "Today›–Planes–Overhead–Airlines–Types"]]:
+        bad.append(f"the Today plate on an empty day: {got}")
+
     # 1.88: the Remarks in the Overhead style are white and only name a delay over 30 minutes; the Airport style keeps
     # them amber with ON TIME, every delay and the gate
     e("window.__tf = timesFor; window.__md = S.mode; timesFor = () => window.__t")

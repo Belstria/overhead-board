@@ -55,7 +55,8 @@ two days later mockups again carried sentences and a second row of tabs. These r
     seen, Today's plate first. Club: how am I doing. Radar: what is around.
     Settings: what can I change. The rest after a scroll or a tap.
 13. **Empty things fold away.** A category with 0 is hidden or folded with a count. A list inside a card or panel stops
-    at five rows and "All N ›" opens the rest; the list a screen exists to show (Today, the league, search) runs on.
+    at five rows and "All N ›" opens the rest; the list a screen exists to show (Today, the league, search) runs on. Exceptions (Dave, 1 Nov): the Logbook's Today plate stays at 0 on an empty day; the
+    By tier index always shows all four tiers, those with no cards greyed out.
 14. **A feature that wants more room gets none by default.** It gets a row in an existing index (label and a one-line
     state) that opens a panel, or a line in an existing panel. A new page, tab, key, row or setting must name the one
     question of its screen that nothing answers today, and must replace or absorb something; a new setting also needs
@@ -112,7 +113,7 @@ in the sheet a tap opens; the engraved plate title on every sheet.
 - **Now**: the checklist bar for a new user, the plane overhead on the flaps, its picture, the Sky view row, recent
   flights, the notices bar; scan tickets and undo notices rise from below.
 - **Logbook** (1.123): one screen. The search with the filter icon at its end, stuck under the header; a sideways strip of three
-  twin plates, each a gold name and four named numbers: Today (a tap opens "Today in numbers"), All time (amber names: each number
+  twin plates, each a gold name and four named numbers: Today (always there, 0 on an empty day; a tap opens "Today in numbers"), All time (amber names: each number
   opens its list; Categories, Most seen aircraft, Aircraft types, Airlines, with Counting since as a footnote) and the period (a tap
   opens Week · Month · Year, with the CSV under More). The icon opens the segmented filters, this place / All places and Saved
   places in place under the strip. Then the timeline rows (a rarity bubble, time, flight, route, type, marks at the end, no pills).

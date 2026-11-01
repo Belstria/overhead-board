@@ -782,12 +782,15 @@ function renderTodayNumbers(){
   if (html !== todayFactsSig) { todayFactsSig = html; TD_FACTS.innerHTML = html; }
   const title = T(ev ? "Your day in planes" : "Today in numbers"), h3 = TD_PLATE.querySelector("h3");
   if (h3.textContent !== title) h3.textContent = title;
-  // 1.123 (to-do #241): the Today plate, a day with no planes yet folded away (the list has its one line)
-  const sig = [n.planes, n.over, n.airlines, n.types, LANG].join("|");
+  // 1.123 (to-do #241), 1.124.1 (to-do #248): the Today plate always stands first in the strip; a day with no planes yet reads 0
+  // (the one exception to rule 13), and "–" until the day's first answer from the relay is in, so it neither flashes 0 nor jumps
+  const wait = relayV5() && (allPlaces ? !fullDay.all : sightRev === null || liveWaiting());
+  const sig = [wait ? "-" : [n.planes, n.over, n.airlines, n.types].join(), LANG].join("|");
   if (sig !== tdSig) {
     tdSig = sig;
-    $("tdPlate").hidden = !n.planes;
-    $("tdPlate").innerHTML = lbPlateHtml(T("Today"), [[n.planes, "Planes"], [n.over, "Overhead"], [n.airlines, "Airlines"], [n.types, "Types"]], true);
+    $("tdPlate").hidden = false;
+    const v = x => wait ? null : x;
+    $("tdPlate").innerHTML = lbPlateHtml(T("Today"), [[v(n.planes), "Planes"], [v(n.over), "Overhead"], [v(n.airlines), "Airlines"], [v(n.types), "Types"]], true);
   }
   lbStripSync();
 }
@@ -1320,7 +1323,7 @@ function walletHtml(g0){
     nav = seg + (lySort === "az"
       ? `<div class="lyIdx az">${[..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"].map(l => `<i class="${have.has(l) ? "" : "dim"}" data-l="${l}">${l}</i>`).join("")}<b></b></div>`
       : `<div class="lyIdx tier">${[3, 2, 1, 0].map(t => { const k = list.filter(x => lyOf(x[1]) === t).length;
-          return k ? `<i class="ly${t}" data-t="${t}" style="--n:${k + 4}">${escH(T(LY_NAME[t]))}<small>${nf.format(k)}</small></i>` : ""; }).join("")}<b></b></div>`);
+          return k ? `<i class="ly${t}" data-t="${t}" style="--n:${k + 4}">${escH(T(LY_NAME[t]))}<small>${nf.format(k)}</small></i>` : `<i class="dim" data-t="${t}" style="--n:4">${escH(T(LY_NAME[t]))}<small>0</small></i>`; }).join("")}<b></b></div>`);
   } else if (n > 1) nav = `<div class="lyDots">${list.map(() => "<i></i>").join("")}</div>`;
   return secPlate(T("Frequent flyer"), how + `<button type="button" class="lyTop"><b></b><i aria-hidden="true">\u203a</i></button><div class="lyCar"><div class="lySt">` +
     list.map((x, i) => lyCardHtml(x, info[x[0]] || {}, i)).join("") + `</div></div><div class="lyCount"></div>` + nav, "lyPlate");
@@ -1488,8 +1491,9 @@ function lyWire(box){
     if (!bub) { bub = document.createElement("div"); bub.id = "lyBub"; document.body.appendChild(bub); }
     const pick = e => {
       const r = bar.getBoundingClientRect(), x = Math.max(r.left, Math.min(r.right - 1, e.clientX));
-      let cell = cells[cells.length - 1], best = 1e9;
-      for (const q of cells) { const b = q.getBoundingClientRect(), dd = x < b.left ? b.left - x : x > b.right ? x - b.right : 0; if (dd < best) { best = dd; cell = q; } }
+      const pool = az ? cells : cells.filter(q => !q.classList.contains("dim"));     // 1.124.1: a tier with no cards does nothing, the nearest one with cards answers
+      let cell = pool[pool.length - 1], best = 1e9;
+      for (const q of pool) { const b = q.getBoundingClientRect(), dd = x < b.left ? b.left - x : x > b.right ? x - b.right : 0; if (dd < best) { best = dd; cell = q; } }
       const b = cell.getBoundingClientRect();
       if (az) {                  // the first airline of the letter, or of the next letter there is
         const ls = "ABCDEFGHIJKLMNOPQRSTUVWXYZ", l0 = ls.indexOf(cell.dataset.l);

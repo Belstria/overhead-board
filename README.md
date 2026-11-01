@@ -643,7 +643,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   front one to **turn it over**. A card's front (since 1.114.3) has the airline's logo printed in its own
   colours, its code in holographic ink, your scans with a ring to the next tier and the tier itself (platinum shines in
   rainbow colours); its back the airline's full name and home base, your scans and sightings, since when you're a member,
-  your last scan and the types you scanned most. With six cards or more an **index** under them finds one: **By tier** or **A–Z**, slide your thumb
+  your last scan and the types you scanned most. With six cards or more an **index** under them finds one: **By tier** (always all four tiers, those with no cards greyed out with a 0, since 1.124.1) or **A–Z**, slide your thumb
   along it and the names there show above it while the cards follow. A plane's
   ticket prints your tier with its airline ("OS · GOLD"). Scans from before count; a tier already passed pays nothing. Since 1.107 the club
 has a **passport** under Your hangar: every scanned flight with a known route stamps the countries it flew from and
@@ -831,7 +831,7 @@ Five buttons along the bottom:
   screws in the corners, its name engraved between two lines, level with the top screws (1.83.1).
 - **Logbook** (1.55): a switch at the top for the views (Logbook and Week & month; Collection and Records moved to the
   Game page in 1.72); the place buttons only under Logbook. Logbook: the totals, most seen model, categories, top aircraft types and airlines, most seen aircraft.
-  **Since 1.123 the Logbook is one screen**: the search and the filter icon, three plates you swipe sideways (**Today**,
+  **Since 1.123 the Logbook is one screen**: the search and the filter icon, three plates you swipe sideways (**Today**, which stays at 0 on a day with no planes yet since 1.124.1,
   **All time** and the period, such as "2026 in planes"), then the day's planes. A tap on All time's numbers opens their lists
   (Sightings: **Categories**, Aircraft: **Most seen aircraft**, Types: **Aircraft types**, Airlines: **Airlines**), with since when
   it counts as a footnote; with a saved place on, its name and numbers are that place's. Each list rises from below as

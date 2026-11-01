@@ -1240,6 +1240,7 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .lyIdx > i.dim{color:#555;background:#232428} .lyIdx > i.on{background:#f3f0e8;color:#111}
 .lyIdx.tier > i{flex-grow:var(--n);min-width:56px;flex-direction:column;gap:2px;background:var(--lbg);color:var(--lk)} .lyIdx.tier > i small{font-size:var(--fs-tag);opacity:.75}
 .lyIdx.tier > i.on{box-shadow:0 0 0 2px #fff}
+.lyIdx.tier > i.dim{background:#232428;color:#555} .lyIdx.tier > i.dim small{opacity:1}
 .lyIdx > b{position:absolute;bottom:-5px;width:12px;height:3px;margin-left:-6px;border-radius:2px;background:#fff;transition:left .25s}
 #lyBub{position:fixed;z-index:9000;min-width:150px;max-width:220px;padding:10px 12px;border-radius:12px;background:rgba(24,25,28,.96);color:#ddd;pointer-events:none;opacity:0;
   box-shadow:0 8px 24px rgba(0,0,0,.6),inset 0 0 0 1px #3a3c42;transform:translate(-50%,-100%) scale(.8);transition:opacity .15s,transform .15s}
@@ -2037,7 +2038,7 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
       <div class="seg lbViews" id="lbViews" role="group" hidden></div>
       <p class="sum" id="lbSum"></p>
       <div class="lbStrip" id="lbStrip">
-        <button type="button" class="lbPlate" id="tdPlate" hidden></button>
+        <button type="button" class="lbPlate" id="tdPlate"></button>
         <div class="lbPlate lbOpens" id="lbPlate" hidden></div>
         <button type="button" class="lbPlate" id="lbYear" hidden></button>
       </div>

@@ -948,6 +948,12 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.124.1 (to-do #248, #249; relay unchanged): **The Today plate stays, the tier bar shows all four.** `renderTodayNumbers`:
+  `#tdPlate` is never hidden (no `hidden` in head.html); `wait` (relay v5 and the day's first answer not in: `sightRev === null`,
+  `fullDay.all` for All places, `liveWaiting()`) draws "–" for the four numbers, then the real ones, 0 on an empty day.
+  `walletHtml` By tier: a tier with no cards is `<i class="dim" data-t>` with `--n:4` and a 0 (`.lyIdx.tier > i.dim`); `lyWire`'s
+  `pick` takes the nearest cell that isn't dim (A–Z unchanged), so a tap or thumb on a grey tier lands on the nearest tier with
+  cards. Rule 13 of the design brief names both as exceptions.
 - 1.124 (to-do #246, Dave's picks; relay unchanged): **Frequent flyer, and one thing at a time.** "Member cards" is Frequent flyer
   everywhere; the trophy `airlines50` shows High flyer (same id). `lyList` keeps airlines with a scan, so Guest and "Not a member yet"
   went (`.lyN`; `lyOf` -1 stays for `lyTicket`). `walletHtml`: the sentences behind `#lyHow` (`lyHow`, a plate sheet), `.lyTop` above the
