@@ -183,7 +183,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   in the cards. On a TV, Up or Down on the remote puts the yellow ring on the credit and OK opens the photo's page (in a
   new tab where the TV's browser has tabs; Back comes back where it doesn't); opening it, or Up or Down again, takes the
   ring away. The page doesn't turn while the credit has the ring. The runway screen of Take-off and Landing and Sky view's small card
-  have no room for the credit, so they show the next photo.
+  have no room for the credit, so they show the next photo. A photo that doesn't load (1.127.0.1), whichever one, gives
+  way to the next in the same order, and the last gives way to an empty frame without a credit: no broken picture.
 - **Special aircraft**: A380s, 747s, Belugas, Antonovs, military and government aircraft, helicopters and
   emergency squawks (7500, 7600, 7700) get their own remark. The status flap alternates between the plane's
   status and that remark.

@@ -127,7 +127,7 @@ test/index.html: PHOTO BEZEL photoStyle engravedSrc photoShown photoPaintKey pho
     $("photoLink").addEventListener("click") MODEL_PAGES MODEL_OTHER modelPics modelAsk modelLooks MODEL_PICS_KEY MODEL_PICS_MS modelBad modelKept modelSaveT modelSave modelForget MODEL_MAKERS MODEL_LIKE
     MODEL_NOT MODEL_FILL isRoman modelFold modelNear numCore modelSplit modelMakers numForms modelClash modelHit
     modelTitles WIKI_API wikiOne wikiPages wikidataPic modelOk modelFits modelPage modelKey modelLook modelWiki modelPic modelAsking
-    +planeLate +planeTok PS_KEEP_MS psPhotos psBad psOk psModel psPhoto planePic picCreditParts picCredit picCreditHtml PIC_BLANK picDone picHtml picFailed +shareImg
+    +planeLate +planeTok PS_KEEP_MS psPhotos psBad PIC_BAD_MS picIsDead picDead psOk psModel psPhoto planePic picCreditParts picCredit picCreditHtml PIC_BLANK picDone picHtml picFailed +shareImg
     +shareCanvas +picCard +planeAgain .photo @screenOnLite @screenOn #photoImg .pLink #photoCr .crBy .crSrc #photoCv
     #photoFrame #photoLink +aboutHtml +SITE_LINKS +siteLinks +viewItemHtml +planeBody +wikiImg +wikiPage +wikiFind
     +renderAircraft +isAc +pageHold +pickPage +document.addEventListener("keydown") +placeCard +typeCard +KEYS
