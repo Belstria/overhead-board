@@ -966,7 +966,7 @@ function lblHtml(rows, open, grow){
   let out = "", day = null, inner = "";
   for (const e of rows) {
     if (e.day !== day) { if (day !== null) out += lblDayLi(day, inner, grow && !out); day = e.day; inner = ""; }
-    inner += tlKey(e) === open ? cardLi(e) : rowHtml(e);
+    inner += open && tlKey(e) === open ? cardLi(e) : rowHtml(e);
   }
   return day === null ? "" : out + lblDayLi(day, inner, grow && !out);
 }
