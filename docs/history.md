@@ -948,6 +948,16 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.126 (to-do #252, Dave's pick: round 3's A, "the strip on paper"; relay unchanged): **The streak's pop-up.** Replaces the streak's tear-off
+  pass. `stkNew(stk, {t, week})` in `gScanPops`, a paper twin (`.gAw.stkNew`, 255 px, 117 high; `overflow:visible`, the plane leaves it on day 7). The week is the
+  relay's, `stkWeek()`: `gme.standby` taken at the scan, because the refresh 2.5 s later can bring the next day before the pop-up's turn; null if `gme.resets` has passed
+  (Sunday's data on a Monday), then at its turn the refreshed one, else `stkWeekBack(n)` (n days back from the phone's weekday). The plane (`RK_PLANE`, `.stkPl`, no
+  pointer events) rolls from the mark before today (a standby's too) or the threshold on day 1. `n === 7` takes off (always a Sunday: the streak restarts on Monday; a
+  Sunday on day 6 stops): trail `.stkTr`, then `nwWord` foil on the letters with one beam. `fsThud` and a 30 ms buzz where it stops or reaches the last mark; none if the
+  pop-up left mid-roll (`stkRun`). Reduced motion: final at once, day 7 in the air. The tear's leftovers went: `onPass` hears of the scan's pass only (so the streak's
+  rip and its burst are gone), `gPassFill`'s `o.body`, `.gAw .days`, `.pF.stk`, its i18n rows. It used to take the ticket design (`gPassFill`, `tixEra`); it is paper in
+  all of them now. `medalFree` became `sheetFree` and every pop-up of the scan's line now uses it: the Streak panel opens over Sky view, and the passport's or card's
+  pop-up would have spent its time under that sheet.
 - 1.125 (to-do #250, Dave's pick A "and the medal swings into the paper frame"; relay unchanged): **The medal's pop-up and
   the medal in Trophies.** `achSpecial` puts a rank into the scan's line (`gLineAdd`), `medalPop` is the twin of `lyNew`/`ppNew`
   (`.gAw.mdNew`, 255 px); `#medalMo` and its CSS are gone. `.mdHang` swings about the band's top edge (`mdSwing`, 2.3 s after

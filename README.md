@@ -539,9 +539,11 @@ The main board has everything below. New features are tried on `/test/` first; o
   doesn't come back for that plane (its gold ★ in Sky view stays). Several planes: one ticket each, up to four on screen,
   **newest on top** with the older ones peeking out under it; more wait their turn with their time stopped, and show
   while their plane is still around. In Sky view the tickets sit at its bottom. **At the scan** the
-  plane's ticket, if it is still up, becomes the scan's ticket (what the scan really gave) and tears; it stays **3 seconds after its stub is off**, and so
-  does the streak's pass. **One thing at a time** (1.124): all a scan brings comes one after the other in the same place: the scan's
-  ticket, the streak's pass, the passport's pop-up, the new card's pop-up. Swipe or tap one away and the next rises; a pop-up
+  plane's ticket, if it is still up, becomes the scan's ticket (what the scan really gave) and tears; it stays **3 seconds after its stub is off**.
+  **The daily streak** (1.126) is a paper pop-up at the day's first scan: a plane on a runway printed on the paper, the week's letters under it. It rolls from
+  the last streak day to today and stops with a thud; a Standby day is a hatched stretch marked SBY, and on **day 7** of a streak it takes off the paper's corner and
+  the letters turn gold. A tap opens the Streak panel. **One thing at a time** (1.124): all a scan brings comes one after the other in the same place: the scan's
+  ticket, the streak's pop-up, the passport's pop-up, the new card's pop-up. Swipe or tap one away and the next rises (a pop-up waits for a panel to close); a pop-up
   stays 6.5 seconds. Other planes' tickets step aside for all of this, their time stopped, and come back after. A swipe past 40% of the width or a flick
   sends a ticket, pop-up or notice away; a shorter one bounces back. From three extras on, a ticket shows them under the first line in two short columns. What's **new** on a ticket (the airline's name, the type, the route's new country) is in **gold foil**, and one beam of light crosses it as the ticket rises. The first plane past a limit still shows a grey pass, "+0 · Common limit reached" (later ones stay
   quiet); a scan brings a prize jingle and a buzz. **Golden tickets** (1.101): now and then (about one plane in 20) a
@@ -727,8 +729,7 @@ country still to stamp** face down after your stamps, nearest first; regions wit
 - **Sounds** (1.17): the Settings controls play short recordings of the real things: a rotary switch, a rocker
   switch, a thumbwheel and a push button (1.97.2: the big push buttons, the rail and the bottom bar keep their thock; small
   buttons, chips and × have a crisp click, and opening a card, a row or a tab a light tick; since 1.97.4 the Logbook's Saved places button, the Sky view buttons and the title's Overhead / Airport switch
-  have the crisp click too; 1.97.8: a scan's ticket tears with a recorded paper rip, and the daily streak's ticket tears
-  off after it, the fireworks bursting from the first tear); the flaps keep their synthesised clack (credited in About; see
+  have the crisp click too; 1.97.8: a scan's ticket tears with a recorded paper rip, the fireworks bursting from the tear); the flaps keep their synthesised clack (credited in About; see
   [tools/sounds/](tools/sounds/README.md)). (The Sounds switch for the older synthesised ones was removed in 1.33.)
 - **Realistic look** (Settings → Display, on by default): flaps printed on two cards, a fine grain on the plastic,
   light from above, a turning flap catching the light, glass over the board, brushed metal plates and metal knob caps.

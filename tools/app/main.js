@@ -6431,7 +6431,7 @@ function gAwTap(el, go){
 }
 /* 1.124 (to-do #246, Dave's pick 1): one thing at a time. All that one scan brings stands in a line: its ticket, the
    streak's pass, the passport's pop-up, the card's pop-up. One is on screen; the next rises when it has left (by time, tap,
-   swipe, or something else removing it), GL_GAP later. A torn pass stays RIP_AFTER once its stub is off, a pop-up POP_MS. While the line runs, other planes' tickets step aside with their clocks stopped (gTixAside, gTixBack). A show()
+   swipe, or something else removing it), GL_GAP later. The scan's torn pass stays RIP_AFTER once its stub is off, a pop-up POP_MS. While the line runs, other planes' tickets step aside with their clocks stopped (gTixAside, gTixBack). A show()
    returns its element or null (or a promise of it); no element, or an error, and the next one comes. */
 const GL_GAP = 300, GL_STUCK = 90000, GL_TIX = 4;
 const gLine = {q: [], el: null, pop: false, busy: false, t: 0, gapTo: 0, at: 0};
@@ -6485,7 +6485,7 @@ function gPassFill(el, o){
   const two = !!o.lines && o.lines.length > 3;    // 1.124: from three extras on, under the first line in two short columns
   const nx = o.gold ? ` data-nx="${escH(T("(no ×2)"))}"` : "", era = o.gold ? "" : o.era != null ? o.era : tixEra();
   el.innerHTML = `<div class="pF ${o.kind || "uncommon"}${o.gold ? " gold" : ""}${era ? " e-" + era : ""}"><div class="main"><div class="band"><span>${escH(o.band)}</span><span>${escH(o.bandR || "")}</span></div>` +
-    tixEraHtml(era, o) + (o.body || "") + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b>${o.who[2] ? `<span class="fw">${o.who[2]}</span>` : `<span>${escH(o.who[1] || "")}</span>`}</div>` : "") + (o.route || "") +
+    tixEraHtml(era, o) + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b>${o.who[2] ? `<span class="fw">${o.who[2]}</span>` : `<span>${escH(o.who[1] || "")}</span>`}</div>` : "") + (o.route || "") +
     (o.lines && o.lines.length ? `<div class="lns${two ? " two" : ""}">${o.lines.map(([l, n, x, sh], i) => `<div class="${x}"><span${String(x).split(" ")[0] === "x" && !two ? nx : ""}>${escH(two && i && sh || l)}</span><b>${gPlus0(n)}</b></div>`).join("")}</div>` : "") +
     (o.note ? `<div class="nt">${escH(o.note)}</div>` : "") +
     (o.ly ? `<div class="lyFF ly${o.ly.t}"><b>${escH(o.ly.code)}</b><i>·</i><em>${escH(T(LY_NAME[o.ly.t]))}</em></div>` : "") + (o.sky ? `<button type="button" class="scn">${SKY_ICO}<span>${escH(T("Scan in Sky view"))}</span><i>›</i></button>` : "") +
@@ -6630,8 +6630,8 @@ function gAwards(list, quiet){
   }
 }
 // Sky view's scan: all it brings stands in the line (gLine): the scan's pass (the top-up and the extras), the streak's at the
-// day's first scan, the passport's pop-up, the card's pop-up. The data changes now; each one shows at its turn, and
-// onPass(el, i) then hears of the passes that tear their stub off (i: 0 the scan's, 1 the streak's).
+// day's first scan (1.126: a pop-up, stkNew), the passport's pop-up, the card's pop-up. The data changes now; each one shows at
+// its turn, and onPass(el) then hears of the scan's pass, the one that tears its stub off. A pop-up waits for a sheet to close.
 // 1.98: the plane's ticket, if it is on screen or stepped aside, becomes the scan's pass.
 function gScanPops(r, onPass){
   const f = fromRelay(r), lines = r.lines || [{k: "scan", p: r.bonus, tier: r.tier, full: r.full}];
@@ -6654,20 +6654,99 @@ function gScanPops(r, onPass){
       if (tix !== b.lastChild) b.appendChild(tix);
       pass = gPassFill(tix, o); gAwFoil(pass); gTixStack();
     } else pass = gPop(o);
-    if (onPass) onPass(pass, 0);
+    if (onPass) onPass(pass);
     return pass;
   }, false, String(r.hex));
-  if (stk) gLineAdd(() => {
-    const wd = (new Date().getDay() + 6) % 7, R = gRules(), per = (R && R.streak) || stk.p / stk.n;
-    const fmt = new Intl.DateTimeFormat(LANG, {weekday: "narrow"});
-    const days = Array.from({length: 7}, (_, i) => `<i class="${i === wd ? "now" : i < wd && i > wd - stk.n ? "on" : ""}">${escH(fmt.format(new Date(2026, 9, 26 + i, 12)))}</i>`).join("");
-    const pass = gPop({kind: "stk", band: T("DAILY STREAK"), bandR: T("DAY {n} THIS WEEK", {n: stk.n}), body: `<div class="days">${days}</div>`, stub: T("STREAK"), p: stk.p, rip: true,
-      note: wd < 6 ? T("Tomorrow's scan +{p}", {p: nf.format(per * (stk.n + 1))}) : T("Restarts {d} {h}", {d: sbyDay(0, "short"), h: gme && gme.resets ? hhmm(new Date(gme.resets)) : "00:00"})});
-    if (onPass) onPass(pass, 1);
-    return pass;
-  });
-  if (newCc) gLineAdd(() => ppNew(r), true);
-  if (newCard) gLineAdd(() => lyNew(r, cardN), true);
+  // The week as it stood at the scan: the refresh after it can bring a new day (past midnight) before this one's turn.
+  const wk = stk && stkWeek();
+  if (stk) gLineAdd(() => sheetFree().then(() => stkNew(stk, wk || stkWeek() || stkWeekBack(stk.n))), true);
+  if (newCc) gLineAdd(() => sheetFree().then(() => ppNew(r)), true);
+  if (newCard) gLineAdd(() => sheetFree().then(() => lyNew(r, cardN)), true);
+}
+/* 1.126 (to-do #252, Dave's pick: round 3's A, "the strip on paper"): the day's first scan brings a paper pop-up, a twin of the
+   card's, the passport's and the medal's (never in a ticket design): the plane on an airstrip printed on the paper, the week's
+   letters under it. It rolls from the last streak day's mark to today's and stops, with a thud and a buzz. Day 7 of the streak
+   (always a Sunday; a streak begun on a Tuesday reaches Sunday on day 6 and stops) doesn't stop: it lifts with a shadow, flies off
+   the paper's corner leaving a dashed trail, and the letters turn to gold foil with one beam. A tap opens the Streak panel, over
+   Sky view. It stands in the line (gLine). Reduced motion: nothing moves; day 7 is the plane in the air, its trail, gold letters. */
+const STK_W = 255, STK_S = 22, STK_LAND_MS = 1250, STK_RUN_MS = 950, STK_FLY_MS = 1700;
+// The relay's week (Monday to Sunday: "s" scanned, "b" a standby, "" neither) with today scanned; null if none, or from before today.
+function stkWeek(){
+  const s = gme && gme.standby;
+  if (!s || !s.week || (gme.resets && Date.now() >= gme.resets)) return null;
+  return {t: s.today, week: s.week.map((c, i) => i === s.today ? "s" : i < s.today ? c : "")};
+}
+// No week from the relay yet: the streak's days back from today, the phone's weekday.
+function stkWeekBack(n){
+  const t = (new Date().getDay() + 6) % 7;
+  return {t, week: Array.from({length: 7}, (_, i) => i <= t && i > t - n ? "s" : "")};
+}
+// Each frame until ms are over; false if the pop-up left first (a swipe, a tap, its time): what comes after it is off.
+const stkRun = (el, ms, fn) => new Promise(res => {
+  const t0 = performance.now();
+  const go = now => {
+    if (!el.isConnected || el.classList.contains("out")) return res(false);
+    const t = Math.min(1, Math.max(0, now - t0) / ms); fn(t);
+    if (t < 1) requestAnimationFrame(go); else res(true);
+  };
+  requestAnimationFrame(go);
+});
+function stkNew(stk, {t, week}){
+  const el = document.createElement("div"), still = lyStill(), full = stk.n === 7, W = STK_W, S = STK_S, slot = (W - 26) / 7, X = i => 22 + slot * (i + .5);
+  el.className = "gAw stkNew"; el.setAttribute("role", "status");
+  const cls = (c, i) => c === "b" ? "sby" : i >= t ? "" : c ? "on" : "miss";
+  el.innerHTML = `<div class="hd"><span>${escH(T("DAILY STREAK"))}</span><b>${escH(T("DAY {n}", {n: nf.format(stk.n)}))}</b></div>` +
+    `<div class="mid"><div class="rw"><i class="keys"></i><i class="cl"></i>${week.map((c, i) => c === "b" ? `<i class="sby" style="left:${X(i) - slot / 2}px;width:${slot}px"></i>` : "").join("")}</div>` +
+    `<div class="ls">${week.map((c, i) => `<span class="${cls(c, i)}" style="left:${X(i)}px">${escH(c === "b" ? T("SBY") : sbyDay(i, "narrow"))}</span>`).join("")}</div></div>` +
+    `<div class="ft"><span>${escH(T("POINTS"))}</span><b>+${nf.format(stk.p)}</b></div>`;
+  gAwsBox().appendChild(el); gTixStack();
+  el.out = () => { if (!el.isConnected || el.classList.contains("out")) return; el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); gTixBack(); }, 350); };
+  gAwTap(el, gSbyOpen);
+  gAwTimer(el, POP_MS);
+  const mid = el.querySelector(".mid"), y0 = el.querySelector(".rw").offsetTop + 13 - S / 2, sp = [...el.querySelectorAll(".ls span")];
+  const svg = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="${RK_PLANE}"/></svg>`, sh = document.createElement("div"), pl = document.createElement("div");
+  sh.className = "stkPl sh"; pl.className = "stkPl pl"; sh.innerHTML = pl.innerHTML = svg;
+  for (const e of [sh, pl]) { e.style.width = e.style.height = S + "px"; mid.appendChild(e); }
+  // Top view, its nose to the right: x its middle, y its top, h its height over the paper (the shadow's offset)
+  const put = (x, y = y0, r = 90, s = 1, h = 0) => {
+    pl.style.transform = `translate(${x - S / 2}px,${y}px) rotate(${r}deg) scale(${s})`;
+    sh.style.transform = `translate(${x - S / 2 + h}px,${y + h * 1.1}px) rotate(${r}deg) scale(${s})`;
+    sh.style.opacity = h ? Math.max(0, 1 - h / 26) : 0;
+  };
+  const trail = () => {
+    const tr = document.createElementNS("http://www.w3.org/2000/svg", "svg"), y = y0 + S / 2;
+    tr.setAttribute("class", "stkTr"); tr.setAttribute("width", W); tr.setAttribute("height", 60); tr.setAttribute("aria-hidden", "true");
+    tr.innerHTML = `<path d="M${X(t)} ${y}Q${X(t) + 16} ${y - 2} ${W} ${y0 - 24}"/>`;
+    mid.insertBefore(tr, sh);
+    return tr;
+  };
+  const foil = () => {
+    sp.forEach((s, i) => { s.innerHTML = nwWord(s.textContent); s.querySelectorAll("u").forEach(u => u.style.setProperty("--t", i * 70 + "ms")); });
+    el.classList.add("beam");
+  };
+  const land = () => { sp[t].classList.add("now"); fsThud(); try { navigator.vibrate && navigator.vibrate(30); } catch {} };
+  const from = stk.n > 1 && t > 0 ? X(t - 1) : 14, to = X(t);     // the last streak day's mark; day 1: the threshold
+  if (still) {
+    if (full) { trail(); put(to + 8, y0 - 8, 74, 1.25, 12); foil(); } else put(to);
+    land();
+    return el;
+  }
+  put(from);
+  (async () => {
+    await new Promise(res => setTimeout(res, 550));
+    const inOut = u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+    if (!await stkRun(el, full ? STK_RUN_MS : STK_LAND_MS, u => put(from + (to - from) * (full ? u * u : inOut(u))))) return;
+    land();
+    if (!full) return;
+    const tr = trail(), v = 2 * (to - from) / (STK_RUN_MS / 1000);   // on at the speed it reached, px a second
+    if (!await stkRun(el, STK_FLY_MS, u => {
+      const e = u * u, x = to + v * u * 1.3 + 150 * e;
+      tr.style.clipPath = `inset(-40px ${Math.max(0, W - x)}px 0 0)`;
+      put(x, y0 - 190 * e, 90 - 34 * Math.min(1, u * 1.6), 1 + 1.6 * e, 26 * Math.min(1, u * 2));
+    })) return;
+    pl.hidden = sh.hidden = true; tr.style.clipPath = "none"; foil();
+  })();
+  return el;
 }
 // A little shower of coins when points land (with the button sounds on).
 function gCoins(){
@@ -7122,7 +7201,7 @@ const achUnlock = list => list.some(a => /^tr:/.test(a.k)) && unlockSound();
    board, keep their card: achNext asks achSpecial first (dry: only whether it is a medal). */
 const medalSound = () => { unlockSound(); try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch {} };   // the medal's sound and buzz, as it rises
 // It waits for a sheet to close (one opened by a tap on the medal before it, say): the pop-ups rise under a sheet.
-const medalFree = () => new Promise(res => { const go = () => cardOpenNow() ? setTimeout(go, 300) : res(); go(); });
+const sheetFree = () => new Promise(res => { const go = () => cardOpenNow() ? setTimeout(go, 300) : res(); go(); });
 function medalPop(a, id, tr, L){
   const el = document.createElement("div"), i = L[2].findIndex(t => t[0] === id);
   el.className = "gAw mdNew"; el.setAttribute("role", "status");
@@ -7139,7 +7218,7 @@ function medalPop(a, id, tr, L){
 function achSpecial(a, dry){
   const id = a && /^tr:/.test(a.k) ? a.k.slice(3) : "", tr = id ? TROPHY_TIER.get(id) : null, L = tr && TROPHY_LADDERS.find(l => l[0] === tr.key);
   if (!L || dry) return !!L;
-  gLineAdd(() => medalFree().then(() => medalPop(a, id, tr, L)), true);
+  gLineAdd(() => sheetFree().then(() => medalPop(a, id, tr, L)), true);
   return true;
 }
 // The nudge: when a trophy's next rank is close (two airlines to go, say), a notice from the right, once for each rank.
@@ -7197,23 +7276,23 @@ async function gLockOn(hex){
     if (r && r.why === "closer") { $("arHint").hidden = false; $("arHint").textContent = T("Too far to scan: planes can be scanned within {k} km.", {k: r.scanKm || gScanKm()}); }
     return;
   }
-  // 1.97.8: each stub tears off (CSS .rip, 1.97.1.1) with the paper sound at the moment it comes off (its animationstart), and
+  // 1.97.8: the stub tears off (CSS .rip, 1.97.1.1) with the paper sound at the moment it comes off (its animationstart), and
   // the burst starts at its tear line. With reduced motion there is no tear: the scan's burst stays where it was, in the ring,
-  // at once, and the sounds come on the same count. 1.124: the count starts when each pass shows, at its turn in the line.
+  // at once, and the sound comes on the same count. 1.124: the count starts when the pass shows, at its turn in the line.
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
   // 1.101: a golden ticket's stub tears with its own sound (gGold) and throws gold glitter (none with reduced motion).
-  const gold = !!r.gold, rip = i => gold && !i ? gGold : gRip;
+  const gold = !!r.gold, rip = gold ? gGold : gRip;
   if (still && !gold) gBurst();
-  gScanPops({hex, callsign: String(ac.flight || "").trim(), reg: ac.r || "", typeCode: ac.t || "", ...r}, (pass, i) => {
+  gScanPops({hex, callsign: String(ac.flight || "").trim(), reg: ac.r || "", typeCode: ac.t || "", ...r}, pass => {
     const stub = pass && pass.querySelector(".stub");
-    if (!stub || still) { setTimeout(rip(i), 1050); return; }
+    if (!stub || still) { setTimeout(rip, 1050); return; }
     let torn = false;
     const tear = () => {
       if (torn) return;
-      torn = true; rip(i)();
+      torn = true; rip();
       if (!stub.isConnected) return;
       const a = stub.getBoundingClientRect(), v = $("arView").getBoundingClientRect();
-      gBurst(a.left - v.left, a.top - v.top + a.height / 2, gold && !i);
+      gBurst(a.left - v.left, a.top - v.top + a.height / 2, gold);
     };
     stub.addEventListener("animationstart", tear, {once: true});
     setTimeout(tear, 1500);                                        // no animationstart (the page hidden): the sound at least

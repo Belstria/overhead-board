@@ -1417,11 +1417,11 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .gAw .ppRt i{height:2px;background:repeating-linear-gradient(90deg,#999 0 4px,transparent 4px 7px);position:relative}
 .gAw .ppRt i::after{content:"✈";position:absolute;left:50%;top:-9px;transform:translateX(-50%);font-style:normal;font-size:var(--fs-m);color:#444;background:#efe9da;padding:0 3px}
 /* a new country: the card over the ticket; the stamp lands (fsLand), the country inks in by itself (1.113: no more finger) */
-.gAw.ppNew,.gAw.lyNew,.gAw.mdNew{width:255px;border-radius:14px;overflow:hidden;background:#f3eee2;box-shadow:0 10px 24px rgba(0,0,0,.5)}
-.ppNew .hd,.lyNew .hd,.mdNew .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;color:#7a2416}
-.ppNew .hd b,.lyNew .hd b,.mdNew .hd b{font-size:var(--fs-m);letter-spacing:.04em;color:#111}
+.gAw.ppNew,.gAw.lyNew,.gAw.mdNew,.gAw.stkNew{width:255px;border-radius:14px;overflow:hidden;background:#f3eee2;box-shadow:0 10px 24px rgba(0,0,0,.5)}
+.ppNew .hd,.lyNew .hd,.mdNew .hd,.stkNew .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;color:#7a2416}
+.ppNew .hd b,.lyNew .hd b,.mdNew .hd b,.stkNew .hd b{font-size:var(--fs-m);letter-spacing:.04em;color:#111}
 .ppNew .ppMap{aspect-ratio:255/128;border-radius:0;box-shadow:none;cursor:pointer}
-.ppNew .ft,.lyNew .ft,.mdNew .ft{padding:9px 12px 11px;font:600 var(--fs-xs)/1.35 var(--f-board);color:#4a4436}
+.ppNew .ft,.lyNew .ft,.mdNew .ft,.stkNew .ft{padding:9px 12px 11px;font:600 var(--fs-xs)/1.35 var(--f-board);color:#4a4436}
 /* 1.124 (to-do #246): the new card's pop-up. The card's insides are placed in px for its usual size: it is drawn at 262 px and scaled down */
 .lyNew .mid{display:flex;justify-content:center;padding:10px 0;background:linear-gradient(#efe9da,#e6dfcd);box-shadow:inset 0 1px 0 rgba(0,0,0,.06),inset 0 -1px 0 rgba(0,0,0,.06)}
 .lyNewBox{width:196.5px;height:124px}
@@ -1442,6 +1442,24 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 @keyframes mdSwing{0%{transform:translateY(-135px) rotate(-22deg);animation-timing-function:cubic-bezier(.3,.2,.5,1)}14%{transform:translateY(0) rotate(17deg)}26.3%{transform:translateY(0) rotate(-11deg)}38.6%{transform:translateY(0) rotate(7deg)}50.9%{transform:translateY(0) rotate(-4.4deg)}63.2%{transform:translateY(0) rotate(2.6deg)}75.5%{transform:translateY(0) rotate(-1.4deg)}87.8%{transform:translateY(0) rotate(.6deg)}100%{transform:translateY(0) rotate(0)}}
 @keyframes mdBeam{0%{transform:translateX(-62%);opacity:1}100%{transform:translateX(62%);opacity:1}}
 @media (prefers-reduced-motion:reduce){.mdHang,.mdHang .mdFace::after{animation:none}}
+/* 1.126 (to-do #252): the streak's pop-up: an airstrip in the paper's own ink, the week's letters under it. On day 7 the plane leaves the paper, so no overflow:hidden */
+.gAw.stkNew{overflow:visible}
+.stkNew .mid{position:relative;padding:5px 0 3px;background:linear-gradient(#efe9da,#e6dfcd);box-shadow:inset 0 1px 0 rgba(0,0,0,.06),inset 0 -1px 0 rgba(0,0,0,.06)}
+.stkNew .rw{position:relative;height:25px;border-top:1px solid #6f6753;border-bottom:1px solid #6f6753;background:#ece5d3}
+.stkNew .rw i{position:absolute;display:block}
+.stkNew .rw .keys{left:6px;top:3px;bottom:3px;width:10px;background:repeating-linear-gradient(180deg,#8d8675 0 2px,transparent 2px 4px)}
+.stkNew .rw .cl{left:22px;right:0;top:11.5px;height:1.5px;background:repeating-linear-gradient(90deg,#8d8675 0 6px,transparent 6px 11px)}
+.stkNew .rw .sby{top:0;bottom:0;background:repeating-linear-gradient(45deg,rgba(163,116,10,.55) 0 2px,transparent 2px 5px)}
+.stkNew .ls{position:relative;height:14px;margin-top:4px}
+.stkNew .ls span{position:absolute;top:0;width:30px;margin-left:-15px;text-align:center;font:700 var(--fs-tag)/14px var(--f-board);color:#b3ab97}
+.stkNew .ls span.miss{color:#cdc6b4}.stkNew .ls span.on{color:#222}.stkNew .ls span.now{color:#7a2416}.stkNew .ls span.sby{letter-spacing:.02em;color:#a3740a}
+.stkPl{position:absolute;left:0;top:0;pointer-events:none;will-change:transform}
+.stkPl svg{display:block;width:100%;height:100%}
+.stkPl.pl{color:#2b2823}.stkPl.sh{color:rgba(60,50,30,.28)}
+.stkTr{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+.stkTr path{fill:none;stroke:#8d8675;stroke-width:1.5;stroke-dasharray:5 4}
+.stkNew .ft{display:flex;justify-content:space-between;align-items:baseline;font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;color:#7a2416;padding:7px 12px 8px}
+.stkNew .ft b{font:700 var(--fs-l)/1 var(--f-board);letter-spacing:.02em;color:#111}
 .pCard.hit{animation:ppCardHit 1.4s ease-out}
 @keyframes ppCardHit{0%,40%{box-shadow:0 0 0 2px var(--amber)}}
 @media (prefers-reduced-motion:reduce){.pCard.hit{animation:none;box-shadow:0 0 0 2px var(--amber)}}
@@ -1786,11 +1804,6 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
 .gAw .lns.two div:first-child{grid-column:1/-1}
 .gAw .lns.two div:not(:first-child){font-size:var(--fs-xs);white-space:nowrap}
 .gAw .lns.two div.mst{margin:0;padding:0;background:none}
-.gAw .days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:10px 12px 4px}
-.gAw .days i{font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;text-align:center;padding:6px 0;border:1.5px dashed #c9c2b2;border-radius:6px;color:#9a958a}
-.gAw .days i.on{border:1.5px solid #e0aa1f;color:#a3740a;background:rgba(240,180,41,.12)}
-.gAw .days i.now{background:#e0aa1f;color:#17140e;border-color:#e0aa1f;transform:rotate(-6deg)}
-.gAw .pF.stk{--t1:#e0aa1f;--t2:#f6d27a;--ti:#17140e}
 .gAw .pF.no{--t1:#8b8f99;--t2:#b9bcc4;--ti:#17140e}
 .gAw .pF .stub b{font:700 var(--fs-3xl)/1 var(--f-board)}
 .gAw .nt{padding:0 12px 10px;font:600 var(--fs-xs)/1.35 var(--f-board);color:#777}
@@ -1834,7 +1847,7 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
 .gAw .pF.e-propage .band{filter:saturate(.72) sepia(.12);letter-spacing:.2em}
 .gAw .pF.e-propage .ttl{display:flex;justify-content:space-between;gap:8px;padding:6px 12px 0 14px;font:700 var(--fs-tag)/1 var(--f-era);letter-spacing:.14em;color:#6b5a3a;text-transform:uppercase;white-space:nowrap}
 .gAw .pF.e-propage .ttl span:last-child{font-family:var(--f-board);letter-spacing:.1em;color:#b0302a;opacity:.8}
-.gAw .pF.e-propage .who,.gAw .pF.e-propage .lns,.gAw .pF.e-propage .nt,.gAw .pF.e-propage .days{padding-left:14px}
+.gAw .pF.e-propage .who,.gAw .pF.e-propage .lns,.gAw .pF.e-propage .nt{padding-left:14px}
 .gAw .pF.e-propage .who b{font:700 var(--fs-xl)/1 var(--f-era);color:#2a1f14}
 .gAw .pF.e-propage .who span,.gAw .pF.e-propage .nt{color:#7a6a4e}
 .gAw .pF.e-propage .lns div,.gAw .pF.e-propage .lns div b{color:#8a2b20}
