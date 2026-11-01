@@ -44,7 +44,7 @@ itself (`radarMapBuild`, `mvtRead`; no text, no key); trophies are mostly tiers 
 progress from `trophyCounts`). Unlockable styles (1.59): `STYLES`, `stylesCard()` (◀ ▶ rows, 1.61; in the app since 1.110 the
 gallery page `stylesPage()`), flap finishes in `tile()`, the app's ticket designs (1.110, `ticket`: medals) in `gPassFill`;
 colours and finishes only with the Classic board (`classicLook()`); badge icons `app/icon-*-<badge>.png` by `tools/app/make_icons.py`.
-Realistic look is `S.real`/`REAL()`. The game (1.72, relay 59): only "live" sightings within `GAME_KM` (15 km) score, scans only within `SCAN_KM` (10 km, relay 82), kept in
+Realistic look is `S.real`/`REAL()`. The game (1.72, relay 59): only "live" sightings within `GAME_KM` (15 km) score, scans only within `SCAN_KM` (15 km since relay 104 / 1.126.1, the same as `GAME_KM`; 10 km from relay 82), kept in
 the logbook's own `game3` part (`game_note`, `game_lockon` (the scan), `game_awards`, `level_of`, `game_level` (relay 96: never below the level kept at the move, `game_ranks`), `league_json`); the app's score
 strip, Game page, pop-ups and Sky view scan are `gStrip*`/`renderGame`/`gAwards`/`gPop`/`gLockOn` in main.js, the scan tickets `gTixSync` (from `/game/me`'s `scan` list, `game_scannable`, 1.98; golden ones `game_gold`, relay 84, its salt in `data/gold.key`); the rules come from the relay (`game_rules`, 1.96); the
 board's League page is `renderLeague`. Styles unlock by level (`{lvl: n}`), First Class only for the champion. Fire TV and LG (`WEAK_TV`) draw at 1080p, 30 fps, shorter runs (`LITE()`); the

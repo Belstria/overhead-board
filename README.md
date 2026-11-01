@@ -114,7 +114,7 @@ py serve.py --fr24-key YOUR_KEY --save
   they had flown over. While a screen of the owner's profile watches a place more than 30 km from the relay's home,
   the relay also asks Flightradar24's live positions for the planes below 10,000 ft within 20 km, and adds the ones
   the free sources don't have: on the board, the radar, in Sky view and in Spotted today, with their type and
-  registration looked up first. It asks every 30 seconds, every 15 while such a plane is within 10 km (the scan's circle), and every
+  registration looked up first. It asks every 30 seconds, every 15 while such a plane is within 15 km (the scan's circle, 10 km before 1.126.1), and every
   5 minutes where ten minutes of answers brought nothing new; only while a screen is looked at (not from the
   background), once for all the profile's screens, never at home or for other profiles. An answer costs 6 credits for
   each plane in it (1 when there is none): a plane passing close costs in the order of 100 credits, a quiet hour with
@@ -508,13 +508,13 @@ The main board has everything below. New features are tried on `/test/` first; o
   then counts). Home and saved places (the TV boards) and push notifications are unchanged.
 - **The game** (1.72, relay 59): only planes spotted **with live location** on a phone score, the first time they
   come within **15 km** since 1.98 (relay 82; 10 km from 1.72.1, 8 km before; the same for everyone, whatever the radius), and
-  only planes that came within **10 km** can be scanned; a board at home doesn't score. Everyone started
+  the same planes can be scanned (since 1.126.1, relay 104; the scan's circle was 10 km before); a board at home doesn't score. Everyone started
   again from zero. **Points since 1.96** (relay 76, to-do #127; earlier points stay as they were): each rarity has
   its full points (common 10, uncommon 30, rare 100, very rare 250, special 500). A plane that comes within 15 km gives
   a fixed amount (**5, 10, 15, 25, 50** since 1.97.4, relay 80, rule 4; a tenth of them, 1, 3, 10, 25, 50, before, and those
   awards stay as they were), once a pass, for up to a **daily limit per rarity** (common 50, uncommon 30,
   rare 15, very rare 5, special 3 planes; the day runs from 00:00); past the limit a plane scores nothing. A **Sky view
-  scan** (a plane held in the ring for 1.5 s that came within 10 km, seen live in the last 2 minutes, once a pass, no limit)
+  scan** (a plane held in the ring for 1.5 s that came within 15 km, seen live in the last 2 minutes, once a pass, no limit)
   gives the plane's **full points on top** since 1.97 (relay 79; a common gives 1 + 10 = 11, one past the limit 0 +
   10; 1.96 topped it up to its full points, and its scans stay as they were). **Only scans** earn the extras: a type new to
   the game +50, a new airline +25 (at its first scan), and the **daily streak**: the day's first scan adds +25 × the
@@ -529,7 +529,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   trophy +100. They count like every point (the day, the week's league, the level), show their +N on the achievement
   card or the medal, and stand in Recent points under the plane that won them ("Bingo line · Top row +50",
   "Trophy · Globetrotter · Bronze +50"). Since 1.98 the **passive points show only at the
-  top** (the chip's +N since 1.115; the score strip's before). A plane that comes **within 10 km** gets a **ticket** sliding up from below (once a plane): the
+  top** (the chip's +N since 1.115; the score strip's before). A plane that comes **within 15 km** gets a **ticket** sliding up from below (once a plane): the
   boarding pass with the plane, what a scan gives now on the left (the plane's full points, +50 for a new type, +25 for a
   new airline: only what is sure), their total on the stub, a line for the daily streak while nothing was scanned today
   ("Your first scan today adds the daily streak: +25"; not in the total) and **Scan in Sky view**: a tap anywhere on the
@@ -569,8 +569,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   plane's points, more in a combo, a close pass ×1.1 or ×1.2, a streak up to ×1.2, and planes 26–50 counted half.)
   Sky view's labels (1.72.1) carry a ★ for the planes
   a scan counts for (since 1.80 in the plane's rarity colour; since 1.96 with what a scan gives: ★ 30; since 1.98 only
-  within 10 km), ✓ and what the scan gave once scanned, a dimmed CLOSER TO SCAN for planes 10–15 km out (they scored
-  their passive points) and a dimmed NO PTS beyond 15 km; a lock-on (1.72.2)
+  within the scan's circle: 10 km, 15 km since 1.126.1), ✓ and what the scan gave once scanned, a dimmed CLOSER TO SCAN for a plane that scored but is
+  too far to scan (kept for circles that differ; it showed for planes 10–15 km out until 1.126) and a dimmed NO PTS beyond 15 km; a lock-on (1.72.2)
   opens a small card with the essentials that slides away by itself when you aim at another plane or away for 3
   seconds; swipe it up (1.72.3) and it grows into the whole card, its picture growing with it; dragged down it shrinks back,
   and further down (or a tap on the sky) it goes. In the phone app (since 1.115) a **chip top right**, where the clock was, shows your points over your level ("9,950 pts" over
@@ -612,7 +612,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   **Try it** (a style opens Styles at its row, anything else the club). With reduced motion nothing moves. Since 1.79 the top is one card (the level; today's points, this week's points with your place
   and the streak as three numbers; since 1.96 **today's limits** as five counters, "18/30 Uncommon", with a note for
   each rarity that reached its limit and when it starts again; the plate's **(i)** opens How points work, a card with all the rules on
-  one screen: each rarity within 15 km and scanned (within 10 km), today against the limits, the extras and the streak's days; since 1.100 bingo and trophies), the league's switch
+  one screen: each rarity within 15 km and scanned, today against the limits, the extras and the streak's days; since 1.100 bingo and trophies), the league's switch
   sits beside its heading, **Your catch** (by rarity) and **Sets** (to complete) replace Collection and Collections,
   and the trophies show the three closest to winning, with a switch to the ones won and the ones left, each with its count (nearest
   first). Since 1.79.2 a trophy with ranks shows its rank (bronze, silver, gold, platinum, diamond) beside its dots, and a

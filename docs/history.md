@@ -948,6 +948,16 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.126.1 (to-do #255, Dave: "make it so planes can be scanned from 15km as well"; relay 104): **One circle for scoring and scanning.** `SCAN_KM`
+  10 → 15 in `relay/serve.py`, so a plane that scores passively (`GAME_KM`, 15 km) can be scanned, has its ticket
+  (`game_scannable`, `/game/me` "scan") and its ★ in Sky view. The app follows the relay (`gScanKm()`); the How points
+  work sheet and the empty Recent points text drop the second distance when the circles are equal (`gScanKm() === gKm()`).
+  Left in place for circles that differ again: `why: "closer"` (hint "Too far to scan"), the dimmed CLOSER TO SCAN, `rec["near"]`.
+  The gap filler's 15 s refresh (`FILL_FAST_S`) now starts for planes it added within 15 km, not 10: more refreshes at 15 s
+  instead of 30 s (up to 2× the requests of that profile while one is near, and a 15 km circle is 2.25× the area of a 10 km
+  one); `fill_for`'s daily share (`FILL_SHARE` 0.8), `fr24_paced` and the monthly budget still stop it. `GAME_RULE`, `GAME3_V`,
+  `GAME_V` unchanged; no totals recounted. `flows.py`: the 12 km plane scans; past 15 km it is not logged ("far"); `closer`
+  is tested with `SCAN_KM` set to 10.
 - 1.126 (to-do #252, Dave's pick: round 3's A, "the strip on paper"; relay unchanged): **The streak's pop-up.** Replaces the streak's tear-off
   pass. `stkNew(stk, {t, week})` in `gScanPops`, a paper twin (`.gAw.stkNew`, 255 px, 117 high; `overflow:visible`, the plane leaves it on day 7). The week is the
   relay's, `stkWeek()`: `gme.standby` taken at the scan, because the refresh 2.5 s later can bring the next day before the pop-up's turn; null if `gme.resets` has passed

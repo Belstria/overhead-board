@@ -6,8 +6,8 @@ are not touched: the test relay runs from a temporary folder.
     py tools/test/run_test_relay.py --quiet    no special planes, so the pages rotate undisturbed
     py tools/test/run_test_relay.py --hover    adds a police helicopter hovering overhead
     py tools/test/run_test_relay.py --far      the landing starts 32 km out (its photo, then the runway radar)
-    py tools/test/run_test_relay.py --ring     two more planes from the south: one comes within 15 km (passive points) and
-                                               then within 10 km (its scan ticket), the other passes 12 km out (1.98)
+    py tools/test/run_test_relay.py --ring     two more planes from the south: one comes within 15 km (passive points and its
+                                               scan ticket) and then within 10 km, the other passes 12 km out (1.98)
     py tools/test/run_test_relay.py --fr24     the relay acts as if it had a Flightradar24 key (served by the fake); David's
                                                screens more than 30 km from the test point (Live location) also get the
                                                gap filler's take-off that only Flightradar24 hears (relay 66)
@@ -58,7 +58,7 @@ def main():
     p.add_argument("--quiet", action="store_true", help="no special planes")
     p.add_argument("--hover", action="store_true", help="add a helicopter hovering overhead")
     p.add_argument("--far", action="store_true", help="the landing starts 32 km out")
-    p.add_argument("--ring", action="store_true", help="a plane coming within 15, then 10 km, and one passing 12 km out")
+    p.add_argument("--ring", action="store_true", help="a plane coming within 15, then 10 km, and one passing 12 km out (both can be scanned)")
     p.add_argument("--fr24", action="store_true", help="pretend the relay has a Flightradar24 key")
     p.add_argument("--gold", nargs="?", const="all", default="", help="golden tickets: all planes in the scan list, or HEX,HEX")
     p.add_argument("--hue", action="store_true", help="a fake Hue Bridge for the admin page's Hue lights")

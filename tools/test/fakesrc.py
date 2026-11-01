@@ -11,8 +11,8 @@ an A380, a rescue helicopter, a military plane, an emergency squawk, a diverted 
 a landing, a take-off and a take-off roll at Vienna airport, a callsign with a wrong route in the database, and one far away and high.
 QUIET=1 leaves out the special planes; HOVER=1 adds a police helicopter hovering overhead; FAR=1 starts the landing 32 km out.
 RING=1 (1.98, the game's two circles) adds two planes from the south: one comes within 15 km after about 30 s (passive
-points) and within 10 km after about 55 s (its scan ticket); the other passes 12 km out from about 65 s on (passive points,
-no scan).
+points and, since 1.126.1, its scan ticket) and within 10 km after about 55 s; the other passes 12 km out from about 65 s on
+(passive points and a scan, too: one circle since 1.126.1).
 SLOW_NAMES=1: OpenStreetMap's place names take 5 s, and the first lookup of each point fails (live location, 1.93.0.1).
 Away from Vienna (more than 30 km) the position source has only a turboprop at 8,000 ft near the place, while
 Flightradar24's live positions also have a take-off the free networks can't hear, passing over the place every 6 minutes
@@ -503,7 +503,7 @@ class H(BaseHTTPRequestHandler):
             ac = [a for a in ac if a.get("flight", "").strip() not in ("UAE127", "OEXEN", "BAF586", "RYR22")]
         if os.environ.get("HOVER"):
             ac.append(plane("44041d", "OEBXB", "EC35", 0.3, 0.4, 90, 25, 1500, 0, r="OE-BXB", category="A7"))  # police helicopter over an incident
-        if os.environ.get("RING"):    # 1.98: the passive circle (15 km) and the scan's (10 km)
+        if os.environ.get("RING"):    # 1.98: the passive circle (15 km) and the scan's (10 km; 15 since 1.126.1)
             ac.append(plane("4400aa", "AUA171", "A20N", 6.0, -22.0, 0, 900, 4000, 0, r="OE-LXA"))   # 15 km at ~33 s, 10 km at ~56 s
             ac.append(plane("4400bb", "AUA173", "E195", 12.0, -26.0, 0, 900, 4500, 0, r="OE-LWB"))  # 15 km at ~68 s, never within 12
         qlat, qlon = (float(x) for x in path.split("/")[2:4])
