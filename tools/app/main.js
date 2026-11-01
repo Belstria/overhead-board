@@ -522,7 +522,7 @@ const altText = ft => typeof ft === "number" ? altNum(ft) + (S.units === "metric
    remark's colour: the time, the flight, the route's codes and the remark, then quietly its airline, type and closest
    pass. A tap opens its card in place (Dave's option 1); the airline, places and type open theirs from the card. A
    plane without a flight number goes by its registration (or its owner); without a route the row says why. */
-const tlKey = e => String(e.id || e.hex || "");
+const tlKey = e => String(e.id || e.hex || (e.sample && e.flight) || "");     // demo rows have neither: their flight number is unique
 const plainCode = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 const noFlightNo = e => { const f = plainCode(e.flight); return !f || f === plainCode(e.reg) || f === plainCode(e.hex); };     // it flies under its registration
 const rowName = e => noFlightNo(e) ? e.reg || e.owner || e.flight || String(e.hex || "").toUpperCase() : e.flight || plainCode(e.callsign);
@@ -594,7 +594,7 @@ function tlCardHtml(e){
 const cardLi = (e, now) => `<li class="fl open" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e, now)}">${tlCardHtml(e)}</li>`;
 // 1.115 (Dave's pick B): the rows one after another, newest first; the quarter-hour and hour headings went (every
 // row has its time).
-const tlHtml = (list, open, now) => list.map(e => tlKey(e) === open ? cardLi(e, now) : rowHtml(e, now)).join("");
+const tlHtml = (list, open, now) => list.map(e => open && tlKey(e) === open ? cardLi(e, now) : rowHtml(e, now)).join("");
 // The empty list: why, on the rail (the newest-first line it will be)
 const tlState = (head, title, text, find) => `<li class="tg"><b>${escH(head)}</b></li><li class="st${find ? " find" : ""}">${title ? `<b>${escH(title)}</b>` : ""}${escH(text)}</li>`;
 const tlFinding = () => tlState(T("Now"), T("Finding where you are …"), T("The planes show once live location has found you."), true);
