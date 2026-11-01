@@ -1750,6 +1750,56 @@ function lyGoTo(icao, scans){
   if (gSub === "cards") { gPlates = null; hgBusy = 0; renderGame(); }
   gGoPlate("lyPlate");
 }
+/* 1.129.3 (to-do #268, Dave's pick A3 of the card sounds, "a bit more clicky, slightly higher, a bit like an iPhone keyboard"): a card
+   passing makes one small tick, almost all click with a trace of friction and, on a Silver, Gold or Platinum card, a thin glint.
+   It plays into sfxOut and replaces the settle click. cpTick(ctx, out, t0, tier) is the sound; lyPass(tier) is the rule. */
+const cpNoiseOf = new WeakMap();
+function cpNoise(ctx){                                          // a quarter second of noise, made once for each context
+  let b = cpNoiseOf.get(ctx);
+  if (!b) {
+    b = ctx.createBuffer(1, Math.floor(ctx.sampleRate * .25), ctx.sampleRate);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    cpNoiseOf.set(ctx, b);
+  }
+  return b;
+}
+function cpHit(ctx, out, t, o){                                 // filtered noise (its filter may glide f0 to f1): a ramp in, an exponential fall, a short ramp to silence
+  const src = ctx.createBufferSource(), fl = ctx.createBiquadFilter(), g = ctx.createGain(), att = o.att || .001, end = t + att + o.dec;
+  src.buffer = cpNoise(ctx);
+  fl.type = "bandpass"; fl.Q.value = o.q;
+  fl.frequency.setValueAtTime(o.f0, t);
+  if (o.f1) fl.frequency.exponentialRampToValueAtTime(o.f1, end);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(o.amp, t + att);
+  g.gain.exponentialRampToValueAtTime(o.amp * .003, end); g.gain.linearRampToValueAtTime(0, end + .004);
+  src.connect(fl).connect(g).connect(out);
+  src.start(t, Math.random() * .2); src.stop(end + .006);
+}
+function cpTone(ctx, out, t, f, dec, amp){                      // one decaying sine partial
+  const o = ctx.createOscillator(), g = ctx.createGain(), end = t + .001 + dec;
+  o.type = "sine"; o.frequency.value = f;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(amp, t + .001);
+  g.gain.exponentialRampToValueAtTime(amp * .003, end); g.gain.linearRampToValueAtTime(0, end + .004);
+  o.connect(g).connect(out); o.start(t); o.stop(end + .006);
+}
+const CP_LEVEL = 1.28;
+function cpTick(ctx, out, t0, tier = 0){                        // each play a hair different: speed ±4%, level ±10%
+  const o = ctx.createGain(), r = .96 + Math.random() * .08;
+  o.gain.value = CP_LEVEL * (.9 + Math.random() * .2); o.connect(out);
+  cpHit(ctx, o, t0, {f0: 3400 * r, q: 1.6, dec: .004, amp: .5});                                      // the tick
+  cpTone(ctx, o, t0, 2600 * r, .009, .17);                                                           // the card's tiny body
+  cpHit(ctx, o, t0 + .001, {f0: 2400 * r, f1: 4300 * r, q: 1.4, att: .003, dec: .011, amp: .16});    // a trace of friction
+  const e = t0 + .013;                                                                               // the edge comes free
+  cpHit(ctx, o, e, {f0: 3200 * r, q: 2.5, dec: .004, amp: .14});
+  if (tier) cpTone(ctx, o, e, 5200 * r, .008 + tier * .003, .003 + tier * .002);
+}
+let lyPassAt = -1;
+function lyPass(tier){                       // a card has passed: at most one sound in LY_FAST ms (the carousel's top speed), the guard is ctlSound.click's
+  if (!ctlReady() || actx.currentTime - lyPassAt < LY_FAST / 1000) return false;
+  lyPassAt = actx.currentTime;
+  cpTick(actx, sfxOut(), lyPassAt + .005, tier);
+  return true;
+}
 const LY_TAU = 320, LY_FAST = 62;
 function lyWire(box){
   const car = box.querySelector(".lyCar");
@@ -1759,6 +1809,7 @@ function lyWire(box){
   car.style.setProperty("--cw", cw + "px");
   const ids = cs.map(c => c.dataset.ly);
   let pos = Math.max(0, ids.indexOf(lyAt)), shown = pos, tm = 0;
+  let heard = pos, heardN = 0;      // 1.129.3: the card last counted as passed, and how many passed; a card counts only 0.6 of a card from it, so a finger on the halfway point stays quiet
   for (const s of car.querySelectorAll(".lyLg")) lyLogo(s);
   const flipped = cs.find(c => c.dataset.ly === lyFlipped);
   if (flipped && +flipped.dataset.i === pos) flipped.classList.add("flip");
@@ -1774,6 +1825,7 @@ function lyWire(box){
       c.style.setProperty("--dim", (Math.min(a, 2.5) * .22).toFixed(2));
     }
     const i = Math.round(Math.max(0, Math.min(n - 1, pos))), c = cs[i], t = +c.dataset.t;
+    if (i !== heard && Math.abs(pos - heard) >= .6) { heard = i; heardN++; lyPass(t); }   // one sound however many cards one step skips; none when the carousel is built (heard starts at its card)
     nm.textContent = lyWritten(c.dataset.ly);
     ix.textContent = n > 1 ? T("Card {i} of {n}", {i: nf.format(i + 1), n: nf.format(n)}) : "";
     dots.forEach((d, j) => d.classList.toggle("on", j === i));
@@ -1802,7 +1854,7 @@ function lyWire(box){
       return;
     }
     car.classList.add("go"); pos = to; lay();
-    if (!quiet) { ctlSound.click(); clearTimeout(tm); tm = setTimeout(shine, 420); }
+    if (!quiet) { clearTimeout(tm); tm = setTimeout(shine, 420); }
   };
   const hold = on => { hgHeld = on; hgBusy = Date.now(); };    // the club isn't drawn again under the thumb
   // 1.119.1 (to-do #203): a flick glides through the cards, drawn frame by frame so each one it passes shows (at most one
@@ -1816,7 +1868,7 @@ function lyWire(box){
       pos = from + (to - from) * (1 - (1 - k) ** 3);
       lay();
       if (k < 1) raf = requestAnimationFrame(frame);
-      else { raf = 0; hold(false); ctlSound.click(); shine(); }
+      else { raf = 0; hold(false); shine(); }
     };
     raf = requestAnimationFrame(frame);
   };
@@ -1888,9 +1940,10 @@ function lyWire(box){
       bub.classList.add("on");
     };
     let on = false, last = -1;
-    bar.onpointerdown = e => { on = true; bar.setPointerCapture(e.pointerId); hold(true); const P = pick(e); last = P.i; go(P.i, true); show(P, e); };
+    let n0 = 0;                  // 1.129.3: the thumb passes cards with the same sound; its release clicks only if no card passed under this touch
+    bar.onpointerdown = e => { on = true; n0 = heardN; bar.setPointerCapture(e.pointerId); hold(true); const P = pick(e); last = P.i; go(P.i, true); show(P, e); };
     bar.onpointermove = e => { if (!on) return; const P = pick(e); show(P, e); if (P.i !== last) { last = P.i; go(P.i, true); } };
-    bar.onpointerup = bar.onpointercancel = () => { if (!on) return; on = false; hold(false); bub.classList.remove("on"); ctlSound.click(); shine(); };
+    bar.onpointerup = bar.onpointercancel = () => { if (!on) return; on = false; hold(false); bub.classList.remove("on"); if (heardN === n0) ctlSound.click(); shine(); };
   }
   lay();
 }

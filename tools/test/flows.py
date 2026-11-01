@@ -3736,6 +3736,7 @@ def browser_checks(browser):
     demo_rows_checks(browser, bad)
     sky_sizes_checks(browser, bad)
     styles_cell_checks(browser, bad)
+    card_sound_checks(browser, bad)
     sky_row_checks(browser, bad)
     for b_ in bad:
         print("flow:", b_)
@@ -3990,6 +3991,159 @@ def styles_cell_checks(browser, bad):
         pg.wait_for_timeout(1500)
         ctx.close()
     print("the Styles cell holds" if not [b for b in bad if b.startswith("styles cell")] else "styles cell check(s) failed")
+
+
+def card_sound_checks(browser, bad):
+    """To-do #268: a Frequent flyer card passing ticks (cpTick, stubbed here to count): a swipe to the next card once and no
+    settle click; a finger resting at the halfway point nothing more; a flick at most one in 62 ms and no click when it settles;
+    the flip, the By tier / A–Z switch and the index's release (when no card passed) keep their clicks; building the carousel,
+    or arriving by lyGoTo, is silent; sounds off or night plays none."""
+    def hooked(route):
+        r = route.fetch()
+        t = r.text()
+        i = t.rindex("})();")
+        route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+    ctx = browser.new_context(viewport={"width": 390, "height": 844})
+    ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+    ctx.route("**/app/", hooked)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: bad.append(f"card sound page error: {e}"))
+    pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
+    pg.goto(BASE + "/app/")
+    pg.wait_for_function("!!window.__e", timeout=20000)
+    pg.wait_for_timeout(4000)
+    e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
+    e("nightOn = false; S.sound = true; S.chimes = true; audioInit(); 1")
+    e("{ const W = {}; Object.keys(AIRLINES).slice(0, 30).forEach((k, i) => W[k] = [1, 12, 60, 250][i % 4]); const ow = walletHtml; walletHtml = g0 => ow({wallet: W, walletInfo: {}}); } 1")
+    e("window.__P = []; window.__K = 0; window.__N = 0; cpTick = (c, o, t, tier) => window.__P.push([t, tier]); ctlSound.click = () => window.__K++; ctlSound.nav = () => window.__N++; 1")
+
+    def reset(sort="tier"):
+        e(f"nightOn = false; S.sound = true; S.chimes = true; lySort = '{sort}'; lyAt = ''; lyFlipped = ''; showTab('game'); gSub = 'cards'; gPlates = null; hgBusy = 0; renderGame(); 1")
+        pg.wait_for_selector(".lyCar", timeout=5000)
+        pg.wait_for_timeout(1200)
+        e("window.__P.length = 0; window.__K = 0; window.__N = 0; 1")
+
+    def got():
+        return e("[window.__P.length, window.__K, window.__N, lyAt]")
+
+    def front():
+        pg.evaluate("document.querySelector('.lyCar').scrollIntoView({block: 'center'})")
+        pg.wait_for_timeout(200)
+        r = pg.evaluate("(() => { const c = document.querySelectorAll('.lyC')[Math.round(0)], b = c.getBoundingClientRect(), k = document.querySelector('.lyCar'); return [b.left + b.width / 2, b.top + b.height / 2, Math.round(Math.min(300, Math.round(k.clientWidth * .8)) * .6)]; })()")
+        return r
+
+    def drag(x0, y, frac, step, waits=40, hold=400, up=True, n=10):
+        pg.mouse.move(x0, y)
+        pg.mouse.down()
+        for k in range(1, n + 1):
+            pg.mouse.move(x0 - frac * step * k / n, y)
+            pg.wait_for_timeout(waits)
+        pg.wait_for_timeout(hold)
+        if up:
+            pg.mouse.up()
+        pg.wait_for_timeout(900)
+
+    reset()
+    if got()[:3] != [0, 0, 0]:
+        bad.append(f"card sound: building the carousel made a sound: {got()}")
+    cx, cy, step = front()
+    drag(cx, cy, .75, step)                       # a swipe to the next card
+    p, k, _, at = got()
+    if p != 1 or k != 0:
+        bad.append(f"card sound: a swipe to the next card played {p} and clicked {k} (one tick, no click wanted)")
+    if p == 1 and e("window.__P[0][1]") != e("+document.querySelectorAll('.lyC')[1].dataset.t"):
+        bad.append("card sound: the tick didn't take the passing card's tier")
+    # a finger resting at the halfway point: after the card has passed, and before any has
+    reset()
+    cx, cy, step = front()
+    pg.mouse.move(cx, cy)
+    pg.mouse.down()
+    for f in (.3, .65, .55, .45, .58, .42, .5, .57, .43, .55):
+        pg.mouse.move(cx - f * step, cy)
+        pg.wait_for_timeout(120)
+    pg.mouse.up()
+    pg.wait_for_timeout(900)
+    if got()[0] != 1 or got()[1] != 0:
+        bad.append(f"card sound: a finger resting at the halfway point (after one pass) gave {got()[:2]}, not [1, 0]")
+    reset()
+    cx, cy, step = front()
+    pg.mouse.move(cx, cy)
+    pg.mouse.down()
+    for f in (.3, .5, .56, .45, .52, .44, .55, .46, .48):
+        pg.mouse.move(cx - f * step, cy)
+        pg.wait_for_timeout(120)
+    pg.mouse.up()
+    pg.wait_for_timeout(900)
+    if got()[:2] != [0, 0]:
+        bad.append(f"card sound: a finger resting at the halfway point, no card passed, gave {got()[:2]}, not [0, 0]")
+    # a flick: some ticks, never two within 62 ms, no click when it settles
+    reset()
+    cx, cy, step = front()
+    pg.mouse.move(cx + 100, cy)
+    pg.mouse.down()
+    for k in range(1, 6):
+        pg.mouse.move(cx + 100 - 46 * k, cy)
+        pg.wait_for_timeout(5)
+    pg.mouse.up()
+    pg.wait_for_timeout(1800)
+    ts = e("window.__P.map(x => x[0])")
+    gaps = [b - a for a, b in zip(ts, ts[1:])]
+    if len(ts) < 2 or e("window.__K") != 0 or (gaps and min(gaps) < .0615):
+        bad.append(f"card sound: a flick played {len(ts)} (gaps {[round(g, 3) for g in gaps]}) and clicked {e('window.__K')}")
+    two = e("[lyPass(0), lyPass(0)]")
+    pg.wait_for_timeout(120)
+    if two != [True, False] or e("lyPass(0)") is not True:
+        bad.append(f"card sound: the 62 ms rule: {two}")
+    # the flip keeps its click
+    reset()
+    cx, cy, step = front()
+    pg.mouse.click(cx, cy)
+    pg.wait_for_timeout(500)
+    if got()[:2] != [0, 1]:
+        bad.append(f"card sound: turning a card over gave {got()[:2]}, not [0 ticks, 1 click]")
+    # the switch By tier / A–Z keeps its click, and the carousel it builds is silent
+    e("document.querySelector('[data-lys=az]').click(); 1")
+    pg.wait_for_timeout(1200)
+    if got()[:3] != [0, 1, 1]:
+        bad.append(f"card sound: the By tier / A–Z switch gave {got()[:3]}, not [0, 1, 1] (the click is the click it had, nav)")
+    # arriving at a card from a pop-up: no rattle through the cards between
+    reset()
+    e("lyGoTo(Object.keys(AIRLINES)[20], 5); 1")
+    pg.wait_for_timeout(1500)
+    if got()[0] != 0:
+        bad.append(f"card sound: lyGoTo played {got()[0]} ticks")
+    # the index's thumb: ticks as it passes cards, no click on release; a touch that passes none clicks on release
+    reset()
+    bar = pg.evaluate("(() => { const b = document.querySelector('.lyIdx').getBoundingClientRect(); return [b.left, b.right, b.top + b.height / 2]; })()")
+    pg.mouse.move(bar[0] + 4, bar[2])
+    pg.mouse.down()
+    for k in range(1, 13):
+        pg.mouse.move(bar[0] + 4 + (bar[1] - bar[0] - 8) * k / 12, bar[2])
+        pg.wait_for_timeout(90)
+    pg.mouse.up()
+    pg.wait_for_timeout(500)
+    if got()[0] < 2 or got()[1] != 0:
+        bad.append(f"card sound: the index's thumb gave {got()[:2]}, wanted ticks and no click")
+    reset()
+    on = pg.evaluate("(() => { const b = document.querySelector('.lyIdx i.on').getBoundingClientRect(); return [b.left + 2, b.top + b.height / 2]; })()")
+    pg.mouse.move(on[0], on[1])
+    pg.mouse.down()
+    pg.wait_for_timeout(100)
+    pg.mouse.up()
+    pg.wait_for_timeout(500)
+    if got()[:2] != [0, 1]:
+        bad.append(f"card sound: a touch on the index that passed no card gave {got()[:2]}, not [0 ticks, 1 click]")
+    # sounds off, and the night
+    for what, js in (("sounds off", "S.sound = false; S.chimes = false"), ("night", "nightOn = true")):
+        reset()
+        e(js + "; 1")
+        cx, cy, step = front()
+        drag(cx, cy, .75, step)
+        if got()[0] != 0:
+            bad.append(f"card sound: with {what} a swipe played {got()[0]} ticks")
+    e("nightOn = false; S.sound = true; S.chimes = true; 1")
+    ctx.close()
+    print("the card sound holds" if not [b for b in bad if b.startswith("card sound")] else "card sound check(s) failed")
 
 
 def demo_rows_checks(browser, bad):

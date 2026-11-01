@@ -651,7 +651,11 @@ The main board has everything below. New features are tried on `/test/` first; o
   colours, its code in holographic ink, your scans with a ring to the next tier and the tier itself (platinum shines in
   rainbow colours); its back the airline's full name and home base, your scans and sightings, since when you're a member,
   your last scan and the types you scanned most. With six cards or more an **index** under them finds one: **By tier** (always all four tiers, those with no cards greyed out with a 0, since 1.124.1) or **A–Z**, slide your thumb
-  along it and the names there show above it while the cards follow. A plane's
+  along it and the names there show above it while the cards follow. **Each card that passes** (under the thumb, in a flick, from the index) makes
+  one small tick, almost all click with a thin glint on Silver, Gold and Platinum (since 1.129.3, with the app's sounds on and not at night); it
+  comes at most once in 62 ms, a finger resting between two cards stays quiet, the card settling makes no click of its own, and
+  opening the tab or arriving from a pop-up makes none. Turning a card over, the name and By tier / A–Z keep their clicks; the
+  index's thumb clicks on release only when no card passed under it. A plane's
   ticket prints your tier with its airline ("OS · GOLD"). Scans from before count; a tier already passed pays nothing. Since 1.107 the club
 has a **passport** under Your hangar: every scanned flight with a known route stamps the countries it flew from and
 to, and a country **new to your passport pays +25** at the scan (its ticket shows the route, "BCN ✈ VIE", the new

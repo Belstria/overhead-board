@@ -525,7 +525,7 @@ changelog: welcome|greeting|opening|first visit
 test/index.html: actx noise lastClack soundForced SOUNDS_JS SND sndLoading sndFile sndFailed soundFile loadSounds
     sample audioInit sfxBus sfxHall sfxOut clack BELL_NOTES airportBell chime fanfare dingAt seatbeltDing aboutTaps
     aboutTap +onMainPage ctlNoise ctlReady ctlBurst ctlRing ctlSound +COCKPIT +DEFAULTS +applySettings
-tools/app/main.js: +onMainPage +gJingle +gCoins +DEFAULTS +applySettings
+tools/app/main.js: +onMainPage +gJingle +gCoins +DEFAULTS +applySettings cpNoiseOf cpNoise cpHit cpTone CP_LEVEL cpTick lyPassAt lyPass
 tools/sounds/README.md: "#"
 tools/sounds/build_sounds.py: main
 docs/architecture.md: "Sounds: recordings in `SOUND_DATA`"
