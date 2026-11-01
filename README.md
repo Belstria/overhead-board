@@ -577,7 +577,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   and further down (or a tap on the sky) it goes. In the phone app (since 1.115) a **chip top right**, where the clock was, shows your points over your level ("9,950 pts" over
   "Level 9"), with **paused** in amber after the points while live location is off; since 1.116.1 it sits straight on the header
   with your rank insignia beside it inside a **ring** that fills towards the next level (the same numbers as the Club's level
-  card; empty for a level kept above your points), dimmed while paused. When points come in it turns over to +N, then the
+  card; empty for a level kept above your points), dimmed while paused. On a narrow phone, or with big numbers, where "Overhead ⇄ Airport" would be cut off beside the chip (1.127.1), the chip drops the word **paused** and shows its points dimmed instead. When points come in it turns over to +N, then the
   total counts up while the ring grows and glows; a level-up fills the ring and flashes it, then the ring starts again
   under the new insignia and the level-up card follows. The card never opens over Sky view, a scan's pop-up, a sheet, the welcome or a tip: it waits until you
   leave Sky view (1.126.1.1) and shows then; a level-up you missed while the app was shut shows the next time you open it (this phone remembers the last level it showed). A tap opens the **Spotters' Club** (while points are paused its level card says
