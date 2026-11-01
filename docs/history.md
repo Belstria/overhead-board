@@ -948,6 +948,12 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.127 (to-do #254, Dave's pick B, amber, and the day sticking as in C; relay 105, below): **The Logbook's list goes back across days.** Strip: Today, period, All time (`LB_PLATES`, the
+  markup's order). Everything is `lbl*` in main.js beside `renderToday`, which hands over to `lblSync` when `lblOn()` (relay 105 or newer, no demo, not on Today); `lblLeave` gives the list back to `tlFill`. 2026 and All time share `lbl.rows` and its pages (`lblKey`: place, filter,
+  a past period's last day, the hidden list); `lblSpan` gives the plate's first and last day, fixed once worked out so midnight takes nothing from under you, and `lblShown` draws what is in the plate's span. **Nothing is redrawn for news**: `lblAppend` adds a page,
+  `lblPatch` a changed row where it stands, and `lblNews` holds a new flight in `lbl.held` until `lblFlush` finds the top of the list in view (or the Top key is pressed). At midnight the headlines' words change in place; away for over 15 minutes across a midnight, the list starts again as rows would be missing.
+  A day is its own `li.lbDay` with an inner `ol.lbDayL` (not `.tline`, so `tlOpen`'s `closest` still finds `#svList`), because a sticky `.lbDayH` holds only within its parent: that is what lets the next day's push it away. The band is the search's metal with the rail drawn on it, `--lbSegH` the search's height.
+  `lblFirst` joins the first page to the rows already on show; `lblWord` names a day (on the key a date with a year drops its weekday); `lblTopFit` sets the key's text column to the widest day this language can name, so the width never changes; the key steps aside while Show more goes by (`lblScrolled`). The filter keys show no counts here (they are today's). Test data: `run_test_relay.py --logbook dense|quiet`.
 - 1.126.1.1 (to-do #256, Dave's pick B "After Sky view"; relay unchanged): **A level-up is never missed.** It opened behind Sky view (z 60 under `#arView`
   70) and closed itself 20 s later, and `gLvFrom` lived in memory only. Now one way in: `gLvCheck(g)` (every `gRefresh`) compares the relay's level with the last one
   this phone showed (`ACH_KEY + ".lv"`, `gLvGet`/`gLvSave`; nothing stored: store and show nothing; lower: store silently; demo: nothing) and sets `gLvFrom` to the stored
@@ -2020,6 +2026,7 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 105 (1.127, to-do #254): **`/logbook/flights`** (`flights_json`), the Logbook's pages, rate-limited per profile like `/logbook/spotted`, from the profile's own spot. Newest first by day, and within a day in the file's order, so the cursor (day~id~ts) can't lose or repeat a row in one second or when one comes in meanwhile; a row that has gone falls back on its time. Reads saved days one at a time, only as far as the page and one row of look-ahead need, at most `FLIGHTS_DAYS` an answer (then `more` with the next day as cursor). `_flight_test` is the app's filters on the relay, or a page of 50 would shrink: Overhead by `over` and `deg`, Special with `SPECIAL_TYPE_CODES` (the boards' table; a flow compares the two), Favourites with the profile's lists and the settings' words in `favs`; `_flight_hidden` the hidden planes. Rows are saved entries plus `day`, nothing added about home; `fr24_overlay` only for today's rows, so older days show what was saved, without Flightradar24's read-time fields unless those were saved.
 - Relay 103 (1.122, to-do #231, Dave): **no more opting out of the league.** `league_json` and `player_json` take every
   profile; settings' `league` stays stored and ignored. A profile without points isn't listed, as before, and one with
   none this week only sees itself (`r["week"] > 0 or me`).

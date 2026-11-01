@@ -837,7 +837,11 @@ Five buttons along the bottom:
 - **Logbook** (1.55): a switch at the top for the views (Logbook and Week & month; Collection and Records moved to the
   Game page in 1.72); the place buttons only under Logbook. Logbook: the totals, most seen model, categories, top aircraft types and airlines, most seen aircraft.
   **Since 1.123 the Logbook is one screen**: the search and the filter icon, three plates you swipe sideways (**Today**, which stays at 0 on a day with no planes yet since 1.124.1,
-  **All time** and the period, such as "2026 in planes"), then the day's planes. A tap on All time's numbers opens their lists
+  the period, such as "2026 in planes", and **All time**; in that order since 1.127), then the planes. Under Today, the day's. **Under the period and All time the list goes back across days
+  (1.127, relay 105)**: the last 50 flights, newest first, then **Show more** at the bottom for the 50 before those, as far as the period's start or the logbook's beginning, with the filters and the chosen place
+  applied. Each day has an amber headline (Today, Yesterday, then the date) that stays under the search until the next day's pushes it away. Once more than 50 are loaded, a **Top** key with the
+  day you're in shows while you scroll past the first screens; it goes back up to the plates. A new flight waits at the top while you're further down, so what you're reading doesn't move.
+  A tap on All time's numbers opens their lists
   (Sightings: **Categories**, Aircraft: **Most seen aircraft**, Types: **Aircraft types**, Airlines: **Airlines**), with since when
   it counts as a footnote; with a saved place on, its name and numbers are that place's. Each list rises from below as
   a panel; a type or an airline in it opens its card, an aircraft searches for it. The period's panel: Week · Month ·

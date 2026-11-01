@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 104
+RELAY_VERSION = 105
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -3483,6 +3483,107 @@ def sightings_json(spot, api=False, over_km=3.0, everything_wanted=False, place=
         everything = fr24_overlay(everything, spot.radius(), over_km)
     return {"version": RELAY_VERSION, "date": day, "rev": rev, "entries": everything if everything_wanted else everything[:400],
             "stats": day_stats(everything, over_km, over_deg)}
+
+
+# Relay 105 (1.127, to-do #254): the app's Logbook list across days: 50 flights at a time, newest first. Reads only the
+# days a page needs, newest first; filters, place and hidden planes are applied here, or a page of 50 would shrink.
+FLIGHTS_PAGE = 50
+FLIGHTS_DAYS = 45           # saved days read for one answer at most: a rare filter carries on from there with the next
+# The boards' SPECIAL_TYPES, the codes only (a flow compares the two): what the app's Special filter calls special
+SPECIAL_TYPE_CODES = frozenset("""A388 B741 B742 B743 B744 B748 B74S B74R A3ST A337 A124 A225 AN22 CONC C17 C5M A400 C130 C30J K35R EUFI F16 F35 P3
+    C295 E390 C160 KC2 A332M MRTT E3TF P8 PC7 PC9 SB39 L159 C27J EC35 EC45 EC30 EC55 EC75 AS50 AS65 A139 A169 H160 B06 B407 R44 R66 S76 NH90 UH1 H60 AS32""".split())
+
+
+def _list_sq(v):
+    return re.sub(r"[\s-]", "", str(v or "").upper())
+
+
+def _flight_test(what, fav_list=(), favs=(), over_km=1.0, over_deg=0.0):
+    """Which sightings the Logbook's filter keeps, by the app's own rules (overEntry, isSpecialPlane, isFav)."""
+    if what == "over":
+        tan = math.tan(math.radians(over_deg)) if 0 < over_deg < 90 else 0
+
+        def over(e):
+            md, alt = e.get("minDist"), e.get("altAtMin")
+            return isinstance(md, (int, float)) and (md <= over_km or bool(tan and isinstance(alt, (int, float)) and alt > 0 and md <= alt * .3048 / 1000 / tan))
+        return over
+    if what == "special":
+        return lambda e: bool(e.get("emergency") or e.get("interesting") or e.get("military") or e.get("watch")
+                              or str(e.get("typeCode") or "").upper() in SPECIAL_TYPE_CODES)
+    if what == "fav":
+        toks = [_list_sq(t) for t in favs] + [_list_sq(i.get("v")) for i in fav_list]
+        toks = [t for t in toks if t]
+        names = lambda e: " " + " ".join(str(e.get(k) or "").upper() for k in ("airlineName", "aircraftType", "desc"))
+
+        def fav(e):
+            cs = str(e.get("callsign") or "")
+            exact = {_list_sq(x) for x in (e.get("airlineIata"), cs[:3], e.get("typeCode"), e.get("reg"), e.get("flightIata"), cs) if x}
+            return any(t in exact or (len(t) >= 3 and " " + t in names(e)) for t in toks)
+        return fav
+    return None
+
+
+def _flight_hidden(hide_list):
+    if not hide_list:
+        return None
+
+    def hidden(e):
+        cs = no_cs(e.get("callsign"))
+        m = re.match(r"^([A-Z]{3})\d", cs)
+        return _list_hit(hide_list, str(e.get("typeCode") or "").upper(), cs, str(e.get("reg") or "").upper(), m.group(1) if m else "")
+    return hidden
+
+
+def flights_json(spot, before="", place=None, stop="", until="", keep=None, hidden=None, api=False, over_km=3.0, n=FLIGHTS_PAGE):
+    """A page of the logbook: `n` sightings of `place` (None: every place), newest first, rows as /sightings?all=1 with
+    their day added. `before` is the answer's `cursor`: day~id~ts. Within a day the order is the day file's (newest
+    first), so two sightings in one second, or one that came in meanwhile, neither repeat nor go missing. `stop` and
+    `until` are the first and the last day that count."""
+    bday, bid, bts = (str(before).split("~") + ["", ""])[:3]
+    if not re.fullmatch(r"\d{4}-\d\d-\d\d", bday):
+        bday, bid, bts = "", "", ""
+    with _data_lock:
+        spot.ensure_day()
+        today, rev = spot.day, spot.rev
+        days = {f.stem[len("sightings-"):] for f in spot.dir.glob("sightings-*.json")} | {today}
+    last = min(x for x in (bday, until, today) if x)
+    out, cursor, more, read = [], "", False, 0
+    for day in sorted((d for d in days if re.fullmatch(r"\d{4}-\d\d-\d\d", d) and stop <= d <= last), reverse=True):
+        if read >= FLIGHTS_DAYS:                       # enough read for one answer: the next carries on with this day
+            cursor, more = day + "~~", True
+            break
+        read += 1
+        with _data_lock:
+            spot.ensure_day()
+            entries = [e for e in spot.day_entries(day) if isinstance(e, dict)]
+        start = 0
+        if day == bday and (bid or bts):
+            at = next((i for i, e in enumerate(entries) if e.get("id") == bid), None)
+            if at is None:                              # that row has gone: go on from its time
+                try:
+                    t = int(bts)
+                except ValueError:
+                    t = 1 << 62
+                at = next((i - 1 for i, e in enumerate(entries) if (e.get("ts") or 0) < t), len(entries) - 1)
+            start = at + 1
+        rows = []
+        for e in entries[start:]:
+            if place is not None and (e.get("place") or "home") not in place:
+                continue
+            if (hidden and hidden(e)) or (keep and not keep(e)):
+                continue
+            if len(out) + len(rows) >= n:              # one more than asked for: there is more
+                more = True
+                break
+            rows.append(e)
+        if api and rows and day == today:              # as Today's rows: an older day keeps what was saved
+            rows = fr24_overlay(rows, spot.radius(), over_km)
+        out += [{**e, "day": day} for e in rows]
+        if more:
+            break
+    if out and not cursor:
+        cursor = f"{out[-1]['day']}~{out[-1].get('id', '')}~{out[-1].get('ts', 0)}"
+    return {"version": RELAY_VERSION, "date": today, "rev": rev, "entries": out, "cursor": cursor or str(before or ""), "more": more}
 
 
 # Relay 61: category words in the logbook search ("military austria", "cargo A330"), the logbook's categories as
@@ -9033,6 +9134,21 @@ class Handler(BaseHTTPRequestHandler):
             if not allow("spotted:" + (self.guest[0] if self.guest else self.client_ip()), 2, 10):
                 return self.reply(429, "text/plain", b"Too many requests")
             return self.reply(200, "application/json", json.dumps(spotted_json(self.spot, part, key)).encode())
+        if path == "/logbook/flights":    # relay 105: the Logbook's list across days, a page at a time
+            if not allow("flights:" + (self.guest[0] if self.guest else self.client_ip()), 2, 10):
+                return self.reply(429, "text/plain", b"Too many requests")
+            q = self.query()
+            arg = lambda k: (q.get(k) or [""])[0]
+            date = lambda k: arg(k) if re.fullmatch(r"\d{4}-\d\d-\d\d", arg(k)) else ""
+            num = lambda k, lo, hi, d: min(hi, max(lo, float(arg(k)))) if re.fullmatch(r"\d+(\.\d+)?", arg(k)) else d
+            mine, over_km = places_of(self.guest[0]) if self.guest else [], num("over", .1, 20.0, 3.0)
+            keys = [place_key(k) for k in (q.get("place") or [])[:6]]
+            place = set().union(*(same_spot(self.spot, mine, k) for k in keys)) if keys and all(keys) else None
+            fav_list, hide_list = lists_of(self.guest[0]) if self.guest else ([], [])
+            keep = _flight_test(arg("filter"), fav_list, re.split(r"[,;\n]+", arg("favs")[:400]), over_km, num("deg", 0.0, 89.0, 0.0))
+            body = flights_json(self.spot, arg("before")[:80], place, date("stop"), date("until"), keep, _flight_hidden(hide_list),
+                                arg("api") == "1" and bool(self.guest and self.guest[1].get("fr24")), over_km)
+            return self.reply(200, "application/json", json.dumps(body).encode())
         if path == "/logbook/category":   # relay 61: one category's top ten (types, aircraft, operators)
             q = self.query()
             cat = (q.get("c") or [""])[0]
