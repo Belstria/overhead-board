@@ -7113,7 +7113,7 @@ function achCheck(g0){
 function achNext(){
   clearTimeout(achTimer);
   if (!achQueue.length) return;
-  if (cardOpenNow()) { achTimer = setTimeout(achNext, 5000); return; }
+  if (cardOpenNow() || (typeof gLvUpOn === "function" && gLvUpOn())) { achTimer = setTimeout(achNext, 5000); return; }   // 1.126.1.1: nor beneath the level-up card
   if (typeof achSpecial === "function") {                 // 1.125: the app's medals, first: into the scan's line, one at a time
     const medals = achQueue.filter(a => achSpecial(a, true)), rest = achQueue.filter(a => !achSpecial(a, true));
     achQueue.length = 0; achQueue.push(...rest);
@@ -7285,7 +7285,7 @@ function tipBand(){
 }
 function tipNext(){
   if (tipCur || !tipQueue.length) return;
-  if (cardOpenNow() || document.hidden) { setTimeout(tipNext, 2000); return; }
+  if (cardOpenNow() || document.hidden || (typeof gLvUpOn === "function" && gLvUpOn())) { setTimeout(tipNext, 2000); return; }   // 1.126.1.1: not beneath the level-up card
   const t = tipQueue.shift();
   const el = typeof t.target === "function" ? t.target() : t.target;
   if (t.target && (!el || !el.getClientRects().length)) return tipNext();     // not on screen now: another time
@@ -7884,6 +7884,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.126.1.1", date: "2026-11-01", notes: [
+    "A level-up won in Sky view shows when you leave it, and one you missed shows the next time you open the app.",
+  ]},
   {v: "1.126.1", date: "2026-11-01", notes: [
     "Planes can now be scanned from up to 15 km.",
   ]},
