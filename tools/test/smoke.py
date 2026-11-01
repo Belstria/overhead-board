@@ -116,7 +116,7 @@ def pages():
             b = p.chromium.launch()
             errors += [f"app saves: {x}" for x in flows.browser_checks(b)]      # 1.64 (flows.py)
             errors += [f"level-up: {x}" for x in flows.levelup_checks(b)]       # 1.126.1.1 (flows.py)
-            errors += [f"sky reads: {x}" for x in flows.sky_read_checks(b)]     # 1.127.0.2 (flows.py)
+            errors += [f"sky reads: {x}" for x in flows.sky_read_checks(b)]     # 1.128.1 (flows.py)
             # relay 42: every screen is signed in; without a cookie the relay shows the private page (checked too)
             ctx = b.new_context()
             pg = ctx.new_page()
