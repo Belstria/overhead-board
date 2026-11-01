@@ -652,7 +652,7 @@ $("recentAll").onclick = () => { ctlSound.nav(); showTab("today"); };
 let shownPhoto = null;
 function renderAircraftInfo(){
   $("acSec").hidden = !feat;
-  nowEmptyNote(); nowPanels(); skyRowRender();
+  nowEmptyNote(); nowPanels(); lookSoon();
   if (!feat) return;
   const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
   // 1.93: Planespotters' photo first (not on the runway screen, which has no room for its credit), its credit a link
@@ -2807,7 +2807,7 @@ document.addEventListener("click", e => { if (e.target && e.target.id === "yShar
 // Where to look (1.28): from the place to the plane on top, its compass direction and how high to look; a dial with
 // north up, or, with the compass (secure pages only; iPhones ask first), turning with the phone so the arrow points
 // at the plane.
-let lookHeading = null, lookOn = false, lookRaf = 0, lookErr = "", lookErrAt = 0;
+let lookHeading = null, lookOn = false, lookRaf = 0;
 let lookWhy = "", lookWhyLogged = "";
 function lookAt(){
   if (!feat || !feat.o || feat.o.ac.lat == null) { lookWhy = feat ? "no position" : ""; return null; }
@@ -2820,46 +2820,110 @@ function lookAt(){
   const up = Math.round(Math.atan2(Math.max(0, h + mv[2] - wx.elev) - km * km * 1e6 / (2 * 6371000) * .87, Math.max(50, km * 1000)) * 180 / Math.PI);
   return {brg, up, km, alt, dir: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(brg / 45) % 8]};
 }
+// 1.128 (to-do #258, Dave's pick A, his changes: no bar, the compass stays, "Scannable in"): the area under the plane's
+// picture answers "can I scan this plane, or how far until I can". One state from what the app knows; the row only
+// shows it. Nothing here moves or animates: a state changes its words and the key's colour, and only when a fact changed.
+let skyMem = {hex: "", k: "", s: null, num: null, numAt: 0, lookAt: 0}, skyFeatAt = 0;
+const skyKm = n => n < 10 ? n.toFixed(1) : String(Math.round(n));
+function skyState(L){
+  if (feat) skyFeatAt = Date.now();
+  const game = gameOk();
+  if (game && !S.live && liveOk()) return {k: "nolive"};
+  if (game && liveWaiting()) return {k: "finding"};
+  if (!feat) return {k: "none"};
+  const o = feat.o, ac = o && o.ac, hex = ac ? ac.hex : "", play = game && S.live && !!gme;
+  if (play && ac && ac.alt_baro === "ground") return {k: "ground", hex};
+  if (play && gScanGx(hex)) return {k: "done", hex, L};
+  if (!L) {
+    if (play && ac && gScanSet().has(hex)) return {k: "in", hex};
+    const far = /^(\d+) km away$/.exec(lookWhy);
+    return far ? {k: "far", hex, km: +far[1]} : {k: lookWhy === "no height" ? "noheight" : "nopos", hex};
+  }
+  if (!play) return {k: "off", hex, L};
+  if (gCanScan(ac, L.km)) return {k: "in", hex, L};
+  // Coming or going, and whether its line crosses the circle, each with some slack: a plane on the edge doesn't flip
+  const R = gScanKm(), prev = skyMem.hex === hex ? skyMem.k : "", v = ac.gs || 0;
+  const coming = prev === "away" ? o.tcpa > 15 : prev === "closing" || prev === "passing" ? o.tcpa > -5 : o.tcpa > 0;
+  if (!coming) return {k: "away", hex, L, num: L.km};
+  return v > 0 && o.cpa <= R + (prev === "closing" ? 1 : 0) ? {k: "closing", hex, L, num: Math.max(.1, L.km - R)} : {k: "passing", hex, L, num: o.cpa};
+}
+// The number shown, steady enough to read: once a second; coming closer it only falls (a new position can put a plane a
+// little back; half a km or more is a real turn); the closest pass changes by more than half a km.
+function skyNum(s, fresh){
+  if (s.num == null) return skyMem.num = null;
+  const m = skyMem, now = Date.now();
+  if (fresh || m.num == null) { m.numAt = now; return m.num = s.num; }
+  if (s.k === "passing") return Math.abs(s.num - m.num) > .5 ? m.num = s.num : m.num;
+  if (now - m.numAt < 1000) return m.num;
+  m.numAt = now;
+  return s.k !== "closing" || s.num < m.num || s.num > m.num + .5 ? m.num = s.num : m.num;
+}
+function skyLookText(L){
+  const on = lookOn && lookHeading != null, d = on ? ((L.brg - lookHeading + 540) % 360) - 180 : 0;
+  return !on ? T("{d} · {e}° up", {d: L.dir, e: L.up}) : Math.abs(d) <= 8 ? T("Ahead · {e}° up", {e: L.up}) : T(d > 0 ? "Right · {e}° up" : "Left · {e}° up", {e: L.up});
+}
+const skyPut = (el, t) => { if (el.textContent !== t) el.textContent = t; };
+const SKY_DIM = ["away", "passing", "none", "ground", "finding", "far", "nopos", "noheight"];
+const SKY_WORDS = {in: ["Scan", "In range"], closing: ["Scannable in", "{n} km"], passing: ["Closest pass", "{n} km"], away: ["Moving away", "{n} km"],
+  done: ["Scan", "✓ Scanned"], none: ["Sky view", "No planes around"], off: ["Look", ""], ground: ["Scan", "On the ground"],
+  nolive: ["Scan needs", "Live location"], finding: ["Live location", "Finding you"], far: ["Too far", "{n} km"],
+  nopos: ["Position", "Not in yet"], noheight: ["Height", "Not in yet"]};
 function drawLook(){
   lookRaf = 0;
   let L = null;
   try { L = lookAt(); } catch (e) { lookWhy = "error: " + (e && e.message || e); }
   // 1.78.1: a plane on top without a direction says why in the connection log (once a plane)
   if (!L && feat && lookWhy && lookWhyLogged !== feat.hex + lookWhy) { lookWhyLogged = feat.hex + lookWhy; dlog(/^error/.test(lookWhy) ? "warn" : "debug", `Where to look: none for ${planeName(feat, feat.o.ac)} (${lookWhy})`); }
-  const box = $("look"), why = !L && feat && feat.o ? lookWhy : "";
-  box.hidden = (!L && !why) || SIDEWAYS.matches;
-  box.classList.toggle("why", !!why);
-  if (box.hidden) return skyRowRender();
-  if (why) return lookWhyDraw(why);
-  // 1.73.1: a heading tape: with the compass the directions slide as the phone turns and the words say which way to
-  // turn; without it the tape is centred on the plane
-  const on = lookOn && lookHeading != null, c = on ? lookHeading : L.brg, d = ((L.brg - c + 540) % 360) - 180;
-  const ad = Math.abs(d), right = d > 0;             // 1.114.6: whole texts, so each has its row (to-do #198 L4)
-  $("lookDir").textContent = !on ? T("LOOK {d} · {e}° UP", {d: L.dir, e: L.up})
-    : ad <= 8 ? T("Straight ahead · {e}° up", {e: L.up})
-    : T(ad < 45 ? (right ? "Turn a little right · {e}° up" : "Turn a little left · {e}° up") : right ? "Turn right · {e}° up" : "Turn left · {e}° up", {e: L.up});
-  $("lookSub").textContent = [L.dir, T("{n} km away · {a}", {n: L.km < 10 ? L.km.toFixed(1) : Math.round(L.km), a: altitudeStr(L.alt).toLowerCase()})].join(" · ") + " · " +
-    (lookErr && Date.now() - lookErrAt < 10000 ? lookErr : on ? T("The gold line is where you face.")
-      : !lookOn && /iPhone|iPad/.test(navigator.userAgent) && window.isSecureContext ? T("Tap the strip to let it turn with your phone.") : T("The plane is in the middle."));
-  drawTape($("lookCv"), c, on, d);
-  $("arBtn").hidden = !arPossible();
-  skyRowRender();
+  const box = $("look");
+  // A moment without a plane between two isn't "no planes"
+  const held = !feat && skyMem.s && skyMem.k !== "none" && Date.now() - skyFeatAt < 3000;
+  const s = held ? skyMem.s : skyState(L), K = s.k, fresh = K !== skyMem.k || s.hex !== skyMem.hex;
+  const num = held ? skyMem.num : skyNum(s, fresh);
+  skyMem.k = K; skyMem.hex = s.hex; skyMem.s = s;
+  const home = feat ? $("bezel") : $("hero");
+  if (box.previousElementSibling !== home) home.after(box);
+  box.hidden = SIDEWAYS.matches || !feat && !arPossible() && K !== "nolive";
+  if (box.hidden) return;
+  box.className = "look sk-" + K + (feat ? "" : " skyRow") + (feat && !L && K !== "ground" && K !== "in" ? " why" : "");
+  const [lab, val] = SKY_WORDS[K];
+  skyPut($("skyL"), T(lab));
+  skyPut($("skyV"), K === "off" ? skyLookText(s.L) : T(val, {n: K === "far" ? s.km : num == null ? "" : skyKm(num)}));
+  $("skyVal").classList.toggle("dim", SKY_DIM.includes(K));
+  const lk = !!s.L && K !== "off";
+  $("skyLk").hidden = !lk;
+  if (lk && (fresh || Date.now() - skyMem.lookAt >= 1000)) { skyMem.lookAt = Date.now(); skyPut($("skyLkV"), skyLookText(s.L)); }
+  const key = $("arBtn");
+  key.hidden = !arPossible() && K !== "nolive";
+  key.classList.toggle("hot", K === "in" || K === "nolive"); key.classList.toggle("off", K === "finding");
+  key.querySelector(".skyIco").style.display = K === "nolive" ? "none" : "";
+  skyPut($("skyKeyT"), T(K === "nolive" ? "Go live" : "Sky view"));
+  // 1.73.1: the heading tape: with the compass the directions slide as the phone turns; without it, centred on the plane
+  const on = lookOn && lookHeading != null, c = on ? lookHeading : L ? L.brg : 0;
+  drawTape($("lookCv"), c, on, L ? ((L.brg - c + 540) % 360) - 180 : null);
 }
-// 1.80 (Dave's to-do 14, his pick A): a plane on top without a direction keeps the card: the big line names it and
-// the reason, dimmed, a sentence under it says what's missing, and the tape greys out.
-function lookWhyDraw(why){
-  const ac = feat.o.ac, info = feat.info || {}, f = info.flightNo || String(ac.flight || "").trim() || ac.r || String(ac.hex || "").toUpperCase();
-  const km = /^(\d+) km away$/.exec(why);
-  const [big, sub] = why === "no position" ? [T("{f} · NO POSITION YET", {f}), T("Its position hasn't come in yet; the arrow comes with the first one.")]
-    : why === "no height" ? [T("{f} · NO HEIGHT YET", {f}), T("It hasn't sent its height, so how high to look can't be worked out.")]
-    : km ? [T("{f} · {n} KM AWAY", {f, n: km[1]}), T("Too far to look for yet: the arrow comes once it's within 80 km.")]
-    : why === "position unclear" ? [T("{f} · POSITION UNCLEAR", {f}), T("Its position doesn't add up; the next one should.")]
-    : [T("{f} · CAN'T WORK IT OUT", {f}), T("Something went wrong working out where it is; the Log has the details.")];
-  $("lookDir").textContent = big; $("lookSub").textContent = sub;
-  drawTape($("lookCv"), lookOn && lookHeading != null ? lookHeading : 0, false, null);
-  $("arBtn").hidden = !arPossible();
-  skyRowRender();
+// Each amber label opens its two lines: what it means, then what you'll see.
+function skyOpen(k){
+  ctlSound.nav();
+  const R = {k: gScanKm()}, look = () => ["Look", T("Which way this plane is from you, and how high to look"),
+    /iPhone|iPad/.test(navigator.userAgent) ? T("Tap the compass to let it turn with your phone") : T("The compass turns with your phone: the gold line is where you face")];
+  const [title, a, b] = {
+    in: () => ["Scan", T("This plane is close enough: hold it in Sky view's ring for a moment to scan it"), T("You'll see its boarding pass and the points")],
+    closing: () => ["Scannable in", T("How much closer this plane has to come: planes can be scanned within {k} km of you", R), T("Once it's there, this row says In range and the key turns amber")],
+    passing: () => ["Closest pass", T("The nearest this plane comes on its present course: scans need {k} km", R), T("If it turns towards you, this row says how far it still has to come")],
+    away: () => ["Moving away", T("This plane is flying away and never came within {k} km, so it can't be scanned", R), T("The row changes when another plane comes up on the board")],
+    done: () => ["Scan", T("You've scanned this plane: a plane scans once a pass"), T("The key turns amber again for the next plane in range")],
+    none: () => ["Sky view", T("No plane is near enough for the board right now"), T("Sky view shows the ones farther off too, up to 60 km.")],
+    off: look, look,
+    ground: () => ["Scan", T("Only planes in the air can be scanned"), T("Once it has taken off, this row says how far it is")],
+    nolive: () => ["Scan needs", T("Scans count from where you are, so the app has to follow your location"), T("Go live, and this row says how far the plane still has to come")],
+    finding: () => ["Live location", T("Your phone is finding where you are"), T("The planes near you show once it has")],
+    far: () => ["Too far", T("This plane is more than 80 km away, too far to look for yet"), T("The direction comes once it's within 80 km")],
+    nopos: () => ["Position", T("This plane's position hasn't come in yet, or doesn't add up"), T("The direction comes with the next good one")],
+    noheight: () => ["Height", T("This plane hasn't sent its height, so how high to look can't be worked out"), T("The direction comes with its first height")]}[k]();
+  plateSheet(T(title), `<p class="sum">${escH(a)}</p><p class="sum">${escH(b)}</p>`);
 }
+$("skyVal").onclick = () => skyOpen(skyMem.k);
+$("skyLk").onclick = () => skyOpen("look");
 // The heading tape (1.73.1): the directions around c, the gold line where you face (bright with the compass), and the
 // plane d degrees off (an arrow at the end when it is off the tape; none when d is null: 1.77, the no-plane card).
 function drawTape(cv, c, on, d){
@@ -2903,8 +2967,8 @@ async function lookStart(quiet){
     if (typeof DeviceOrientationEvent.requestPermission === "function" && await DeviceOrientationEvent.requestPermission() !== "granted") throw 0;
     addEventListener("ontouchstart" in window && "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation", lookHeadingFrom);
     lookOn = true;
-    setTimeout(() => { if (lookHeading == null && !quiet) $("lookSub").textContent = T("The compass isn't available on this device."); }, 2500);
-  } catch { if (!quiet) $("lookSub").textContent = T("The compass isn't available on this device."); }
+    setTimeout(() => { if (lookHeading == null && !quiet) toast(T("The compass isn't available on this device."), {err: true}); }, 2500);
+  } catch { if (!quiet) toast(T("The compass isn't available on this device."), {err: true}); }
   lookSoon();
 }
 setInterval(() => { if (tab === "now" && document.visibilityState === "visible") lookSoon(); }, 1000);
@@ -3218,7 +3282,7 @@ function arOpen(button){
 }
 async function arStart(button){
   button ? ctlSound.click() : ctlSound.nav();      // 1.97.4: the Sky view buttons click like buttons
-  const fail = () => { lookErr = T("Sky view needs the camera and the motion sensors, on the https address."); lookErrAt = Date.now(); lookSoon();
+  const fail = () => { toast(T("Sky view needs the camera and the motion sensors, on the https address."), {err: true});
     dlog("warn", `Sky view: no camera or motion sensors (refused, or ${window.isSecureContext ? "not available" : "not on https"})`); };
   try {
     if (typeof DeviceOrientationEvent.requestPermission === "function" && await DeviceOrientationEvent.requestPermission() !== "granted") return fail();
@@ -3521,9 +3585,9 @@ function arLabel(s, game, sm){
   // 1.96: what a scan gives (the relay's rules); 1.97: the plane's full points, on top of what it scored on its way in
   // 1.98 (relay 82): ★ only for a plane a scan counts for (the relay's list, or within the scan's circle now: 10 km, since 1.126.1 15); one within
   // the passive circle (15 km), now or on its way, scored already: CLOSER TO SCAN
-  const sp = game && sm.get(ac.hex), gx = sp ? sp.gx : null;
-  const near = game && !gx && (gScanSet().has(ac.hex) || d / 1000 <= gScanKm());
-  const closer = game && !gx && !near && (d / 1000 <= gKm() || !!sp && sp.live <= gKm());
+  const sp = game && sm.get(ac.hex), g0 = game ? gScanGx(ac.hex) : null, gx = g0 && g0.hex ? g0 : null;
+  const near = game && !gx && gCanScan(ac, d / 1000);      // 1.128: the same question as the Now tab's row
+  const closer = game && !gx && !near && ac.alt_baro !== "ground" && (d / 1000 <= gKm() || !!sp && sp.live <= gKm());
   // 1.101 (to-do #148): a golden ticket's plane (the relay's list): its ★ shows the doubled points, its label edged in gold
   const gold = near && gGoldSet().has(ac.hex), tier = tierOf(ac, info), pts = gBase(tier) == null ? null : gBase(tier) * (gold ? 2 : 1);
   s.chip = !game ? "" : gx ? "✓ +" + nf.format((gx.lock || 0) + (gx.gs || 0)) : near ? "★" + (pts == null ? "" : " " + nf.format(pts)) : closer ? T("CLOSER TO SCAN") : T("NO PTS");
@@ -4332,7 +4396,10 @@ function arAimStep(W, H){
   return {cx, cy, R0, k};
 }
 const arScans = new Set();                           // 1.114.6: planes scanned this session (the relay said points, or done)
-const arScanned = hex => gameOk() && S.live && (arScans.has(hex) || !!(arSpotMap().get(hex) || {}).gx);
+// 1.128: the first entry today scanned or locked on, unless the relay lists the plane as scannable now (it scans once a
+// pass, and this is a later one); {} when this session has just scanned it and Spotted today doesn't say so yet.
+const gScanGx = hex => { const x = (arSpotMap().get(hex) || {}).gx; return arScans.has(hex) ? x || {} : x && !gScanSet().has(hex) ? x : null; };
+const arScanned = hex => gameOk() && S.live && !!gScanGx(hex);
 function arAimDraw(g, {cx, cy, R0, k}){
   g.lineWidth = 3; g.strokeStyle = "rgba(255,255,255,.85)";
   g.beginPath(); g.arc(cx, cy, R0, 0, Math.PI * 2); g.stroke();
@@ -4630,11 +4697,8 @@ function arCardDismiss(){
   box.addEventListener("pointermove", e => { if (e.pointerType === "mouse") move(e.clientY, e); });
   box.addEventListener("pointerup", e => { if (e.pointerType === "mouse") end(); }); }
 setInterval(() => { if (arOn && arSel) arCardRender(); }, 1000);
-$("arBtn").onclick = arTry;
-// 1.72.4: Sky view can always be opened: when the plane's Where to look card (with its button) isn't there, a row of
-// its own under the board takes its place.
-$("arBtn2").onclick = arTry;
-$("skyCv").onclick = e => { if ($("lookCv").onclick) $("lookCv").onclick(e); };   // a tap lets the tape turn with the phone
+// 1.128: the key opens Sky view; without live location it says Go live and does that, staying on Now.
+$("arBtn").onclick = () => { if (skyMem.k === "nolive") { ctlSound.click(); gGoLive(); lookSoon(); } else arTry(); };
 // 1.77: Sky view shows the planes around you, so it comes with live location (the app following the phone). With it
 // off, a card asks first: go live and open, or not now.
 function arTry(){
@@ -4655,24 +4719,10 @@ async function arGoLive(){
   const t0 = Date.now(), wait = setInterval(() => {
     if (S.live && !liveFirst) { clearInterval(wait); arGoing = false; arOpen(); }
     else if (!S.live || Date.now() - t0 > 15000) {
-      clearInterval(wait); arGoing = false; lookErr = T("Couldn't find where you are, so Sky view stays closed."); lookErrAt = Date.now(); lookSoon();
+      clearInterval(wait); arGoing = false; toast(T("Couldn't find where you are, so Sky view stays closed."), {err: true});
     }
   }, 300);
 }
-// 1.77: in the Where to look card's style, its tape a compass; with no plane on top it says so.
-function skyRowRender(){
-  const look = !$("look").hidden && !$("acSec").hidden && !$("arBtn").hidden, box = $("skyRow");
-  box.hidden = look || !arPossible() || SIDEWAYS.matches;
-  if (box.hidden) return;
-  const wait = liveWaiting(), on = lookOn && lookHeading != null, sig = (wait ? "w" : feat ? "f" : "n") + LANG;
-  drawTape($("skyCv"), on ? lookHeading : 0, on, null);
-  if (box.dataset.sig === sig) return;
-  box.dataset.sig = sig;
-  $("skyB").textContent = T(feat || wait ? "Sky view" : "No planes around right now");   // 1.90: live location finding you: says so
-  $("skySub").textContent = wait ? T("Finding where you are … the planes show once live location has found you.")
-    : T(feat ? "Hold your phone up to the sky to see every plane around you." : "Sky view shows the ones farther off too, up to 60 km.");
-}
-setInterval(skyRowRender, 1000);
 $("arClose").onclick = arClose;
 $("arShut").onclick = arSnap;
 $("arAlign").onclick = arAlignOpen;
@@ -6292,6 +6342,17 @@ const gKm = () => (gme && gme.km) || 10;             // the game's circle, from 
 const gScanKm = () => (gme && gme.scanKm) || gKm();  // 1.98 (relay 82): the scan's circle, 10 km (relay 104, 1.126.1: 15, the same as gKm; an older relay: the one circle)
 // 1.98: the planes a scan counts for now (the relay's list), as a set (made once for each answer)
 const gScanSet = () => gme && Array.isArray(gme.scan) ? (gme.scanSet ||= new Set(gme.scan.map(x => x.hex))) : new Set();
+// 1.128 (to-do #258): can this plane be scanned now? The one answer for the Now tab's row and Sky view's ★. In the air, and
+// the relay lists it (it came within the circle and is still seen live, wherever it is now), or it's within the circle by
+// the app's own reckoning. That reckoning holds for a little: the relay's list comes every 15 s, and a plane on the edge
+// doesn't flip. (The app can say so a moment before the relay has counted the plane: a scan then answers "too far".)
+const gNearAt = new Map(), G_NEAR_HOLD = 30000;
+function gCanScan(ac, km){
+  if (ac.alt_baro === "ground") return false;
+  const now = Date.now();
+  if (km <= gScanKm()) { if (gNearAt.size > 300) gNearAt.clear(); gNearAt.set(ac.hex, now); return true; }
+  return gScanSet().has(ac.hex) || now - (gNearAt.get(ac.hex) || 0) < G_NEAR_HOLD;
+}
 const gGoldSet = () => gme && Array.isArray(gme.scan) ? (gme.goldSet ||= new Set(gme.scan.filter(x => x.gold).map(x => x.hex))) : new Set();   // 1.100
 let gme = null, gmeAt = 0, gBusy = false, gLeague = null, gLeagueAt = 0, gAll = false, gAnimT = [], gLvFrom = 0;   // 1.114.5: a level-up still to show (from that level)
 function gStripSetup(){

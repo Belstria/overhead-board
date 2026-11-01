@@ -806,8 +806,8 @@ Five buttons along the bottom:
 - **Now**: the plane overhead on flaps (flight, status, airline, route, aircraft, registration, altitude, speed,
   position, departure, arrival, flight time and Remarks), its photo on a small screen (1.35.1: the list of details
   under it is gone since 1.36; tap the flaps for cards and Favourite / Hide), and the
-  latest planes spotted. The photo and **Where to look** (which way and how high, Sky view) are one card under the board
-  (1.115). **Recent flights** (1.95) is a timeline: a line down the left with a dot for each plane in the
+  latest planes spotted. The photo and the **Sky view row** (the key, the scan, which way to look, the compass) are one card under the board
+  (1.115, 1.128). **Recent flights** (1.95) is a timeline: a line down the left with a dot for each plane in the
   colour of its remark, each plane in its own box (1.103.1), since 1.115 **one line a plane**: time, flight, route and
   type, "8 in the last hour" at the top and "All 64 planes today ›" at the end, which goes to Today. A flight's status
   is a coloured pill on Recent flights (every status word since 1.122: ARRIVING, DEPARTING, SUPERJUMBO ...); at the end of the
@@ -864,14 +864,19 @@ Five buttons along the bottom:
   records, this week's bingo and the trophies with their bars. Week & month (1.52, relay 46): **this week or month in
   review**, with Week / Month and ◀ ▶, and since 1.80 its own **Share**: the year's picture with the week's or month's
   dates, numbers and facts. The pictures open in a card with Share and Save picture, as a plane's does.
-- **Where to look** (Now, upright, 1.28): the direction and height of the plane on top ("LOOK SE · 32° UP") on a dial
-  with north up, under This aircraft's picture. On https (the public address) it turns with the phone so the arrow
-  points at the plane: by itself on Android, after tapping the dial once on an iPhone (which asks first). When it
-  can't point (1.80), it says why in its place, dimmed, with the tape grey: no position yet, no height yet, too far
-  (over 80 km) or a position that doesn't add up.
-- **Sky view** (Now → Where to look → Sky view, 1.30; https only; since 1.72.4 a Sky view card under the board when there
-  is no plane on top, so it can always be opened; 1.77: in Where to look's style, saying "No planes around right now",
-  its tape a compass). It comes with live location (1.77): with live location off, a card asks first ("Go live and
+- **The Sky view row** (Now, upright, 1.128; Where to look since 1.28): one slim row under the plane's picture, with the
+  compass strip under it. On the left the Sky view key; then the scan: **SCAN In range** in amber with the key amber when
+  the plane can be scanned, also beyond the circle while the game's list still has it; **SCANNABLE IN 3.1 km** while it
+  comes closer (the distance left to the circle); **MOVING AWAY 24 km** or **CLOSEST PASS 22 km**, dim, for one that won't
+  come in range; **SCAN ✓ Scanned**, **SCAN On the ground**, **SKY VIEW No planes around**. Without live location: **SCAN
+  NEEDS Live location**, and the key becomes **Go live**; while it finds you, **LIVE LOCATION Finding you**. In a demo or
+  without a relay there is no game: **LOOK** and the direction only. When it can't point (1.80), it says why, dimmed, with the
+  tape grey: no position yet, no height yet, too far (over 80 km) or a position that doesn't add up. On the right **LOOK**:
+  which way and how high ("S · 21° up", "Right · 21° up" with the compass). Each amber label opens two lines on what it
+  means. On https the strip turns with the phone (the gold line is where you face): by itself on Android, after tapping
+  the strip once on an iPhone (which asks first).
+- **Sky view** (Now → the Sky view row's key, 1.30; https only; with no plane on top the row sits under the board, so it
+  can always be opened). It comes with live location (1.77): with live location off, a card asks first ("Go live and
   open" or "Not now"), since Sky view shows the planes around you wherever you are: the camera full screen, with a label on every plane
   within 60 km that is in the picture (flight, type, height, distance; the plane on top in amber). Since 1.121 the
   title shows how many planes are around you, in the picture or not ("4 around"); a **mini radar** bottom left shows

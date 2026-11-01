@@ -110,7 +110,7 @@ in the sheet a tap opens; the engraved plate title on every sheet.
   the points-and-level chip top right ("9,950 pts · paused", "LEVEL 9", the rank's lapel in a progress ring to the next
   level), the connection dot. Nothing else goes in the header.
 - **Bottom bar**: Now, Logbook, Club, Radar, Settings (four without the Club when there is no game: demo mode, no relay, an old relay).
-- **Now**: the checklist bar for a new user, the plane overhead on the flaps, its picture, the Sky view row, recent
+- **Now**: the checklist bar for a new user, the plane overhead on the flaps, its picture, the Sky view row (1.128: the key, the scan's label and value, Look, the compass strip under them; 105 px), recent
   flights, the notices bar; scan tickets and undo notices rise from below.
 - **Logbook** (1.123): one screen. The search with the filter icon at its end, stuck under the header; a sideways strip of three
   twin plates, each a gold name and four named numbers: Today (always there, 0 on an empty day; a tap opens "Today in numbers"), the period (a tap

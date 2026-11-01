@@ -370,25 +370,28 @@ button.lbPlate:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba
 .look{display:grid;gap:8px;margin:10px 0 0;padding:12px;border-radius:10px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.05)}
 .look[hidden]{display:none}
 .look.why canvas{opacity:.4;filter:grayscale(1)}
-.look.why .lookTxt b{color:var(--muted)}
-.look.why .cBtn{opacity:.5}
 .look canvas{display:block;width:100%;height:44px}
-.lookH{font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
-.lookRow{display:flex;gap:12px;align-items:center}
-.lookRow .cBtn{flex:none}
-.lookTxt{min-width:0}
-.lookTxt small{display:block;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
-.lookTxt b{display:block;font:700 var(--fs-xl)/1.15 var(--f-board);color:var(--ink)}
-.lookTxt span{display:block;margin-top:4px;font:500 var(--fs-s)/1.35 var(--f-board);color:var(--muted)}
-.lookTxt .cap{margin-top:8px;width:auto;padding:0 12px}
+/* 1.128 (to-do #258, Dave's pick A): one slim row (the key, the scan's label and value, Look) above the compass strip; nothing moves */
+.skyR{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+.skyKey{padding:8px 12px;white-space:nowrap}
+.skyKey.hot{background:linear-gradient(#f6c64c,#e0a11c);color:#17140e}
+.skyKey.off{background:linear-gradient(#4a4a4c,#39393b);color:#a9a69c}
+.skyVal{all:unset;box-sizing:border-box;cursor:pointer;display:block;min-width:0;min-height:42px;-webkit-tap-highlight-color:transparent}
+.skyVal:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.skyVal small{display:block;margin-bottom:5px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:var(--amber);white-space:nowrap}
+.skyVal b{display:block;font:700 var(--fs-xl)/1.1 var(--f-board);color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.skyVal.dim b{color:var(--muted)}
+.look.sk-in #skyV{font-size:var(--fs-2xl);line-height:22px;color:var(--amber)}
+.skyLk{text-align:right}
+.skyLk[hidden]{display:none}
+.skyLk b{font:600 var(--fs-m)/22px var(--f-board)}
 @media (orientation: landscape) and (max-height: 600px){.look{display:none}}
 .lookActs{display:flex;gap:8px;flex-wrap:wrap}
 /* 1.115 (to-do #206, Dave's pick B): the plane's photo and Where to look are one card under the board, no title over it */
 #acSec>.groove,#acTitle{display:none}
 #acSec{margin-top:16px}
 #acSec .bezel:has(+ #look:not([hidden])){border-radius:10px 10px 0 0}
-#acSec #look{margin:0;border-radius:0 0 10px 10px;border-top:0;background:linear-gradient(#1a1b1e,#111214);box-shadow:0 6px 16px rgba(0,0,0,.6)}
-#acSec #look .lookH{display:none}
+#acSec #look{margin:0;padding:10px 12px;border-radius:0 0 10px 10px;border-top:0;background:linear-gradient(#1a1b1e,#111214);box-shadow:0 6px 16px rgba(0,0,0,.6)}
 #acSec #look canvas{height:34px}
 /* favourites and hidden planes: the + on a row, the sheet, This aircraft's buttons and the manager in Settings */
 .fl{position:relative}
@@ -1676,10 +1679,8 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 .cDet .cLink{padding:0;border:0;background:none;color:var(--ink);font-size:var(--fs-m)}
 .arFullL .cBtns{margin-top:12px;display:flex;gap:8px}
 .arFullL .cBtns .cBtn{flex:1;justify-content:center;text-align:center}
-/* 1.72.4: Sky view whenever the plane's Where to look card isn't there (no plane on top, still loading). 1.77: the same
-   card, its tape a compass, and the words say no plane is around */
+/* 1.72.4, 1.128: the area under the board when there is no plane on top (the same element, moved) */
 .skyRow{margin-top:12px}
-#skyCv{cursor:pointer}
 /* 1.77: Sky view needs live location: the card that asks (Go live and open, green like the strip's Go live; Not now) */
 .liveAsk{display:flex;align-items:center;gap:12px;margin-top:12px}
 .liveGo{all:unset;cursor:pointer;display:inline-flex;align-items:center;padding:11px 16px;border-radius:999px;background:var(--c-good);color:#06130b;font:700 var(--fs-base)/1 var(--f-board)}
@@ -2034,11 +2035,6 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
   <section class="wrap tab cols" id="t-now">
     <div class="lcol">
       <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
-      <div class="look skyRow" id="skyRow" hidden>
-        <small class="lookH" data-t="Where to look">Where to look</small>
-        <canvas id="skyCv" aria-hidden="true"></canvas>
-        <div class="lookRow"><button class="cBtn" type="button" id="arBtn2"><svg class="skyIco" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-t="Sky view">Sky view</span></button>
-          <div class="lookTxt"><b id="skyB"></b><span id="skySub"></span></div></div></div>
     </div>
     <div class="rcol">
       <div class="apPick" id="apPick"></div>
@@ -2051,11 +2047,11 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
           <b class="led"></b>
         </div>
         <div class="look" id="look" hidden>
-        <small class="lookH" data-t="Where to look">Where to look</small>
-        <canvas id="lookCv" aria-hidden="true"></canvas>
-        <div class="lookRow"><button class="cBtn" type="button" id="arBtn" hidden><svg class="skyIco" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-t="Sky view">Sky view</span></button>
-          <div class="lookTxt"><b id="lookDir"></b><span id="lookSub"></span></div></div>
-      </div>
+          <div class="skyR"><button class="cBtn skyKey" type="button" id="arBtn"><svg class="skyIco" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span id="skyKeyT" data-t="Sky view">Sky view</span></button>
+            <button class="skyVal" type="button" id="skyVal"><small id="skyL"></small><b id="skyV"></b></button>
+            <button class="skyVal skyLk" type="button" id="skyLk"><small data-t="Look">Look</small><b id="skyLkV"></b></button></div>
+          <canvas id="lookCv" aria-hidden="true"></canvas>
+        </div>
         <div class="panel lsOnly" id="acP" role="img" aria-label="This aircraft"></div>
       </div>
       <div id="recentSec">
