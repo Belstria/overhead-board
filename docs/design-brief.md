@@ -30,7 +30,8 @@ two days later mockups again carried sentences and a second row of tabs. These r
    Today's rows show none (TAKE-OFF and LANDED on Airport). A logbook note is a mark at the row's end, no words: Sky
    view's amber target for a scanned plane, ★ new type or airline, ⚑ unusual (red for EMERGENCY, orange for DIVERTED on
    Today), pink ♥ favourite; Recent flights drops the mark its pill repeats and has no target. Today's bubble is the
-   plane's rarity colour, Recent flights' its status colour; the word is on the card. Game words (points, level,
+   plane's rarity colour, Recent flights' its status colour; the word is on the card. A ticket's new names (airline, type, country) are gold foil on the letters, no box or colour behind them, with one
+   beam across them as it rises (1.124). Game words (points, level,
    standby, league) stay off a flight's row; they live in the Club, the header chip, and the tickets and notices about
    them.
 7. **Plain words, no cut-offs.** Screen titles in sentence case; every sheet carries the plate with its engraved
@@ -68,7 +69,8 @@ two days later mockups again carried sentences and a second row of tabs. These r
     **amber name on a number means the number opens something** (Dave, 31 Oct).
 16. **Panels of one kind are twins**: the week, month and year panels show the same facts in the same order at the
     same height; the same for any other repeated panel.
-17. **Three options for every design choice** (PNGs at phone size, an MP4 where it moves, with a recommendation), sent
+17. **Three options for every design choice** (PNGs at phone size, an MP4 where it moves, with a recommendation), named A, B and C, never numbers, all in
+    one message or on one picture, each with its letter and one or two short sentences on the picture (Dave, 31 Oct), sent
     before building. Plain bug fixes need none.
 18. The process rules live in `CLAUDE.md` and are not repeated here: test first, every visible text through `T()`
     and no new translations, don't rename statuses or remarks, versions and patch notes, removed on request, no
@@ -115,7 +117,7 @@ in the sheet a tap opens; the engraved plate title on every sheet.
   opens Week · Month · Year, with the CSV under More). The icon opens the segmented filters, this place / All places and Saved
   places in place under the strip. Then the timeline rows (a rarity bubble, time, flight, route, type, marks at the end, no pills).
 - **Club**: sub-tabs Level, League (with Bingo and Trophies under it; League and Bingo with the weekly reset as a
-  footnote, Trophies' counts on its switch), Hangar, Passport, Cards. The week on the level card opens the Streak panel.
+  footnote, Trophies' counts on its switch), Hangar, Passport, Frequent flyer. The week on the level card opens the Streak panel.
 - **Radar**: title, (i), a cogwheel chip with the range that opens the range-and-map plate, the radar, the Nearest table.
 - **Sky view**: from Now; the align button in the top row (a circle, the camera or the Align button lines the labels up on the
   sun or moon), a mini radar bottom left, edge chips for at most three off-screen planes, the count "4 around".
@@ -143,7 +145,7 @@ full Files table is in `docs/architecture.md`.
 - **Phones**: upright and sideways (`(orientation: landscape) and (max-height: 600px)`), from a small Android phone to
   an iPhone Pro Max, notch and home bar included (`env(safe-area-inset-*)`, `--cut-l`, `--cut-r`). The page itself
   never scrolls sideways (once an icon drawn past the edge gave the whole app a sideways scroll); elements that move
-  sideways, like the hangar's shelves and the member cards, are fine, and more may come where they fit. Font sizes
+  sideways, like the hangar's shelves and the Frequent flyer cards, are fine, and more may come where they fit. Font sizes
   only from the `--fs-*` tokens (`smoke.py --syntax` checks).
 - **Fonts and libraries**: the typefaces are served from `fonts/` (no Google Fonts at run time); plain HTML, CSS and JS,
   no frameworks.

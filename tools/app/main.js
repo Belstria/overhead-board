@@ -1199,9 +1199,13 @@ const LY_COL = {AUA: "#d81e05", RYR: "#073590", DLH: "#0a1d3d", WZZ: "#c6007e", 
   LDA: "#e30613", UAE: "#b5121b", QTR: "#5c0632", EZY: "#ff6600", EJU: "#ff6600", EWG: "#a5027d", BAW: "#075aaa", AFR: "#002157", KLM: "#00a1de",
   ITY: "#0047bb", LOT: "#11397e", TAP: "#e1261c", IBE: "#d7192d", SAS: "#000f7a", FIN: "#0b1560", AEE: "#0a3a7a", ELY: "#0b2a6f", CTN: "#d8232a"};
 const lySteps = () => { const r = gRules(); return (r && r.loyalty) || LY; };
-const lyOf = n => (n || 0) < 1 ? -1 : lySteps().filter(s => n >= s[0]).length;    // -1: not a member yet; 0 Member … 3 Platinum
-const lyCode = icao => (AIRLINES[icao] || [])[0] || icao;
-const lyName = icao => shortAirline((AIRLINES[icao] || [])[1] || icao);
+const lyOf = n => (n || 0) < 1 ? -1 : lySteps().filter(s => n >= s[0]).length;    // -1: no card (no scan yet); 0 Member … 3 Platinum
+// 1.124: an airline outside the table: what its scan said (the logbook may not have a new one yet), then the logbook's, then its code
+const lyKnown = {};
+const lyInfo = (icao, k) => (lyKnown[icao] || {})[k] || (((lbData() || {}).airlines || {})[icao] || {})[k] || "";
+const lyCode = icao => (AIRLINES[icao] || [])[0] || lyInfo(icao, "iata") || icao;
+const lyName = icao => shortAirline(lyWritten(icao));
+const lyWritten = icao => (AIRLINES[icao] || [])[1] || lyInfo(icao, "name") || icao;   // the name as the table writes it (lyName: in the board's capitals)
 const lyCol = icao => LY_COL[icao] || `hsl(${[...icao].reduce((h, c) => h * 31 + c.charCodeAt(0), 7) % 360} 55% 38%)`;
 // a ticket's printed line: the airline's code and your tier with it (none while not a member)
 const lyTicket = (icao, n) => { const t = lyOf(n); return icao && t >= 0 ? {code: lyCode(icao), t} : null; };
@@ -1280,11 +1284,11 @@ function lyInk(src, key, dark, done){
 }
 function lyList(g0){
   const byName = (a, b) => lyName(a[0]).localeCompare(lyName(b[0]));
-  const l = Object.entries(g0.wallet).sort((a, b) => b[1] - a[1] || byName(a, b));
+  const l = Object.entries(g0.wallet).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1] || byName(a, b));
   return lySort === "az" ? l.sort(byName) : l;
 }
 function lyCardHtml([icao, s], info, i){
-  const t = lyOf(s), st = lySteps(), nx = t >= 0 ? st[t] : null, lo = t > 0 ? st[t - 1][0] : 1;
+  const t = lyOf(s), st = lySteps(), nx = st[t], lo = t > 0 ? st[t - 1][0] : 1;
   const pct = nx ? Math.min(100, (s - lo) / (nx[0] - lo) * 100) : 100, code = lyCode(icao), f = AIRLINE_HOME[icao] || [];
   const since = info.since ? fmtDay(info.since) : "", last = info.last ? lyWhen(info.last) : "";
   const home = [f[2] || "", f[1] ? ppName(f[1]) : ""].filter(Boolean).join(" · ");
@@ -1292,24 +1296,22 @@ function lyCardHtml([icao, s], info, i){
   // 1.114.3: the front holds four things: the logo (its name until it's here), the code in holographic ink, the scans
   // bottom left, the tier bottom right; member since and the last scan are on the back
   const front = `<i class="lyBr"></i><span class="lyLg" data-lg="${escH(code)}"><b>${escH(lyName(icao))}</b></span><span class="lyHo">${escH(code)}</span>` +
-    (t < 0 ? `<span class="lyNx"><b>${escH(T("Not a member yet"))}</b><small>${escH(T("Scan one of its planes to join"))}</small></span>`
-      : `<svg class="lyRg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15"/><circle class="v" cx="18" cy="18" r="15" stroke-dasharray="${(LY_RING * pct / 100).toFixed(1)} ${LY_RING.toFixed(1)}"/></svg>` +
-        `<span class="lyNx"><b>${escH(T("{n} scanned", {n: nf.format(s)}))}</b><small>${escH(nx ? T(LY_TO[t], {n: nf.format(nx[0] - s)}) : T("Top tier"))}</small></span>`) +
-    `<span class="lyVt">${escH(t >= 0 ? T(LY_NAME[t]) : T("Guest"))}</span><i class="lySh"></i>`;
+    `<svg class="lyRg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15"/><circle class="v" cx="18" cy="18" r="15" stroke-dasharray="${(LY_RING * pct / 100).toFixed(1)} ${LY_RING.toFixed(1)}"/></svg>` +
+    `<span class="lyNx"><b>${escH(T("{n} scanned", {n: nf.format(s)}))}</b><small>${escH(nx ? T(LY_TO[t], {n: nf.format(nx[0] - s)}) : T("Top tier"))}</small></span>` +
+    `<span class="lyVt">${escH(T(LY_NAME[t]))}</span><i class="lySh"></i>`;
   const back = `<i class="lyMag"></i><span class="lyHm"><b>${escH(f[0] || lyName(icao))}</b>${home ? `<small>${escH(T("Home base {p}", {p: home}))}</small>` : ""}</span>` +
     `<span class="lyGr">${kv(T("Scanned"), nf.format(s))}${kv(T("Sightings"), info.seen ? nf.format(info.seen) : "")}${kv(T("Member since"), since)}${kv(T("Last scan"), last)}</span>` +
     ((info.types || []).length ? `<span class="lyTy">${info.types.map(([tc, n]) => `<i>${escH(tc)}<small>×${nf.format(n)}</small></i>`).join("")}</span>` : "");
-  return `<div class="lyC ${t >= 0 ? "ly" + t : "lyN"}" data-i="${i}" data-t="${t}" data-ly="${escH(icao)}" style="--ac:${lyCol(icao)}"><div class="lyIn">` +
+  return `<div class="lyC ly${t}" data-i="${i}" data-t="${t}" data-ly="${escH(icao)}" style="--ac:${lyCol(icao)}"><div class="lyIn">` +
     `<div class="lyFr">${front}</div><div class="lyBk">${back}</div></div></div>`;
 }
 function walletHtml(g0){
   const w = g0 && g0.wallet;
   if (!w) return "";
   const list = lyList(g0), n = list.length, info = g0.walletInfo || {};
-  const st = trophyLadder(g0, TROPHY_LADDERS.find(l => l[0] === "airlines")), [a, b, c] = lySteps();
-  const sum = [T(n === 1 ? "1 airline" : "{n} airlines", {n: nf.format(n)}), st.next ? T("{t} at {n}", {t: T(st.next[2]), n: nf.format(st.next[1])}) : ""].filter(Boolean).join(" · ");
-  const rule = T("Scan an airline's planes to climb: Silver at {a}, Gold at {b}, Platinum at {c}.", {a: a[0], b: b[0], c: c[0]});
-  if (!n) return secPlate(T("Member cards"), `<p class="sum">${escH(rule)}</p>`, "lyPlate");
+  // 1.124 (to-do #246): the explaining behind the plate's (i); no scan yet, no card, one line
+  const how = `<button class="iBtn gHeroI" type="button" id="lyHow" aria-label="${escH(T("Frequent flyer"))}">i</button>`;
+  if (!n) return secPlate(T("Frequent flyer"), how + `<p class="sum">${escH(T("Scan a plane to get its airline's card."))}</p>`, "lyPlate");
   let nav = "";
   if (n >= 6) {                      // the index: a segment per tier, or the letters
     const seg = `<div class="seg gSeg lySort" role="group">` + [["tier", T("By tier")], ["az", T("A–Z")]].map(([k, l]) =>
@@ -1317,12 +1319,59 @@ function walletHtml(g0){
     const have = new Set(list.map(x => lyLetter(x[0])));
     nav = seg + (lySort === "az"
       ? `<div class="lyIdx az">${[..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"].map(l => `<i class="${have.has(l) ? "" : "dim"}" data-l="${l}">${l}</i>`).join("")}<b></b></div>`
-      : `<div class="lyIdx tier">${[3, 2, 1, 0, -1].map(t => { const k = list.filter(x => lyOf(x[1]) === t).length;
-          return k ? `<i class="${t >= 0 ? "ly" + t : "lyN"}" data-t="${t}" style="--n:${k + 4}">${escH(t >= 0 ? T(LY_NAME[t]) : T("Guest"))}<small>${nf.format(k)}</small></i>` : ""; }).join("")}<b></b></div>`);
+      : `<div class="lyIdx tier">${[3, 2, 1, 0].map(t => { const k = list.filter(x => lyOf(x[1]) === t).length;
+          return k ? `<i class="ly${t}" data-t="${t}" style="--n:${k + 4}">${escH(T(LY_NAME[t]))}<small>${nf.format(k)}</small></i>` : ""; }).join("")}<b></b></div>`);
   } else if (n > 1) nav = `<div class="lyDots">${list.map(() => "<i></i>").join("")}</div>`;
-  return secPlate(T("Member cards"), `<p class="sum">${escH(sum)}</p><div class="lyCar"><div class="lySt">` +
-    list.map((x, i) => lyCardHtml(x, info[x[0]] || {}, i)).join("") + `</div></div><div class="lyCount"><span></span><span></span></div>` + nav +
-    `<p class="sum">${escH(rule)} ${escH(n > 1 ? T("Swipe through your cards; tap the front one to turn it over.") : T("Tap the card to turn it over."))}</p>`, "lyPlate");
+  return secPlate(T("Frequent flyer"), how + `<button type="button" class="lyTop"><b></b><i aria-hidden="true">\u203a</i></button><div class="lyCar"><div class="lySt">` +
+    list.map((x, i) => lyCardHtml(x, info[x[0]] || {}, i)).join("") + `</div></div><div class="lyCount"></div>` + nav, "lyPlate");
+}
+// The plate's (i): what the tiers are, and what a finger does on the cards.
+function lyHow(){
+  ctlSound.nav();
+  const g0 = (lbData() || {}).game, [a, b, c] = lySteps(), n = g0 && g0.wallet ? lyList(g0).length : 0;
+  plateSheet(T("Frequent flyer"), `<p class="sum">${escH(T("Scan an airline's planes to climb: Silver at {a}, Gold at {b}, Platinum at {c}.", {a: a[0], b: b[0], c: c[0]}))}</p>` +
+    `<p class="sum">${escH(n > 1 ? T("Swipe through your cards; tap the front one to turn it over.") : T("Tap the card to turn it over."))}</p>`);
+}
+// A card's logo (.lyLg), once it's here, in ink.
+function lyLogo(s){
+  const L = logo(s.dataset.lg, true), dark = s.closest(".lyC").classList.contains("ly0");
+  const put = () => {
+    if (L.state !== "ok" || s.querySelector("img")) return;
+    lyInk(L.img.src, s.dataset.lg, dark, url => {
+      if (s.querySelector("img")) return;
+      s.insertAdjacentHTML("afterbegin", `<img alt="" src="${escH(url || L.img.src)}">`);
+      s.classList.add("ok");
+    });
+  };
+  if (L && L.state === "ok") put(); else if (L && L.state === "loading") L.img.addEventListener("load", () => setTimeout(put, 0), {once: true});
+}
+/* 1.124 (to-do #246, Dave's pick 1): an airline's first scan, a pop-up on the passport's paper: the card's front dealt in
+   and the light over it, a thud as it lands. A tap goes to that card. It stands in the scan's line (gLine); n: the cards
+   counted at the scan. Reduced motion: nothing moves. */
+function lyNew(r, n){
+  const icao = r.airline.code, pts = (r.lines || []).find(a => a.k === "new" && a.w === "airline"), el = document.createElement("div"), still = lyStill();
+  el.className = "gAw lyNew"; el.setAttribute("role", "status");
+  el.innerHTML = `<div class="hd"><span>${escH(T("FREQUENT FLYER · NEW CARD"))}</span>${pts ? `<b>+${nf.format(pts.p)}</b>` : ""}</div>` +
+    `<div class="mid"><div class="lyNewBox"><div class="lyNewS"><div class="lyNewC${still ? "" : " deal"}">${lyCardHtml([icao, r.airline.scans], {}, 0)}</div></div></div></div>` +
+    `<div class="ft">${escH(T("{a}: frequent flyer card {n}", {a: lyWritten(icao), n: nf.format(n)}))}</div>`;
+  gAwsBox().appendChild(el); gTixStack();
+  lyLogo(el.querySelector(".lyLg"));
+  el.out = () => { if (!el.isConnected || el.classList.contains("out")) return; el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); gTixBack(); }, 350); };
+  gAwTap(el, () => lyGoTo(icao, r.airline.scans));
+  gAwTimer(el, POP_MS);
+  setTimeout(() => { fsThud(); try { navigator.vibrate && navigator.vibrate(30); } catch {} }, still ? 0 : 640);
+  if (!still) setTimeout(() => { const f = el.querySelector(".lyFr"); if (f) { f.classList.remove("shine"); void f.offsetWidth; f.classList.add("shine"); } }, 820);
+  return el;
+}
+// To a card: out of Sky view, the Club's Frequent flyer tab, that card in front, its front showing.
+function lyGoTo(icao, scans){
+  audioInit(); arClose(); ctlSound.nav();
+  if (tab !== "game") showTab("game");
+  const g0 = (lbData() || {}).game;                              // the logbook there may be from before the scan
+  if (g0 && g0.wallet && !g0.wallet[icao]) g0.wallet[icao] = scans;
+  lyAt = icao; lyFlipped = "";
+  if (gSub === "cards") { gPlates = null; hgBusy = 0; renderGame(); }
+  gGoPlate("lyPlate");
 }
 const LY_TAU = 320, LY_FAST = 62;
 function lyWire(box){
@@ -1333,21 +1382,10 @@ function lyWire(box){
   car.style.setProperty("--cw", cw + "px");
   const ids = cs.map(c => c.dataset.ly);
   let pos = Math.max(0, ids.indexOf(lyAt)), shown = pos, tm = 0;
-  for (const s of car.querySelectorAll(".lyLg")) {            // the logos the board uses, once they're here, in ink
-    const L = logo(s.dataset.lg, true), dark = /\bly(N|0)\b/.test(s.closest(".lyC").className);
-    const put = () => {
-      if (L.state !== "ok" || s.querySelector("img")) return;
-      lyInk(L.img.src, s.dataset.lg, dark, url => {
-        if (s.querySelector("img")) return;
-        s.insertAdjacentHTML("afterbegin", `<img alt="" src="${escH(url || L.img.src)}">`);
-        s.classList.add("ok");
-      });
-    };
-    if (L && L.state === "ok") put(); else if (L && L.state === "loading") L.img.addEventListener("load", () => setTimeout(put, 0), {once: true});
-  }
+  for (const s of car.querySelectorAll(".lyLg")) lyLogo(s);
   const flipped = cs.find(c => c.dataset.ly === lyFlipped);
   if (flipped && +flipped.dataset.i === pos) flipped.classList.add("flip");
-  const [nm, ix] = plate.querySelectorAll(".lyCount span"), bar = plate.querySelector(".lyIdx"), dots = [...plate.querySelectorAll(".lyDots i")];
+  const top = plate.querySelector(".lyTop"), nm = top.firstChild, ix = plate.querySelector(".lyCount"), bar = plate.querySelector(".lyIdx"), dots = [...plate.querySelectorAll(".lyDots i")];
   const cells = bar ? [...bar.querySelectorAll("i")] : [], az = bar && bar.classList.contains("az");
   const lay = () => {
     for (const c of cs) {
@@ -1359,8 +1397,8 @@ function lyWire(box){
       c.style.setProperty("--dim", (Math.min(a, 2.5) * .22).toFixed(2));
     }
     const i = Math.round(Math.max(0, Math.min(n - 1, pos))), c = cs[i], t = +c.dataset.t;
-    nm.innerHTML = `<b>${escH(lyName(c.dataset.ly))}</b> · ${escH(t >= 0 ? T(LY_NAME[t]) : T("Not a member yet"))}`;
-    ix.textContent = n > 1 ? `${i + 1} / ${n}` : "";
+    nm.textContent = lyWritten(c.dataset.ly);
+    ix.textContent = n > 1 ? T("Card {i} of {n}", {i: nf.format(i + 1), n: nf.format(n)}) : "";
     dots.forEach((d, j) => d.classList.toggle("on", j === i));
     if (bar) {
       const L = lyLetter(c.dataset.ly), cell = cells.find(x => az ? x.dataset.l === L : +x.dataset.t === t);
@@ -1369,6 +1407,7 @@ function lyWire(box){
     }
     lyAt = c.dataset.ly;
   };
+  top.onclick = () => airlineCard({airlineIcao: lyAt, airline: lyWritten(lyAt)});   // 1.124: the name above the card opens the airline's card
   const shine = () => {
     const i = Math.round(pos), f = cs[i].querySelector(".lyFr");
     shown = i;
@@ -1461,7 +1500,7 @@ function lyWire(box){
       }
       const t = +cell.dataset.t, g = cs.filter(c => +c.dataset.t === t).map(c => +c.dataset.i);
       const f = Math.max(0, Math.min(.999, (x - b.left) / b.width));
-      return {i: g[Math.floor(f * g.length)], title: t >= 0 ? T(LY_NAME[t]) : T("Guest"), names: g.map(j => ids[j])};
+      return {i: g[Math.floor(f * g.length)], title: T(LY_NAME[t]), names: g.map(j => ids[j])};
     };
     const show = (P, e) => {
       const k = P.names.indexOf(ids[P.i]), from = Math.max(0, Math.min(k - 2, P.names.length - 5));
@@ -1618,7 +1657,7 @@ function ppGoals(pp, reg){
 const ppOpen = new Map();                                        // region → unfolded or not, once tapped
 const ppFace = c => `<span class="pCard no"><b>${c}</b>${escH(ppName(c))}<br>${escH(T("still to stamp"))}</span>`;
 function ppShelf(reg, name, have, goals, tot){
-  const op = ppOpen.has(reg) ? ppOpen.get(reg) : have.length > 0, cards = have.map(([c, s]) => `<span class="pCard">${ppStamp(c, s)}</span>`).join("");
+  const op = ppOpen.has(reg) ? ppOpen.get(reg) : have.length > 0, cards = have.map(([c, s]) => `<span class="pCard" data-cc="${escH(c)}">${ppStamp(c, s)}</span>`).join("");
   const head = `<button type="button" class="ppHd" data-ppopen="${reg}" aria-expanded="${op}"><div class="hgHead"><b>${escH(T(name))}</b><em>${escH(T("{n} of {m}", {n: nf.format(have.length), m: nf.format(tot)}))}</em><i>›</i></div></button>`;
   const row = op ? cards + goals.map(ppFace).join("") : "";
   return `<div class="ppShelf${op ? "" : " shut"}${have.length ? "" : " ppNone"}" id="ppR-${reg}">${head}${row ? `<div class="hgRow" data-set="pp-${reg}">${row}</div>` : ""}</div>`;
@@ -1783,16 +1822,20 @@ function ppCard(){
 }
 // The scan's ticket: the route, the countries new to the passport marked (relay 90: r.route, [[airport, country, new]]).
 const ppRoute = rt => rt && rt.length === 2 ? `<div class="ppRt">${rt.map(([ap, cc, nw], i) => (i ? "<i></i>" : "") +
-  `<b class="${nw ? "nw" : ""}">${escH(ap)}<small>${escH(ppName(cc))}${nw ? " · " + escH(T("NEW")) : ""}</small></b>`).join("")}</div>` : "";
+  `<b class="${nw ? "nw" : ""}">${escH(ap)}<small>${nw ? nwWord(ppName(cc) + " · " + T("NEW")) : escH(ppName(cc))}</small></b>`).join("")}</div>` : "";
 /* A country new to the passport, at the scan: a card over the scan's ticket, the map round the country. The stamp
    comes down on it (fsThud) and the ink soaks out from it over the country by itself (1.113, to-do #178, Dave's pick
-   A: the finger's scratch went). A tap inks it at once, a second sends the card away. */
+   A: the finger's scratch went). 1.124 (to-do #246): 255 px wide, its turn in the scan's line (gLine: returns the
+   card, or null without one, and the map doesn't get longer than 3 s to come); a tap goes to the country. */
+function ppStampNow(r){                                           // into the passport at the scan itself
+  const nw = (r.route || []).filter(x => x[2]), g0 = (lbData() || {}).game;
+  if (g0 && g0.passport) for (const [ap, cc] of nw) g0.passport[cc] = g0.passport[cc] || [ppToday(), ap, null, null, "", (gRules() || {}).country || 25];
+  return nw.length > 0;
+}
 function ppNew(r){
   const nw = (r.route || []).filter(x => x[2]), g0 = (lbData() || {}).game;
-  if (!nw.length) return;
-  if (g0 && g0.passport) for (const [ap, cc] of nw) g0.passport[cc] = g0.passport[cc] || [ppToday(), ap, null, null, "", (gRules() || {}).country || 25];
-  worldMap().then(W => {
-    if (!W || !$("gAws")) return;
+  return Promise.race([worldMap(), new Promise(done => setTimeout(done, 3000, null))]).then(W => {
+    if (!W || !nw.length) return null;
     const pp = {...((g0 && g0.passport) || {})}, ccs = nw.map(x => x[1]), c0 = ccs.find(c => W[c]) || ccs[0];
     for (const [ap, cc] of nw) pp[cc] = pp[cc] || [ppToday(), ap];
     ppInkAll(pp);
@@ -1801,8 +1844,8 @@ function ppNew(r){
     const xs = ring.filter((_, i) => i % 2 === 0).map(x => x / 10), ys = ring.filter((_, i) => i % 2).map(y => ppMerc(y / 10));
     if (!xs.length && W[c0]) { xs.push(W[c0][1] / 10 - 2, W[c0][1] / 10 + 2); ys.push(ppMerc(W[c0][2] / 10 - 1.5), ppMerc(W[c0][2] / 10 + 1.5)); }
     const lon = xs.length ? (Math.min(...xs) + Math.max(...xs)) / 2 : 16, mid = ys.length ? (Math.min(...ys) + Math.max(...ys)) / 2 : ppMerc(46);
-    const k = Math.max(1, Math.min(16, 340 / (Math.max(...xs, lon + 1) - Math.min(...xs, lon - 1)) / 1.5, 170 / (Math.max(...ys, mid + 1) - Math.min(...ys, mid - 1)) / 1.5));
-    const v = ppView(340, 170, [lon, ppLat(mid), k]), sx = W[c0] ? v.x(W[c0][1] / 10) : v.w / 2, sy = W[c0] ? v.y(W[c0][2] / 10) : v.h / 2;
+    const k = Math.max(1, Math.min(16, 255 / (Math.max(...xs, lon + 1) - Math.min(...xs, lon - 1)) / 1.5, 128 / (Math.max(...ys, mid + 1) - Math.min(...ys, mid - 1)) / 1.5));
+    const v = ppView(255, 128, [lon, ppLat(mid), k]), sx = W[c0] ? v.x(W[c0][1] / 10) : v.w / 2, sy = W[c0] ? v.y(W[c0][2] / 10) : v.h / 2;
     // the country's box on the card: the soak reaches its far corner
     const bx = xs.length ? [v.x(Math.min(...xs)), v.x(Math.max(...xs))] : [sx - 12, sx + 12];
     const by = ys.length ? [v.h / 2 - (Math.max(...ys) - mid) * k, v.h / 2 - (Math.min(...ys) - mid) * k] : [sy - 12, sy + 12];
@@ -1814,8 +1857,7 @@ function ppNew(r){
       `<span class="ppDrop" style="left:${sx.toFixed(0)}px;top:${sy.toFixed(0)}px">${ppStamp(c0, pp[c0])}</span></div>` +
       `<div class="ft">${escH(ccs.length > 1 ? T("{c}: new to your passport. {n} countries now.", {c: name, n: nf.format(count)})
         : T("{c}: country {n} in your passport.", {c: name, n: nf.format(count)}))}</div>`;
-    const box = $("gAws");
-    box.appendChild(el); gTixStack();
+    gAwsBox().appendChild(el); gTixStack();
     const soak = el.querySelector(".ppSoak"), still = fsStill(), NS = "http://www.w3.org/2000/svg";
     const blot = document.createElementNS(NS, "circle"), full = Math.hypot(Math.max(sx - bx[0], bx[1] - sx), Math.max(sy - by[0], by[1] - sy)) + 24;
     blot.setAttribute("cx", sx.toFixed(1)); blot.setAttribute("cy", sy.toFixed(1)); blot.setAttribute("r", "0"); soak.appendChild(blot);
@@ -1827,12 +1869,26 @@ function ppNew(r){
       const t0 = performance.now(), step = t => { const p = Math.min(1, (t - t0) / 1700); paint(p); if (p >= 1) finish(); else if (!done) raf = requestAnimationFrame(step); };
       raf = requestAnimationFrame(step);
     };
-    const out = () => { if (!el.isConnected || el.classList.contains("out")) return; cancelAnimationFrame(raf); el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); }, 350); };
-    el.onclick = () => (done ? out() : finish());
+    el.out = () => { if (!el.isConnected || el.classList.contains("out")) return; cancelAnimationFrame(raf); el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); gTixBack(); }, 350); };
+    gAwTap(el, () => ppGoTo(c0, r));
     setTimeout(() => { fsThud(); try { navigator.vibrate && navigator.vibrate(30); } catch {} }, still ? 0 : 640);   // as the stamp lands
     setTimeout(inkIn, still ? 0 : 760);
-    el.outT = setTimeout(out, TIX_MS + 4000);
+    gAwTimer(el, POP_MS);
+    return el;
   });
+}
+// To a country: out of Sky view, the Club's Passport, its region unfolded and in view, its own stamp lit up.
+function ppGoTo(cc, r){
+  audioInit(); arClose(); ctlSound.nav();
+  if (tab !== "game") showTab("game");
+  ppStampNow(r);                                                 // the logbook there may be from before the scan
+  gGoPlate("ppPlate");
+  const pp = ((lbData() || {}).game || {}).passport || {};
+  ppGo(ppReg(cc, pp[cc]));
+  const card = document.querySelector(`#t-game .pCard[data-cc="${CSS.escape(cc)}"]`), row = card && card.closest(".hgRow");
+  if (!card) return;
+  if (row) row.scrollLeft = card.offsetLeft - row.offsetLeft - (row.clientWidth - card.offsetWidth) / 2;
+  card.classList.remove("hit"); void card.offsetWidth; card.classList.add("hit");
 }
 /* 1.81 (Dave's to-do 4, his mix of C and B): Your hangar. The Sets list as shelves you swipe, one per set, with a
    collectible card for each type: the photo of the first one you caught (its model's when it has none), the rarity in
@@ -5790,13 +5846,21 @@ for (const id of ["t-logbook", "t-game"]) { let sw = null;
 { let sw = null;
   // 1.98: the points passes and the tickets too (their slide-in holds `transform`, so they move by `translate`)
   const shift = (t, x) => { if (t.classList.contains("gAw")) t.style.translate = x ? x + " 0" : ""; else t.style.transform = x ? `translateX(${x})` : ""; };
-  const start = (t, x) => { sw = {t, x0: x, dx: 0}; t.style.transition = "none"; if (t.hold) t.hold(); };    // 1.114.2: its time waits
-  const move = x => { if (!sw) return; sw.dx = x - sw.x0; shift(sw.t, sw.dx + "px"); sw.t.style.opacity = String(Math.max(.2, 1 - Math.abs(sw.dx) / 260)); };
+  // 1.124 (to-do #246): the panels' rule: it goes past 40% of its width or when flicked (v > .5 px/ms over 20 px, the last
+  // move's speed); otherwise it bounces back (the springy transition in the CSS: .gAw, #toasts .toast)
+  const start = (t, x) => { sw = {t, x0: x, dx: 0, v: 0, lx: x, lt: performance.now()}; t.swiped = false; t.style.transition = "none"; if (t.hold) t.hold(); };    // 1.114.2: its time waits
+  const move = x => {
+    if (!sw) return;
+    const now = performance.now();
+    sw.dx = x - sw.x0; sw.v = (x - sw.lx) / Math.max(1, now - sw.lt); sw.lx = x; sw.lt = now;
+    shift(sw.t, sw.dx + "px"); sw.t.style.opacity = String(Math.max(.2, 1 - Math.abs(sw.dx) / 260));
+  };
   const end = () => {
     if (!sw) return;
-    const {t, dx} = sw; sw = null; t.style.transition = "";
+    const {t, dx, v} = sw; sw = null; t.style.transition = "";
     if (Math.abs(dx) > 8) t.swiped = true;            // no tap after a swipe (a mouse)
-    if (Math.abs(dx) > 60) {
+    if (Math.abs(dx) > t.offsetWidth * .4 || (Math.abs(v) > .5 && Math.abs(dx) > 20 && v * dx > 0)) {
+      t.style.transition = t.classList.contains("gAw") ? "translate .26s ease-in,opacity .25s" : "transform .26s ease-in,opacity .25s";
       shift(t, dx > 0 ? "120%" : "-120%"); t.style.opacity = "0";
       if (t.classList.contains("gAw")) { clearTimeout(t.outT); gTixOut.delete(t); setTimeout(() => { t.remove(); gTixStack(); gTixBack(); }, 260); }
       else setTimeout(() => t.remove(), 260);
@@ -6266,6 +6330,13 @@ function gAwLine(a, f, tix){
     return [tr && m ? T("Trophy · {name} · {m}", {name: T(tr.name), m: T(m)}) : T("Trophy · {name}", {name: trophyText(a.n)[0]}), a.p, "x"]; }
   return [T("Points"), a.p, ""];
 }
+// 1.124 (to-do #247, Dave's pick 1): a ticket's extra in the two columns (from three extras on): no names, the first word(s) only.
+function gAwShort(a){
+  if (a.k === "new") return T(a.w === "airline" ? "New airline" : "New type");
+  if (a.k === "loyalty") return T(LY_NAME[a.m] || "Silver");
+  if (a.k === "mastery") return T(MST_NAME[a.m] || "Bronze");
+  return T({country: "New country", bingo: "Bingo line", card: "Full card", school: "School", trophy: "Trophy", streak: "Daily streak"}[a.k] || "Points");
+}
 // The passes' box, at the bottom of the screen, or of Sky view while it is open (1.98: moved there when it opens).
 function gAwsBox(){
   const host = $("arView") && !$("arView").hidden ? $("arView") : document.body;
@@ -6275,17 +6346,72 @@ function gAwsBox(){
   return box;
 }
 function gPop(o){
-  const box = gAwsBox(), el = gPassFill(document.createElement("div"), o);
-  box.appendChild(el);
+  const el = gPassFill(document.createElement("div"), o);
+  const box = gAwsBox();
+  // 1.124: a plane's ticket waits while a scan's line runs, or beyond GL_TIX on screen, and comes back after (gTixBack)
+  if (o.tix && (gLineOn() || gTixUp(box) >= GL_TIX)) { gTixAside(el); return el; }
+  box.appendChild(el); gAwFoil(el);
   // up to three on screen; a plane's ticket pushed out by another pass (not by a newer ticket) comes back (gTixBack).
   // 1.119.1 (to-do #202): a ticket younger than TIX_MIN isn't pushed out: for that while it may be four
   while (box.children.length > 3) {
-    const old = [...box.children].find(x => x !== el && !(x.dataset.tix && x.minUntil > Date.now()));
+    const old = [...box.children].find(x => x !== el && x !== gLine.el && !(x.dataset.tix && x.minUntil > Date.now()));   // 1.124: never what the line has up
     if (!old) break;
-    old.remove(); if (old.dataset.tix && !o.tix) gTixOut.add(old);
+    if (old.dataset.tix && !o.tix) gTixAside(old); else old.remove();
   }
   gTixStack();
   return el;
+}
+// o.life ms on screen. 1.114.2 (to-do #193): a finger on the pass holds its time (the swipe handler); on letting go the rest
+// runs as normal, or, if the time is up, 1.5 s more.
+function gAwTimer(el, life){
+  el.until = Date.now() + life; clearTimeout(el.outT); if (!el.held) el.outT = setTimeout(el.out, life);
+  el.hold = () => { el.held = true; el.heldAt = Date.now(); el.longHold = false; clearTimeout(el.outT); };
+  el.release = () => {
+    el.held = false; el.longHold = Date.now() - el.heldAt > 400; clearTimeout(el.outT);
+    const left = el.until - Date.now();
+    el.until = Date.now() + (left > 0 ? left : 1500); el.outT = setTimeout(el.out, el.until - Date.now());
+  };
+}
+// A pop-up's tap: it goes, and takes you there. A swipe or a long hold isn't a tap.
+function gAwTap(el, go){
+  el.onclick = () => {
+    if (el.swiped) { el.swiped = false; return; }
+    if (el.longHold) { el.longHold = false; return; }
+    el.out(); go();
+  };
+}
+/* 1.124 (to-do #246, Dave's pick 1): one thing at a time. All that one scan brings stands in a line: its ticket, the
+   streak's pass, the passport's pop-up, the card's pop-up. One is on screen; the next rises when it has left (by time, tap,
+   swipe, or something else removing it), GL_GAP later. A torn pass stays RIP_AFTER once its stub is off, a pop-up POP_MS. While the line runs, other planes' tickets step aside with their clocks stopped (gTixAside, gTixBack). A show()
+   returns its element or null (or a promise of it); no element, or an error, and the next one comes. */
+const GL_GAP = 300, GL_STUCK = 90000, GL_TIX = 4;
+const gLine = {q: [], el: null, pop: false, busy: false, t: 0, gapTo: 0, at: 0};
+const gLineOn = () => !!(gLine.el || gLine.busy || gLine.q.length);
+function gLineAdd(show, pop, keep){                          // keep: the plane whose ticket this one becomes
+  gLine.q.push({show, pop: !!pop, keep});
+  gLineRun();
+}
+function gLineRun(){
+  clearTimeout(gLine.t);
+  if (gLine.busy) return;
+  const now = Date.now();
+  if (gLine.el) {
+    if (gLine.el.isConnected && now - gLine.at > GL_STUCK) gLine.el.remove();   // the finger's end never came: the line goes on
+    if (gLine.el.isConnected) { gLine.t = setTimeout(gLineRun, 150); return; }
+    gLine.el = null; gLine.pop = false; gLine.gapTo = now + GL_GAP;
+  }
+  if (!gLine.q.length) { gTixBack(); return; }
+  if (now < gLine.gapTo) { gLine.t = setTimeout(gLineRun, gLine.gapTo - now); return; }
+  const it = gLine.q.shift();
+  gLine.busy = true; gLine.pop = it.pop;
+  const box = $("gAws");
+  for (const x of box ? [...box.children] : []) if (x.dataset.tix && x.dataset.tix !== it.keep && !x.classList.contains("out")) gTixAside(x);
+  Promise.resolve().then(it.show).catch(e => { dlog("warn", `Scan's pop-up: ${e && e.message || e}`); return null; }).then(el => {
+    gLine.busy = false;
+    gLine.el = el && el.isConnected ? el : null;
+    if (gLine.el) gLine.at = Date.now(); else gLine.pop = false;
+    gLineRun();
+  });
 }
 // 1.110 (to-do #159): the ticket design in use (Settings → Styles → Ticket; "" the plain ticket), only while it is yours.
 function tixEra(){
@@ -6305,12 +6431,13 @@ function tixEraHtml(era, o){
 // A pass's paper (1.98: also a plane's ticket, and that ticket made into the scan's at the scan): o.life ms on screen.
 // 1.110: in the ticket design in use (o.era instead, if given; the gallery's previews), a golden ticket always gold foil.
 function gPassFill(el, o){
-  el.className = "gAw" + (o.tix ? " tix" : "") + (o.rip ? " rip" + (o.rip > 1 ? " rip2" : "") : "");
+  el.className = "gAw" + (o.tix ? " tix" : "") + (o.rip ? " rip" : "");
   if (o.tix) el.dataset.tix = o.tix; else delete el.dataset.tix;
+  const two = !!o.lines && o.lines.length > 3;    // 1.124: from three extras on, under the first line in two short columns
   const nx = o.gold ? ` data-nx="${escH(T("(no ×2)"))}"` : "", era = o.gold ? "" : o.era != null ? o.era : tixEra();
   el.innerHTML = `<div class="pF ${o.kind || "uncommon"}${o.gold ? " gold" : ""}${era ? " e-" + era : ""}"><div class="main"><div class="band"><span>${escH(o.band)}</span><span>${escH(o.bandR || "")}</span></div>` +
-    tixEraHtml(era, o) + (o.body || "") + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b><span>${escH(o.who[1] || "")}</span></div>` : "") + (o.route || "") +
-    (o.lines && o.lines.length ? `<div class="lns">${o.lines.map(([l, n, x]) => `<div class="${x}"><span${String(x).split(" ")[0] === "x" ? nx : ""}>${escH(l)}</span><b>${gPlus0(n)}</b></div>`).join("")}</div>` : "") +
+    tixEraHtml(era, o) + (o.body || "") + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b>${o.who[2] ? `<span class="fw">${o.who[2]}</span>` : `<span>${escH(o.who[1] || "")}</span>`}</div>` : "") + (o.route || "") +
+    (o.lines && o.lines.length ? `<div class="lns${two ? " two" : ""}">${o.lines.map(([l, n, x, sh], i) => `<div class="${x}"><span${String(x).split(" ")[0] === "x" && !two ? nx : ""}>${escH(two && i && sh || l)}</span><b>${gPlus0(n)}</b></div>`).join("")}</div>` : "") +
     (o.note ? `<div class="nt">${escH(o.note)}</div>` : "") +
     (o.ly ? `<div class="lyFF ly${o.ly.t}"><b>${escH(o.ly.code)}</b><i>·</i><em>${escH(T(LY_NAME[o.ly.t]))}</em></div>` : "") + (o.sky ? `<button type="button" class="scn">${SKY_ICO}<span>${escH(T("Scan in Sky view"))}</span><i>›</i></button>` : "") +
     (o.gold ? `<div class="gl"></div><i class="sp" style="left:222px;top:58px">✦</i><i class="sp" style="left:150px;top:12px">✦</i>` : "") +
@@ -6331,28 +6458,49 @@ function gPassFill(el, o){
     if (!o.sky) return out();
     audioInit(); if (arOn) ctlSound.nav(); arOpenAt(o.sky.hex, o.sky.flight);   // the ticket stays; in Sky view it only picks the plane out (opening it sounds by itself)
   };
-  const life = o.life || 6500;
   if (o.tix && !el.minUntil) el.minUntil = Date.now() + TIX_MIN;
-  el.until = Date.now() + life; clearTimeout(el.outT); if (!el.held) el.outT = setTimeout(out, life);
-  // 1.114.2 (to-do #193): a finger on the pass holds its time (the swipe handler); on letting go the rest runs as normal,
-  // or, if the time is up, 1.5 s more
-  el.hold = () => { el.held = true; el.heldAt = Date.now(); el.longHold = false; clearTimeout(el.outT); };
-  el.release = () => {
-    el.held = false; el.longHold = Date.now() - el.heldAt > 400; clearTimeout(el.outT);
-    const left = el.until - Date.now();
-    el.until = Date.now() + (left > 0 ? left : 1500); el.outT = setTimeout(out, el.until - Date.now());
-  };
+  gAwTimer(el, o.rip ? RIP_MS : o.life || 6500);
+  // 1.124: counted from the end of the tear; RIP_MS is the fallback (reduced motion has no tear, a hidden page no animation)
+  if (o.rip) el.querySelector(".stub").addEventListener("animationend", e => {
+    if (e.animationName !== "pfTear" || el.classList.contains("out")) return;
+    el.until = Date.now() + RIP_AFTER;
+    if (!el.held) { clearTimeout(el.outT); el.outT = setTimeout(el.out, RIP_AFTER); }
+  });
   return el;
 }
 const gWho = (f, km) => [f.flight || NA, [f.airline, f.type, km != null ? distText(km) : ""].filter(Boolean).join(" · ")];
+/* 1.124 (to-do #247, Dave's pick C): what's new on a ticket (the airline, the type, the route's new country) is gold foil on the
+   letters themselves, from before the beam until the ticket goes. One beam crosses the ticket as it rises: each letter
+   brightens and grows as the light reaches its place, so letters at the same place in two lines light together. Reduced
+   motion: gold, no beam. Letters are <u> (.ppRt i draws a plane), one name to a screen reader. */
+const nwWord = s => `<em class="nw" role="img" aria-label="${escH(s)}">${s.split(" ").map(w => `<s aria-hidden="true">${[...w].map(c => `<u>${escH(c)}</u>`).join("")}</s>`).join(" ")}</em>`;
+// gWho with the new names in foil: its third item is the line's html, the distance apart (it goes first if there's no room).
+function gWhoNw(f, km, nwAir, nwType){
+  const w = gWho(f, km), a = nwAir && f.airline, t = nwType && f.type;
+  if (!a && !t) return w;
+  const names = [f.airline && (a ? nwWord(f.airline) : escH(f.airline)), f.type && (t ? nwWord(f.type) : escH(f.type))].filter(Boolean).join(" · ");
+  return [w[0], w[1], names + (km != null ? `<small class="km"> · ${escH(distText(km))}</small>` : "")];
+}
+// Once a ticket is on screen: a new name that doesn't fit first loses the distance, then the line goes under the flight, on two lines if it must; then the beam.
+function gAwFoil(el){
+  const s = el.querySelector(".who span.fw"), over = () => s.scrollWidth > s.clientWidth + 1;
+  if (s && over() && s.querySelector(".km")) s.querySelector(".km").remove();
+  if (s && over()) s.parentNode.classList.add("wrap");
+  const us = el.querySelectorAll("em.nw u");
+  if (!us.length) return;
+  const left = el.getBoundingClientRect().left, w = el.querySelector(".main").offsetWidth || 250;
+  for (const u of us) u.style.setProperty("--t", (.45 + (u.getBoundingClientRect().left - left) / w * 1.1).toFixed(3) + "s");
+  el.classList.add("beam");
+}
 /* 1.98 (to-do #146, Dave's picks): a plane that comes within the scan's circle (10 km; the relay's list, /game/me "scan")
    gets a ticket, once: the boarding pass with what a scan gives now (only what is sure: the plane's full points, a type or
    an airline new to the game), their total on the stub, the daily streak as a line of its own (not in the total) while
    nothing was scanned today, and "Scan in Sky view" (a tap anywhere on it: Sky view with the plane picked out). It folds
-   away after 10 s, when it is swiped away or its plane is scanned; it doesn't come back for that plane (its ★ in Sky view
+   away after 6.5 s (TIX_MS), when it is swiped away or its plane is scanned; it doesn't come back for that plane (its ★ in Sky view
    stays). Newest on top, the older ones peeking out under it; a fourth ticket puts the oldest away, a shorter pass only
    for a while (gTixOut, gTixBack). At the scan the plane's ticket becomes the scan's (gScanPops). */
-const TIX_MS = 10000, TIX_MIN = 6000, TIX_KEY = "od.tix";
+// 1.124: a plane's ticket 6.5 s (it was 10); a torn one 3 s once its stub is off (RIP_MS from the scan: the tear's 1.05 + 1.1 s and those 3 s); a pop-up 6.5 s
+const TIX_MS = 6500, RIP_AFTER = 3000, RIP_MS = 5150, POP_MS = 6500, TIX_MIN = 6000, TIX_KEY = "od.tix";
 const gTixOut = new Set();
 let gTixSeen = null;                                  // hex → when its ticket came up (kept 2 h, so a reload doesn't show it again)
 function gTixSync(list){
@@ -6373,23 +6521,34 @@ function gTixSync(list){
 function gTixShow(x){
   const f = fromRelay(x), R = gRules(), can = x.can || {};
   const gold = !!x.gold, lines = [gAwLine({k: "scan", r: 4, tier: x.tier, p: x.full * (gold ? 2 : 1), full: x.full, gold}, f, true)];   // 1.100: golden, ×2
-  if (can.type) lines.push(gAwLine({k: "new", w: "type", p: can.type, n: x.typeCode}, f));
-  if (can.airline) lines.push(gAwLine({k: "new", w: "airline", p: can.airline, n: String(x.callsign || "").slice(0, 3)}, f));
+  const extra = a => lines.push([...gAwLine(a, f), gAwShort(a)]);
+  if (can.type) extra({k: "new", w: "type", p: can.type, n: x.typeCode});
+  if (can.airline) extra({k: "new", w: "airline", p: can.airline, n: String(x.callsign || "").slice(0, 3)});
   const n = gme && !gme.scannedToday && R ? (gme.streak || 0) + 1 : 0;
-  gPop({tix: x.hex, kind: x.tier, band: gold ? T("GOLDEN TICKET · {k} KM", {k: gScanKm()}) : T("WITHIN {k} KM", {k: gScanKm()}), bandR: T(TIER_UP[x.tier] || "UNCOMMON") + " ★", who: gWho(f, x.km), lines,
+  gPop({tix: x.hex, kind: x.tier, band: gold ? T("GOLDEN TICKET · {k} KM", {k: gScanKm()}) : T("WITHIN {k} KM", {k: gScanKm()}), bandR: T(TIER_UP[x.tier] || "UNCOMMON") + " ★", who: gWhoNw(f, x.km, can.airline, can.type), lines,
     note: n ? T("Daily streak +{p}", {p: nf.format(R.streak * n)}) : "", stub: gold ? T("GOLDEN") : T("SCAN"), gold,
     p: lines.reduce((s, l) => s + l[1], 0), sky: {hex: x.hex, flight: f.flight}, life: TIX_MS, ly: lyTicket(airlineOf(x).icao, (((lbData() || {}).game || {}).wallet || {})[airlineOf(x).icao])});
 }
-// A ticket pushed out by a shorter pass comes back at the bottom once there is room, while its 10 s and its plane last.
+// 1.124: a ticket aside doesn't run out unseen: its clock stops (el.left, el.minLeft) until it comes back.
+function gTixAside(el){
+  const now = Date.now();
+  clearTimeout(el.outT); el.held = false;
+  el.left = Math.max(0, el.until - now); el.minLeft = Math.max(0, (el.minUntil || 0) - now);
+  el.remove(); gTixOut.add(el);
+}
+const gTixUp = box => [...box.children].filter(x => !x.classList.contains("out")).length;
+// A ticket aside comes back on top, in turn, once the line is done and there is room, with the time it had left, while its plane lasts.
 function gTixBack(){
   const box = $("gAws");
-  if (!box) return;
+  if (!box || gLineOn()) return;
   for (const el of [...gTixOut]) {
-    if (box.children.length >= 3) break;
+    if (gTixUp(box) >= GL_TIX) break;
     gTixOut.delete(el);
-    if (Date.now() > el.until - 1000 || !gScanSet().has(el.dataset.tix) || box.querySelector(`[data-tix="${el.dataset.tix}"]`)) continue;
-    box.insertBefore(el, box.firstChild);
-    clearTimeout(el.outT); el.outT = setTimeout(el.out, el.until - Date.now());
+    if (el.left < 1000 || !gScanSet().has(el.dataset.tix) || box.querySelector(`[data-tix="${el.dataset.tix}"]`)) continue;
+    const now = Date.now();
+    el.until = now + el.left; el.minUntil = now + el.minLeft;
+    box.appendChild(el); gAwFoil(el);
+    clearTimeout(el.outT); el.outT = setTimeout(el.out, el.left);
   }
   gTixStack();
 }
@@ -6416,36 +6575,50 @@ function gAwards(list, quiet){
   // 1.98 (to-do #146): the passive points show only on the strip (+N); a plane within the scan's circle gets its ticket
   for (const a of fresh.filter(x => x.k === "limit" && x.first)) {
     const f = fromRelay(a), R = gRules(), m = (R && R.limit[a.tier]) || (a.n || 1) - 1, t = gTierT(a.tier);
-    gPop({kind: "no", band: T("NO POINTS · LIMIT"), bandR: `${T(TIER_UP[a.tier] || "UNCOMMON")} ${m}/${m}`, who: gWho(f, a.km), lines: [gAwLine(a, f)],
+    const show = () => gPop({kind: "no", band: T("NO POINTS · LIMIT"), bandR: `${T(TIER_UP[a.tier] || "UNCOMMON")} ${m}/${m}`, who: gWho(f, a.km), lines: [gAwLine(a, f)],
       note: T("Scores again {h}", {h: gme && gme.resets ? hhmm(new Date(gme.resets)) : "00:00"}), p: 0});
+    if (gLineOn()) gLineAdd(show); else show();                  // 1.124: not onto what a scan has up
   }
 }
-// Sky view's scan: the scan's pass (the top-up and the extras), then the streak's on top of it at the day's first scan.
-// Returns the passes that tear their stub off, in the order they do (1.97.8: the streak's tears a moment after the scan's).
-// 1.98: the plane's ticket, if it is on screen, becomes the scan's pass (on top, 10 s from the scan); both stay 10 s.
-function gScanPops(r){
+// Sky view's scan: all it brings stands in the line (gLine): the scan's pass (the top-up and the extras), the streak's at the
+// day's first scan, the passport's pop-up, the card's pop-up. The data changes now; each one shows at its turn, and
+// onPass(el, i) then hears of the passes that tear their stub off (i: 0 the scan's, 1 the streak's).
+// 1.98: the plane's ticket, if it is on screen or stepped aside, becomes the scan's pass.
+function gScanPops(r, onPass){
   const f = fromRelay(r), lines = r.lines || [{k: "scan", p: r.bonus, tier: r.tier, full: r.full}];
   const main = lines.filter(a => a.k !== "streak"), stk = lines.find(a => a.k === "streak");
-  const o = {kind: r.tier || "uncommon", band: T("SKY VIEW · SCANNED"), bandR: T(TIER_UP[r.tier] || "UNCOMMON") + " ★", who: gWho(f, r.km),
-    lines: main.map(a => gAwLine({tier: r.tier, ...a}, f, true)), stub: r.gold ? T("GOLDEN") : T("SCAN"), p: main.reduce((s, a) => s + a.p, 0), rip: true, life: TIX_MS, gold: !!r.gold,
+  const nwOf = w => main.some(a => a.k === "new" && a.w === w);
+  const o = {kind: r.tier || "uncommon", band: T("SKY VIEW · SCANNED"), bandR: T(TIER_UP[r.tier] || "UNCOMMON") + " ★", who: gWhoNw(f, r.km, nwOf("airline") || (r.airline && r.airline.scans === 1), nwOf("type")),
+    lines: main.map(a => [...gAwLine({tier: r.tier, ...a}, f, true), gAwShort(a)]), stub: r.gold ? T("GOLDEN") : T("SCAN"), p: main.reduce((s, a) => s + a.p, 0), rip: true, gold: !!r.gold,
     ly: r.airline ? lyTicket(r.airline.code, r.airline.scans) : null, route: ppRoute(r.route)};    // 1.107: the route, a new country marked
-  const w = r.airline && ((lbData() || {}).game || {}).wallet;
+  const g0 = (lbData() || {}).game, w = r.airline && g0 && g0.wallet;
   if (w) w[r.airline.code] = r.airline.scans;
-  const box = $("gAws"), tix = box && [...box.children].find(el => el.dataset.tix === String(r.hex) && !el.classList.contains("out"));
-  let pass;
-  if (tix) {
-    gTixOut.delete(tix);
-    if (tix !== box.lastChild) box.appendChild(tix);
-    pass = gPassFill(tix, o); gTixStack();
-  } else pass = gPop(o);
-  setTimeout(() => ppNew(r), fsStill() ? 0 : 1400);                 // 1.107: a country new to the passport, over the ticket
-  if (!stk) return [pass];
-  const wd = (new Date().getDay() + 6) % 7, R = gRules(), per = (R && R.streak) || stk.p / stk.n;
-  const fmt = new Intl.DateTimeFormat(LANG, {weekday: "narrow"});
-  const days = Array.from({length: 7}, (_, i) => `<i class="${i === wd ? "now" : i < wd && i > wd - stk.n ? "on" : ""}">${escH(fmt.format(new Date(2026, 9, 26 + i, 12)))}</i>`).join("");
-  const pass2 = gPop({kind: "stk", band: T("DAILY STREAK"), bandR: T("DAY {n} THIS WEEK", {n: stk.n}), body: `<div class="days">${days}</div>`, stub: T("STREAK"), p: stk.p, rip: 2, life: TIX_MS,
-    note: wd < 6 ? T("Tomorrow's scan +{p}", {p: nf.format(per * (stk.n + 1))}) : T("Restarts {d} {h}", {d: sbyDay(0, "short"), h: gme && gme.resets ? hhmm(new Date(gme.resets)) : "00:00"})});
-  return [pass, pass2];
+  if (r.airline && (r.airlineName || r.airlineIata)) lyKnown[r.airline.code] = {name: r.airlineName || "", iata: r.airlineIata || ""};
+  const newCc = ppStampNow(r), newCard = !!r.airline && r.airline.scans === 1, cardN = newCard && w ? lyList(g0).length : 1;
+  if (newCc) worldMap();                                        // on its way before its turn
+  gLineAdd(() => {
+    const box = $("gAws"), tix = (box && [...box.children].find(el => el.dataset.tix === String(r.hex) && !el.classList.contains("out"))) || [...gTixOut].find(el => el.dataset.tix === String(r.hex));
+    let pass;
+    if (tix) {
+      gTixOut.delete(tix);
+      const b = gAwsBox();
+      if (tix !== b.lastChild) b.appendChild(tix);
+      pass = gPassFill(tix, o); gAwFoil(pass); gTixStack();
+    } else pass = gPop(o);
+    if (onPass) onPass(pass, 0);
+    return pass;
+  }, false, String(r.hex));
+  if (stk) gLineAdd(() => {
+    const wd = (new Date().getDay() + 6) % 7, R = gRules(), per = (R && R.streak) || stk.p / stk.n;
+    const fmt = new Intl.DateTimeFormat(LANG, {weekday: "narrow"});
+    const days = Array.from({length: 7}, (_, i) => `<i class="${i === wd ? "now" : i < wd && i > wd - stk.n ? "on" : ""}">${escH(fmt.format(new Date(2026, 9, 26 + i, 12)))}</i>`).join("");
+    const pass = gPop({kind: "stk", band: T("DAILY STREAK"), bandR: T("DAY {n} THIS WEEK", {n: stk.n}), body: `<div class="days">${days}</div>`, stub: T("STREAK"), p: stk.p, rip: true,
+      note: wd < 6 ? T("Tomorrow's scan +{p}", {p: nf.format(per * (stk.n + 1))}) : T("Restarts {d} {h}", {d: sbyDay(0, "short"), h: gme && gme.resets ? hhmm(new Date(gme.resets)) : "00:00"})});
+    if (onPass) onPass(pass, 1);
+    return pass;
+  });
+  if (newCc) gLineAdd(() => ppNew(r), true);
+  if (newCard) gLineAdd(() => lyNew(r, cardN), true);
 }
 // A little shower of coins when points land (with the button sounds on).
 function gCoins(){
@@ -6578,7 +6751,7 @@ function renderGame(){
     if (L && !gAll) lg += plFoot(resetsT(L.resets), L.champion ? T("Last week's winner: {n}", {n: L.champion}) : "");   // 1.122 (to-do #231): no more opting out; a scorer is in
     h = secPlate(T("League"), lg, "lgPlate");
     if (g0) h += recordsHtml(all, g0, "bingo") + recordsHtml(all, g0, "trophies");   // 1.119.1 (to-do #214): under the league
-  } else if (g0) h = sub === "hangar" ? collectionHtml(g0) : sub === "passport" ? passportHtml(g0) : walletHtml(g0);   // 1.106: the member cards; 1.107: the passport
+  } else if (g0) h = sub === "hangar" ? collectionHtml(g0) : sub === "passport" ? passportHtml(g0) : walletHtml(g0);   // 1.106: the Frequent flyer cards; 1.107: the passport
   // 1.103: the flight school's record first while it runs; once signed, at the end (its signature once the font is here)
   const fs = sub === "level" && fsState();
   if (fs && !fs.wings) h = secPlate(T("Flight school"), fsRecord(fs), "fsPlate") + h;
@@ -6609,6 +6782,7 @@ function renderGame(){
   for (const li of box.querySelectorAll("[data-player]")) li.onclick = () => playerCard(li.dataset.player);
   for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.nav(); gAll = b.dataset.ga === "1"; renderGame(); };
   if ($("gHow")) $("gHow").onclick = gHowCard;
+  if ($("lyHow")) $("lyHow").onclick = lyHow;
   if ($("cuOpen")) $("cuOpen").onclick = careerOpen;
   if ($("gSby")) $("gSby").onclick = gSbyOpen;
   if ($("gLim")) $("gLim").onclick = gLimOpen;
@@ -6619,7 +6793,7 @@ function renderGame(){
 /* 1.116 (to-do #208, Dave's pick B): the Club's sub-tabs, a bar stuck under the Logbook · Spotters' Club titles (the
    segmented style that scrolls sideways, as Settings' jump bar had it). Each shows one part; a part the relay doesn't
    send yet (an older relay) has no tab. Opening the Club from another tab starts at Level (showTab). */
-const G_SUBS = [["level", "Level"], ["league", "League"], ["hangar", "Hangar"], ["passport", "Passport"], ["cards", "Cards"]];
+const G_SUBS = [["level", "Level"], ["league", "League"], ["hangar", "Hangar"], ["passport", "Passport"], ["cards", "Frequent flyer"]];
 const G_PARTS = {bingo: "bgPlate", trophies: "trPlate"};         // 1.119.1 (to-do #214): Level's lines to a part of the League tab
 let gSub = "level";
 const gSubHas = (k, g0) => k === "level" || k === "league" || (!!g0 && (k === "hangar" || k === "trophies" || (k === "passport" && !!g0.passport) ||
@@ -6660,7 +6834,7 @@ function gIndexHtml(g, g0){
     const pp = ppList(g0.passport).length;
     row("passport", "Passport", T(pp === 1 ? "1 country" : "{n} countries", {n: nf.format(pp)}));
     const ly = g0.wallet ? lyList(g0).length : 0;
-    row("cards", "Member cards", T(ly === 1 ? "1 airline" : "{n} airlines", {n: nf.format(ly)}));
+    row("cards", "Frequent flyer", T(ly === 1 ? "1 card" : "{n} cards", {n: nf.format(ly)}));
     const bg = g0.bingo;
     row("bingo", "Bingo", T("{n} of 9", {n: Object.keys((bg && bg.done) || {}).length}));
     const won = g0.trophies || {};
@@ -6750,7 +6924,7 @@ function gHowCard(){
       p(T("Only with a scan:"), T("a type new to the game +{t}, a new airline +{a}.", {t: nf.format(R.new.type), a: nf.format(R.new.airline)})) +
       (R.mastery && R.mastery.length > 3 ? p(T("Mastery:"), T("the scan that brings a type to {a}, {b}, {c} or {d} scans adds that many points × its rarity once (×1 common to ×50 special), and its hangar card turns bronze, silver, gold or platinum.",
         {a: R.mastery[0][0], b: R.mastery[1][0], c: R.mastery[2][0], d: R.mastery[3][0]})) : "") +   // 1.105 (relay 88); 1.112 (relay 96): four steps × rarity
-      (R.loyalty ? p(T("Member cards:"), T("your first scan of an airline's plane makes you a member; the scan that brings it to {a}, {b} or {c} adds +{x}, +{y} or +{z} once: Silver, Gold, Platinum.",
+      (R.loyalty ? p(T("Frequent flyer:"), T("your first scan of an airline's plane makes you a member; the scan that brings it to {a}, {b} or {c} adds +{x}, +{y} or +{z} once: Silver, Gold, Platinum.",
         {a: R.loyalty[0][0], b: R.loyalty[1][0], c: R.loyalty[2][0], x: nf.format(R.loyalty[0][1]), y: nf.format(R.loyalty[1][1]), z: nf.format(R.loyalty[2][1])})) : "") +   // 1.106 (relay 89)
       (R.country ? p(T("Passport:"), T("a scanned flight with a known route stamps the countries it flies from and to; a country new to your passport adds +{p}.", {p: nf.format(R.country)})) : "") +   // 1.107 (relay 90)
       `<p class="gHowH">${escH(T("Daily streak"))}</p><p class="gRule">${escH(T("Your first scan each day adds +{n} for each day in a row. A day without a scan starts it again at day 1, and so does Monday at 00:00, with the league.", {n: R.streak}))}</p>` +
@@ -6920,29 +7094,28 @@ async function gLockOn(hex){
     if (r && r.why === "closer") { $("arHint").hidden = false; $("arHint").textContent = T("Too far to scan: planes can be scanned within {k} km.", {k: r.scanKm || gScanKm()}); }
     return;
   }
-  const passes = gScanPops({hex, callsign: String(ac.flight || "").trim(), reg: ac.r || "", typeCode: ac.t || "", ...r});
-  gJingle();
-  // 1.97.8: each stub tears off (CSS .rip, 1.97.1.1; the streak's .rip2 0.7 s after the scan's) with the paper sound at the
-  // moment it comes off (its animationstart), and the burst starts at the scan's tear line. With reduced motion there is no
-  // tear: the burst stays where it was, in the ring, at once, and the sounds come on the same count.
+  // 1.97.8: each stub tears off (CSS .rip, 1.97.1.1) with the paper sound at the moment it comes off (its animationstart), and
+  // the burst starts at its tear line. With reduced motion there is no tear: the scan's burst stays where it was, in the ring,
+  // at once, and the sounds come on the same count. 1.124: the count starts when each pass shows, at its turn in the line.
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
   // 1.101: a golden ticket's stub tears with its own sound (gGold) and throws gold glitter (none with reduced motion).
   const gold = !!r.gold, rip = i => gold && !i ? gGold : gRip;
   if (still && !gold) gBurst();
-  passes.forEach((pass, i) => {
+  gScanPops({hex, callsign: String(ac.flight || "").trim(), reg: ac.r || "", typeCode: ac.t || "", ...r}, (pass, i) => {
     const stub = pass && pass.querySelector(".stub");
-    if (!stub || still) { setTimeout(rip(i), 1050 + i * 700); return; }
+    if (!stub || still) { setTimeout(rip(i), 1050); return; }
     let torn = false;
     const tear = () => {
       if (torn) return;
       torn = true; rip(i)();
-      if (i || !stub.isConnected) return;
+      if (!stub.isConnected) return;
       const a = stub.getBoundingClientRect(), v = $("arView").getBoundingClientRect();
-      gBurst(a.left - v.left, a.top - v.top + a.height / 2, gold);
+      gBurst(a.left - v.left, a.top - v.top + a.height / 2, gold && !i);
     };
     stub.addEventListener("animationstart", tear, {once: true});
-    setTimeout(tear, 1500 + i * 700);                              // no animationstart (the page hidden): the sound at least
+    setTimeout(tear, 1500);                                        // no animationstart (the page hidden): the sound at least
   });
+  gJingle();
   try { navigator.vibrate && navigator.vibrate([40, 30, 80]); } catch {}
   setTimeout(() => gRefresh(true), 2500);
 }
