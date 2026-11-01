@@ -1448,8 +1448,8 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 @keyframes ppCardHit{0%,40%{box-shadow:0 0 0 2px var(--amber)}}
 @media (prefers-reduced-motion:reduce){.pCard.hit{animation:none;box-shadow:0 0 0 2px var(--amber)}}
 .ppDrop{position:absolute;width:0;height:0;display:grid;place-items:center;pointer-events:none}
-.ppDrop .pS{position:absolute;animation:ppLand .7s cubic-bezier(.3,1.4,.5,1) both;filter:drop-shadow(0 6px 6px rgba(0,0,0,.25))}
-@keyframes ppLand{0%{transform:rotate(-26deg) scale(1.9);opacity:0}55%{transform:rotate(-10deg) scale(.62);opacity:.95}100%{transform:rotate(-12deg) scale(.66);opacity:.9}}
+.ppDrop .pS{position:absolute;transform:rotate(-12deg) scale(.495);animation:ppLand .7s cubic-bezier(.3,1.4,.5,1) both;filter:drop-shadow(0 6px 6px rgba(0,0,0,.25))}
+@keyframes ppLand{0%{transform:rotate(-26deg) scale(1.425);opacity:0}55%{transform:rotate(-10deg) scale(.465);opacity:.95}100%{transform:rotate(-12deg) scale(.495);opacity:.9}}   /* 1.124: .75 of before, with the pop-up */
 @media (prefers-reduced-motion:reduce){.ppDrop .pS,.ppShelf.hit .hgHead b,.secPlate.hit h3{animation:none!important}}
 #gLvUp{position:fixed;inset:0;z-index:60;background:rgba(5,5,6,.86);display:grid;place-items:center;padding:24px;text-align:center}
 #gLvUp .lvBox{display:grid;gap:12px;justify-items:center;animation:gPop .45s cubic-bezier(.2,1.5,.4,1)}

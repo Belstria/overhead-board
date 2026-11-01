@@ -536,13 +536,13 @@ The main board has everything below. New features are tried on `/test/` first; o
   ticket opens Sky view with that plane picked out, its ring on it and its chip pointing to it (in Sky view the tap
   only picks it out). A ticket stays **6.5 seconds**, or until it is swiped away sideways or its plane is scanned (a plane
   that flies out of the circle leaves its ticket up for at least 6 seconds), and
-  doesn't come back for that plane (its gold ★ in Sky view stays). Several planes: one ticket each, up to three on screen,
-  **newest on top** with the older ones peeking out under it; a fourth puts the oldest away, a shorter pass only for a
-  while (the ticket comes back while its time lasts). In Sky view the tickets sit at its bottom. **At the scan** the
+  doesn't come back for that plane (its gold ★ in Sky view stays). Several planes: one ticket each, up to four on screen,
+  **newest on top** with the older ones peeking out under it; more wait their turn with their time stopped, and show
+  while their plane is still around. In Sky view the tickets sit at its bottom. **At the scan** the
   plane's ticket, if it is still up, becomes the scan's ticket (what the scan really gave) and tears; it stays **3 seconds after its stub is off**, and so
   does the streak's pass. **One thing at a time** (1.124): all a scan brings comes one after the other in the same place: the scan's
   ticket, the streak's pass, the passport's pop-up, the new card's pop-up. Swipe or tap one away and the next rises; a pop-up
-  stays 14 seconds, and planes' tickets step aside for it and come back after. A swipe past 40% of the width or a flick
+  stays 6.5 seconds. Other planes' tickets step aside for all of this, their time stopped, and come back after. A swipe past 40% of the width or a flick
   sends a ticket, pop-up or notice away; a shorter one bounces back. From three extras on, a ticket shows them under the first line in two short columns. What's **new** on a ticket (the airline's name, the type, the route's new country) is in **gold foil**, and one beam of light crosses it as the ticket rises. The first plane past a limit still shows a grey pass, "+0 · Common limit reached" (later ones stay
   quiet); a scan brings a prize jingle and a buzz. **Golden tickets** (1.101): now and then (about one plane in 20) a
   plane's ticket comes up **gold**: gold foil with a sheen, "GOLDEN TICKET · 10 KM", the stub "GOLDEN" with ×2. Its scan

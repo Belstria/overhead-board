@@ -957,11 +957,12 @@ The repository is public: no addresses, keys or personal data here either.
   **The line:** `gLine`, `gLineAdd(show, pop)`, `gLineRun` (polls the element every 150 ms, so anything that removes it moves the line on;
   `GL_GAP` .3 s; `GL_STUCK` 90 s if a finger's end never came). `gScanPops(r, onPass)` changes the data at once (`ppStampNow`, the wallet) and
   queues each thing; `gLockOn` tears, sounds and bursts in `onPass`, at each pass's turn (the streak's pass now has a burst of its own; `.rip2` went).
-  `gLineHolds()`: a pop-up up or waiting: planes' tickets go to `gTixOut` and `gTixBack` waits; a limit pass queues while the line runs.
+  While the line runs (`gLineOn`) planes' tickets, all but the scanned plane's (`keep`), go aside through `gTixAside`: `gTixOut` with the clock stopped (`el.left`, `el.minLeft`); `gTixBack` waits, then gives each its time left while its plane is in `gScanSet()`. The same beyond `GL_TIX` (4) on screen. A limit pass queues while the line runs.
+  Airlines outside `AIRLINES`: `lyInfo` (`lyKnown` from the scan's `airlineName`/`airlineIata`, then the logbook's `airlines`) feeds `lyCode`, `lyWritten`, `lyName`.
   To-do #247: from three extras `.lns.two`, with `gAwShort(a)` as the label (a 4th item in the ticket's lines; `gAwLine` and so Recent points keep the full text; no "(no ×2)" there).
   `lyWritten`: the name as the table writes it, for `.lyTop` and the pop-up's footer (`lyName` is in the board's capitals).
   **New names (to-do #247, pick C):** `nwWord` (`em.nw`, each letter a `u` with the foil clipped to it), `gWhoNw` (a who's third item, its html) and `ppRoute`; `gAwFoil(el)` once it's on screen: the distance goes, then `.who.wrap`, then each letter's `--t` and `.beam`.
-  **Times:** `TIX_MS` 6.5 s, torn passes `RIP_AFTER` 3 s from the stub's `animationend` (`RIP_MS` 5.15 s the fallback and reduced motion), `POP_MS` 14 s;
+  **Times:** `TIX_MS` 6.5 s, torn passes `RIP_AFTER` 3 s from the stub's `animationend` (`RIP_MS` 5.15 s the fallback and reduced motion), `POP_MS` 6.5 s;
   `gAwTimer` holds the finger's hold and release. **Swipe:** past 40% of the width or a flick (last move's `v > .5` over 20 px), else the
   springy CSS transition on `.gAw` / `#toasts .toast`; `t.swiped` is reset at each start (a bounced touch swipe gets no click).
 - 1.123.0.2 (to-do #245; relay unchanged): **a hidden plane no longer shows on the Airport board, on top or in its lists.** `apShown(list)`

@@ -2748,7 +2748,7 @@ def browser_checks(browser):
     # 1.124 (to-do #246): a real first scan through /game/lockon of an airline with no scan yet: the answer says 1, its card's
     # pop-up comes in its turn, one thing at a time, and a tap on it lands on that card
     e("""S = {...S, live: true}; window.__ans = null; { const o = gScanPops; gScanPops = (r, f) => { window.__ans = r; return o(r, f); }; }
-         window.__many = 0; window.__si = setInterval(() => { if (document.querySelectorAll('#gAws .gAw:not(.out):not([data-tix])').length > 1) window.__many++; }, 50); 1""")
+         window.__many = 0; window.__si = setInterval(() => { if (gLine.el && document.querySelectorAll('#gAws .gAw:not(.out)').length > 1) window.__many++; }, 50); 1""")
     picks = e("""(() => { const w = ((lbData() || {}).game || {}).wallet || {}, l = (gme && gme.scan) || [];
         return l.filter(x => !w[String(x.callsign || '').slice(0, 3)]).map(x => x.hex); })()""")
     if not picks:
@@ -2779,6 +2779,11 @@ def browser_checks(browser):
             if e("window.__many"):
                 bad.append("two things of one scan on screen at once")
     e("clearInterval(window.__si); 1")
+    # 1.124: an airline outside the table: its name and IATA code from the logbook, then the card says so
+    got = e("""(() => { const had = !!AIRLINES.XQX, A = (lbData().airlines ||= {}); A.XQX = {name: 'Aer Lingus', iata: 'XQ'};
+        const o = [had, lyWritten('XQX'), lyCode('XQX'), /data-lg="XQ"/.test(lyCardHtml(['XQX', 3], {}, 0))]; delete A.XQX; return o; })()""")
+    if got != [False, "Aer Lingus", "XQ", True]:
+        bad.append(f"an airline outside the table: {got}")
 
     # 1.88: the Remarks in the Overhead style are white and only name a delay over 30 minutes; the Airport style keeps
     # them amber with ON TIME, every delay and the gate

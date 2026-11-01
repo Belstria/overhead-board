@@ -1200,9 +1200,12 @@ const LY_COL = {AUA: "#d81e05", RYR: "#073590", DLH: "#0a1d3d", WZZ: "#c6007e", 
   ITY: "#0047bb", LOT: "#11397e", TAP: "#e1261c", IBE: "#d7192d", SAS: "#000f7a", FIN: "#0b1560", AEE: "#0a3a7a", ELY: "#0b2a6f", CTN: "#d8232a"};
 const lySteps = () => { const r = gRules(); return (r && r.loyalty) || LY; };
 const lyOf = n => (n || 0) < 1 ? -1 : lySteps().filter(s => n >= s[0]).length;    // -1: no card (no scan yet); 0 Member … 3 Platinum
-const lyCode = icao => (AIRLINES[icao] || [])[0] || icao;
-const lyName = icao => shortAirline((AIRLINES[icao] || [])[1] || icao);
-const lyWritten = icao => (AIRLINES[icao] || [])[1] || icao;   // the name as the table writes it (lyName: in the board's capitals)
+// 1.124: an airline outside the table: what its scan said (the logbook may not have a new one yet), then the logbook's, then its code
+const lyKnown = {};
+const lyInfo = (icao, k) => (lyKnown[icao] || {})[k] || (((lbData() || {}).airlines || {})[icao] || {})[k] || "";
+const lyCode = icao => (AIRLINES[icao] || [])[0] || lyInfo(icao, "iata") || icao;
+const lyName = icao => shortAirline(lyWritten(icao));
+const lyWritten = icao => (AIRLINES[icao] || [])[1] || lyInfo(icao, "name") || icao;   // the name as the table writes it (lyName: in the board's capitals)
 const lyCol = icao => LY_COL[icao] || `hsl(${[...icao].reduce((h, c) => h * 31 + c.charCodeAt(0), 7) % 360} 55% 38%)`;
 // a ticket's printed line: the airline's code and your tier with it (none while not a member)
 const lyTicket = (icao, n) => { const t = lyOf(n); return icao && t >= 0 ? {code: lyCode(icao), t} : null; };
@@ -1354,17 +1357,20 @@ function lyNew(r, n){
   gAwsBox().appendChild(el); gTixStack();
   lyLogo(el.querySelector(".lyLg"));
   el.out = () => { if (!el.isConnected || el.classList.contains("out")) return; el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); gTixBack(); }, 350); };
-  gAwTap(el, () => lyGoTo(icao));
+  gAwTap(el, () => lyGoTo(icao, r.airline.scans));
   gAwTimer(el, POP_MS);
   setTimeout(() => { fsThud(); try { navigator.vibrate && navigator.vibrate(30); } catch {} }, still ? 0 : 640);
   if (!still) setTimeout(() => { const f = el.querySelector(".lyFr"); if (f) { f.classList.remove("shine"); void f.offsetWidth; f.classList.add("shine"); } }, 820);
   return el;
 }
 // To a card: out of Sky view, the Club's Frequent flyer tab, that card in front, its front showing.
-function lyGoTo(icao){
+function lyGoTo(icao, scans){
   audioInit(); arClose(); ctlSound.nav();
+  if (tab !== "game") showTab("game");
+  const g0 = (lbData() || {}).game;                              // the logbook there may be from before the scan
+  if (g0 && g0.wallet && !g0.wallet[icao]) g0.wallet[icao] = scans;
   lyAt = icao; lyFlipped = "";
-  if (tab === "game" && gSub === "cards") { gPlates = null; hgBusy = 0; renderGame(); }
+  if (gSub === "cards") { gPlates = null; hgBusy = 0; renderGame(); }
   gGoPlate("lyPlate");
 }
 const LY_TAU = 320, LY_FAST = 62;
@@ -1401,7 +1407,7 @@ function lyWire(box){
     }
     lyAt = c.dataset.ly;
   };
-  top.onclick = () => airlineCard({airlineIcao: lyAt, airline: lyName(lyAt)});   // 1.124: the name above the card opens the airline's card
+  top.onclick = () => airlineCard({airlineIcao: lyAt, airline: lyWritten(lyAt)});   // 1.124: the name above the card opens the airline's card
   const shine = () => {
     const i = Math.round(pos), f = cs[i].querySelector(".lyFr");
     shown = i;
@@ -1864,7 +1870,7 @@ function ppNew(r){
       raf = requestAnimationFrame(step);
     };
     el.out = () => { if (!el.isConnected || el.classList.contains("out")) return; cancelAnimationFrame(raf); el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); gTixBack(); }, 350); };
-    gAwTap(el, () => ppGoTo(c0));
+    gAwTap(el, () => ppGoTo(c0, r));
     setTimeout(() => { fsThud(); try { navigator.vibrate && navigator.vibrate(30); } catch {} }, still ? 0 : 640);   // as the stamp lands
     setTimeout(inkIn, still ? 0 : 760);
     gAwTimer(el, POP_MS);
@@ -1872,8 +1878,10 @@ function ppNew(r){
   });
 }
 // To a country: out of Sky view, the Club's Passport, its region unfolded and in view, its own stamp lit up.
-function ppGoTo(cc){
+function ppGoTo(cc, r){
   audioInit(); arClose(); ctlSound.nav();
+  if (tab !== "game") showTab("game");
+  ppStampNow(r);                                                 // the logbook there may be from before the scan
   gGoPlate("ppPlate");
   const pp = ((lbData() || {}).game || {}).passport || {};
   ppGo(ppReg(cc, pp[cc]));
@@ -6339,15 +6347,16 @@ function gAwsBox(){
 }
 function gPop(o){
   const el = gPassFill(document.createElement("div"), o);
-  if (o.tix && gLineHolds()) { gTixOut.add(el); return el; }     // 1.124: a plane's ticket steps aside for a pop-up, and comes back after it (gTixBack)
   const box = gAwsBox();
+  // 1.124: a plane's ticket waits while a scan's line runs, or beyond GL_TIX on screen, and comes back after (gTixBack)
+  if (o.tix && (gLineOn() || gTixUp(box) >= GL_TIX)) { gTixAside(el); return el; }
   box.appendChild(el); gAwFoil(el);
   // up to three on screen; a plane's ticket pushed out by another pass (not by a newer ticket) comes back (gTixBack).
   // 1.119.1 (to-do #202): a ticket younger than TIX_MIN isn't pushed out: for that while it may be four
   while (box.children.length > 3) {
     const old = [...box.children].find(x => x !== el && x !== gLine.el && !(x.dataset.tix && x.minUntil > Date.now()));   // 1.124: never what the line has up
     if (!old) break;
-    old.remove(); if (old.dataset.tix && !o.tix) gTixOut.add(old);
+    if (old.dataset.tix && !o.tix) gTixAside(old); else old.remove();
   }
   gTixStack();
   return el;
@@ -6373,14 +6382,13 @@ function gAwTap(el, go){
 }
 /* 1.124 (to-do #246, Dave's pick 1): one thing at a time. All that one scan brings stands in a line: its ticket, the
    streak's pass, the passport's pop-up, the card's pop-up. One is on screen; the next rises when it has left (by time, tap,
-   swipe, or something else removing it), GL_GAP later. A torn pass stays RIP_AFTER once its stub is off, a pop-up POP_MS. While a pop-up is up or waiting its turn, planes' tickets step aside (gTixOut, gTixBack). A show()
+   swipe, or something else removing it), GL_GAP later. A torn pass stays RIP_AFTER once its stub is off, a pop-up POP_MS. While the line runs, other planes' tickets step aside with their clocks stopped (gTixAside, gTixBack). A show()
    returns its element or null (or a promise of it); no element, or an error, and the next one comes. */
-const GL_GAP = 300, GL_STUCK = 90000;
+const GL_GAP = 300, GL_STUCK = 90000, GL_TIX = 4;
 const gLine = {q: [], el: null, pop: false, busy: false, t: 0, gapTo: 0, at: 0};
 const gLineOn = () => !!(gLine.el || gLine.busy || gLine.q.length);
-const gLineHolds = () => gLine.pop || gLine.q.some(x => x.pop);
-function gLineAdd(show, pop){
-  gLine.q.push({show, pop: !!pop});
+function gLineAdd(show, pop, keep){                          // keep: the plane whose ticket this one becomes
+  gLine.q.push({show, pop: !!pop, keep});
   gLineRun();
 }
 function gLineRun(){
@@ -6396,10 +6404,8 @@ function gLineRun(){
   if (now < gLine.gapTo) { gLine.t = setTimeout(gLineRun, gLine.gapTo - now); return; }
   const it = gLine.q.shift();
   gLine.busy = true; gLine.pop = it.pop;
-  if (it.pop) {
-    const box = $("gAws");
-    for (const x of box ? [...box.children] : []) if (x.dataset.tix && !x.classList.contains("out")) { x.remove(); gTixOut.add(x); }
-  }
+  const box = $("gAws");
+  for (const x of box ? [...box.children] : []) if (x.dataset.tix && x.dataset.tix !== it.keep && !x.classList.contains("out")) gTixAside(x);
   Promise.resolve().then(it.show).catch(e => { dlog("warn", `Scan's pop-up: ${e && e.message || e}`); return null; }).then(el => {
     gLine.busy = false;
     gLine.el = el && el.isConnected ? el : null;
@@ -6493,8 +6499,8 @@ function gAwFoil(el){
    away after 6.5 s (TIX_MS), when it is swiped away or its plane is scanned; it doesn't come back for that plane (its ★ in Sky view
    stays). Newest on top, the older ones peeking out under it; a fourth ticket puts the oldest away, a shorter pass only
    for a while (gTixOut, gTixBack). At the scan the plane's ticket becomes the scan's (gScanPops). */
-// 1.124: a plane's ticket 6.5 s (it was 10); a torn one 3 s once its stub is off (RIP_MS from the scan: the tear's 1.05 + 1.1 s and those 3 s); a pop-up 14 s
-const TIX_MS = 6500, RIP_AFTER = 3000, RIP_MS = 5150, POP_MS = 14000, TIX_MIN = 6000, TIX_KEY = "od.tix";
+// 1.124: a plane's ticket 6.5 s (it was 10); a torn one 3 s once its stub is off (RIP_MS from the scan: the tear's 1.05 + 1.1 s and those 3 s); a pop-up 6.5 s
+const TIX_MS = 6500, RIP_AFTER = 3000, RIP_MS = 5150, POP_MS = 6500, TIX_MIN = 6000, TIX_KEY = "od.tix";
 const gTixOut = new Set();
 let gTixSeen = null;                                  // hex → when its ticket came up (kept 2 h, so a reload doesn't show it again)
 function gTixSync(list){
@@ -6523,16 +6529,26 @@ function gTixShow(x){
     note: n ? T("Daily streak +{p}", {p: nf.format(R.streak * n)}) : "", stub: gold ? T("GOLDEN") : T("SCAN"), gold,
     p: lines.reduce((s, l) => s + l[1], 0), sky: {hex: x.hex, flight: f.flight}, life: TIX_MS, ly: lyTicket(airlineOf(x).icao, (((lbData() || {}).game || {}).wallet || {})[airlineOf(x).icao])});
 }
-// A ticket pushed out by a shorter pass comes back at the bottom once there is room, while its time and its plane last.
+// 1.124: a ticket aside doesn't run out unseen: its clock stops (el.left, el.minLeft) until it comes back.
+function gTixAside(el){
+  const now = Date.now();
+  clearTimeout(el.outT); el.held = false;
+  el.left = Math.max(0, el.until - now); el.minLeft = Math.max(0, (el.minUntil || 0) - now);
+  el.remove(); gTixOut.add(el);
+}
+const gTixUp = box => [...box.children].filter(x => !x.classList.contains("out")).length;
+// A ticket aside comes back on top, in turn, once the line is done and there is room, with the time it had left, while its plane lasts.
 function gTixBack(){
   const box = $("gAws");
-  if (!box || gLineHolds()) return;
+  if (!box || gLineOn()) return;
   for (const el of [...gTixOut]) {
-    if (box.children.length >= 3) break;
+    if (gTixUp(box) >= GL_TIX) break;
     gTixOut.delete(el);
-    if (Date.now() > el.until - 1000 || !gScanSet().has(el.dataset.tix) || box.querySelector(`[data-tix="${el.dataset.tix}"]`)) continue;
-    box.insertBefore(el, box.firstChild); gAwFoil(el);
-    clearTimeout(el.outT); el.outT = setTimeout(el.out, el.until - Date.now());
+    if (el.left < 1000 || !gScanSet().has(el.dataset.tix) || box.querySelector(`[data-tix="${el.dataset.tix}"]`)) continue;
+    const now = Date.now();
+    el.until = now + el.left; el.minUntil = now + el.minLeft;
+    box.appendChild(el); gAwFoil(el);
+    clearTimeout(el.outT); el.outT = setTimeout(el.out, el.left);
   }
   gTixStack();
 }
@@ -6577,6 +6593,7 @@ function gScanPops(r, onPass){
     ly: r.airline ? lyTicket(r.airline.code, r.airline.scans) : null, route: ppRoute(r.route)};    // 1.107: the route, a new country marked
   const g0 = (lbData() || {}).game, w = r.airline && g0 && g0.wallet;
   if (w) w[r.airline.code] = r.airline.scans;
+  if (r.airline && (r.airlineName || r.airlineIata)) lyKnown[r.airline.code] = {name: r.airlineName || "", iata: r.airlineIata || ""};
   const newCc = ppStampNow(r), newCard = !!r.airline && r.airline.scans === 1, cardN = newCard && w ? lyList(g0).length : 1;
   if (newCc) worldMap();                                        // on its way before its turn
   gLineAdd(() => {
@@ -6590,7 +6607,7 @@ function gScanPops(r, onPass){
     } else pass = gPop(o);
     if (onPass) onPass(pass, 0);
     return pass;
-  });
+  }, false, String(r.hex));
   if (stk) gLineAdd(() => {
     const wd = (new Date().getDay() + 6) % 7, R = gRules(), per = (R && R.streak) || stk.p / stk.n;
     const fmt = new Intl.DateTimeFormat(LANG, {weekday: "narrow"});
