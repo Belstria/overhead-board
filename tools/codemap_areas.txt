@@ -192,7 +192,7 @@ tools/app/main.js: TODAYP spotted logDay rollDay syncSightings fullDay loadFullD
     TD_PLATE TD_FACTS todayFactsSig tdSig renderTodayNumbers tdOpen $("tdPlate").onclick tdFilter tdFilDot $("tdFil").onclick todayJump renderToday renderLists
     tlKey plainCode noFlightNo rowName noRoute tlNode rowTier rowMarks FLAG_SVG rowInner tlPic tlCardSig tlAsking tlAhead tlAgo tlCardHtml cardLi
     tlHtml tlState tlFinding tlNothing tlOpenId tlTok tlRunning tlCap tlAgain tlBusy tlFill tlWire tlLate tlDone
-    LBL_PAGE lbl lblPlate lblOn lblIso lblSpan lblToday lblPlaces lblKey lblLive lblPass lblUrl lblWords lblWord lblHead lblDayLi lblHtml lblStop lblShown lblEnded lblLine lblMoreSync lblEmpty lblDraw lblAppend lblAdd lblLoad lblFirst lblPatch lblReset lblNews lblFlush lblSync lblLeave lblTopLang lblRaf lblRestT lblTopFit lblTopPlace lblTopRest lblScrolled $("lbTop").onclick
+    LBL_PAGE lbl lblPlate lblOn lblIso lblSpan lblToday lblPlaces lblKey lblLive lblPass lblUrl lblWords lblWord lblHead lblDayLi lblHtml lblStop lblShown lblEnded lblLine lblMoreSync lblEmpty lblDraw lblAppend lblAdd lblLoad lblFirst lblPatch lblReset lblNews lblFlush lblSync lblLeave lblTopLang lblRaf lblRestT lblTopFit lblTopPlace lblTopRest lblScrolled $("lbTop").onclick lblSegH lblStickyMark
     tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd tlTap tlOpen tlFold tlScroll sightPlane
 relay/serve.py: day_stats same_spot sightings_json /sightings +Spot.day_entries FLIGHTS_PAGE FLIGHTS_DAYS SPECIAL_TYPE_CODES _list_sq _flight_test _flight_hidden flights_json /logbook/flights
 README.md: "- **Spotted today** (press" "- **Today, This place | All places**" "- **Today** (1.123)"
@@ -214,13 +214,13 @@ test/index.html: LB_ROWS RV_ROWS LB_CATS LB_RECS LB_RECS.forEach LB_BOX lbBox LB
     #fx.lbHov 'if (view !== "logbook" || !cardOpenNow()' .lbRow .lbRecs .lbCard .lbFound .lbNums .lbSeg .lbRk .lbCats
     .lbSub .pickList +VIEW_FIELDS +layout +drawStatic +BOARD_TIPS +document.addEventListener("keydown") +boardTap
     +#viewTools 'vdef("logbook"'
-tools/app/head.html: .ranks .cats .yearCard .yNums .yFacts .reviewCard .rvTools .yActs .model .lbFindBox
+tools/app/head.html: .ranks .cats .yearCard .yNums .yFacts .reviewCard .rvTools .yActs .model .lbFindBox .plate
     #t-logbook.finding #lbFound .lbfPin .seg.lbViews .secPlate .perCard .perHead .perArr .sum.lbFoot .dd
     .seg.catSeg .catRow .lbfRead #lbFindBox #lbLists #lbSum #lbViews #t-logbook #lbYear #lbFilPlace .lbFilter #lbStrip .lbStrip .lbStrip.one .lbPlate .lbPlate.lbOpens css:button.lbPlate .lbPlH .lbPlN .lbOpens #lbPlate #tdPlate .perMore
     .perMoreIn
 tools/app/main.js: lbCache lbError fetchLogbook lbSig lbView lbViewsBar lbQuery lbFindT lbFindTok lbFindSetup
     lbFind catOk lbCat lbCatView lbCatData lbCatKey catOpenHtml catFetch PIN DD lbfPlaces lbFoundRows foundCard
-    lbPanels lbPanel lbPanelTok lbPanelOn lbPanelOpen lbPanelSync renderLogbook lbYearCard LB_PLATES lbPlateOn lbStripSig lbPlateNum lbPlateHtml lbStripSync lbPlateGo lbDemoPer lbPick recordsHtml secPlate plFoot
+    lbPanels lbPanel lbPanelTok lbPanelOn lbPanelOpen lbPanelSync renderLogbook lbYearCard LB_PLATES lbPlateOn lbStripSig lbPlateNum lbPlateHtml lbStripSync lbPlateGo lbDemoPer lbPick recordsHtml secPlate plFoot plFootFit
     yearData yearAt yearCache fetchYear perKey perHas perLoad perWarm yearReview lbPeriod yearBack perMore perWant periodHtml PER_MORE reviewHtml +periodPicture +shareYear +sharePeriod
 relay/serve.py: _rec_entry note_records _gc_km _backfill_records _backfill_flights CARGO_AIRLINES HELICOPTERS
     MILITARY_TYPES BIZJETS LIGHT category_of CATEGORY_WORDS _logbook_entries search_json _cat_cache category_top_json
@@ -405,7 +405,7 @@ test/index.html: +styleGame +styleOk GAME_LEVELS TIER_COL TIER_DRUM TIER_NAME dr
     achNext confetti @achDown css:canvas.confetti +stylesCount .ach .achBar .achBadge .achTx SIG_JS WORLD_JS
 tools/app/head.html: #gSub .seg.jumpSeg .gRows .secPlate.gClub .cats.tiers .bingo .ranks.plain.cups .cups .gHead .gHv .gTx .gL1 .gRing .gRt .gRa .gLap .gHead.lvl @gFlash .gHead.flip .gHead.gain .gSay .gSay.out @gSayIn .gBar @gGlow
     .skyIco .gSpin @gSpin @gR1 @gR2 .gPts #t-game .gLeague .plCard .plMedals .plMedal .plLines .hgShelf
-    .hgHead .hgRow .hgCard .hgT .stkNew .stkPl .stkPl.pl .stkPl.sh .stkTr .mdNew .mdHang .mdFace @mdSwing @mdBeam .gRule .gSbyTg .gSbyTg.off .gSbyTg.lim .cuTap .cuHit .gHero .plFoot .gHowTbl .gHowH .gStk .hgL #gAws .gAw @gAwUp @gAwOut .hgPlate #gLvUp .gWk .gWkB
+    .hgHead .hgRow .hgCard .hgT .stkNew .stkPl .stkPl.pl .stkPl.sh .stkTr .mdNew .mdHang .mdFace @mdSwing @mdBeam .gRule .gSbyTg .gSbyTg.off .gSbyTg.lim .cuTap .cuHit .gHero .plFoot .gHowTbl .gHowH .gStk .hgL #gAws .gAw @gAwUp @gAwOut .hgPlate #gLvUp .gWk .gWkB @ppLandBig
     .mk1 .mk2 .mk3 .mk4 .mkBar .mkMast .mkSteps .mkBarT .ly0 .ly1 .ly2 .ly3 .lyFF .lyCar .lySt .lyC .lyIn .lyFr .lyBk .lyBr .lyLg .lyVt .lyHo .lyRg .lyNx @lyHolo .lySh @lyShine .lyMag .lyHm .lyGr .lyTy .lyCount .lyDots .lySort .lyIdx #lyBub
     .ppPlate .ppShelf .ppHd .ppMap .ppMap.big .pCard .pCard.no .pS .pS.rd .pS.rc .pS.ov .ppNew .lyNew .lyNewBox .lyNewS .lyNewC @lyDeal @ppCardHit .lyTop .lns.two @nwSun .who.wrap .ppDrop @ppLand .scSc .scPick .scCab @ppHit .ppNoneHd .ppShelf.shut .ppNone .ppNone
     @gPop .pF @pfIn @pfTear #arBurst @pfSpark @gSheen #gameBox .rpList .gHow .rkI .rkGold .rkLv .plIns
@@ -413,7 +413,7 @@ tools/app/head.html: #gSub .seg.jumpSeg .gRows .secPlate.gClub .cats.tiers .bing
     .cuD .cuP .cuI .cuI.flap .cuUn .cuMini .cuLn .cuLb .cuStop .cuRt .cuT .cuPl @cuDrop .cuPlate .cuArr @cuFly @cuLit .cuTag @cuTag .cuTry .cuLater .cuSheet .cScroll
 tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow HG_EAGER HG_GAP hgLast hgPumpT hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
     hgSoon hangarCard tierIcons tierIcon gTrTab trProg trPips trMedal MD_M MD_RN mdRoman mdFaceSvg mdDrawn mdCoin MD_RIBBON trRow trToGo trWon trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gScanKm gScanSet gGoldSet gme gmeAt gBusy
-    STK_W STK_S STK_LAND_MS STK_RUN_MS STK_FLY_MS stkWeek stkWeekBack stkRun stkNew gLeague gLeagueAt gAll gAnimT gLvFrom gStripSetup gRingP gLapSet gRingSet gGoPlate gHit gHitDo gGoing gGoLive gGoShow gSay gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gAwShort nwWord gWhoNw gAwFoil gPop gWho gAwards gScanPops SKY_ICO gAwsBox gAwTimer gAwTap GL_GAP GL_STUCK gLine GL_TIX gLineOn gLineAdd gTixAside gTixUp gLineRun gPassFill TIX_MS RIP_AFTER RIP_MS POP_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
+    STK_W STK_S STK_LAND_MS STK_RUN_MS STK_FLY_MS stkWeek stkWeekBack stkRun stkNew gLeague gLeagueAt gAll gAnimT gLvFrom gStripSetup gRingP gLapSet gRingSet gGoPlate gHit gHitDo gGoing gGoLive gGoShow gSay gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gAwShort nwWord gWhoNw gAwFoil gPop gWho gAwards gScanPops SKY_ICO gAwsBox gAwTimer gAwTap GL_GAP GL_STUCK gLine GL_TIX gLineOn gLineAdd gTixAside gTixUp gLineRun gPassFill TIX_MS RIP_AFTER RIP_MS POP_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack gAwBig
     gCoins gLvT gLvPoll gLvChipOk gLvBusy gLvChipT gLvMem gGainUntil gLvArEnd gSeen gLvUpOn gLvGet gLvSave gLvCheck gLvBlocked gLvKick gLvStep gLvChip gLevelUp gJingle gRip gGold gBurst gLeagueLoad gPlates gPlateSplit renderGame G_SUBS G_PARTS LY_TAU LY_FAST TIX_MIN gSub gSubHas gSubBar gSubGo gIndexHtml gLimFull gLimLine gLimOpen gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gLastMin gSbyHtml gSbyFrom plateSheet gSbyOpen
     RK_MET RK_CLOTH RK_WF RK_STAR RK_PLANE RK_LADDER rkDefs rkStar rkWings rkCap rankTitle rankIns
     usPartial usNoise US_LEVEL_E soundE unlockEnd unlockSound achUnlock medalSound sheetFree medalPop achSpecial NUDGE_DO trophySheet medalNudge gLockOn gameStart

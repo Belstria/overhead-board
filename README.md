@@ -439,7 +439,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   1.117 the app picks in the Logbook's **Saved places** row, a panel with All, On the go and the saved places. Since
   1.96.1 (relay 77) places at the same spot (a centre within 1 km, a radius no larger: "Home" and the profile's "home")
   are one place, each sighting counted once. "Counting
-  since … · N points" is a footnote at the bottom of the Logbook (with a place's own line) and of the Spotters' Club.
+  since … · N points" is a footnote at the bottom of the Logbook (with a place's own line) and of the Spotters' Club. A panel's small print is the type scale's smallest size (1.129.1: it had been drawn at 14 px by mistake); its parts share one line with a dot between them when they fit (the League's "Resets Mon 00:00 · Last week's winner: …") and take a line each when they don't.
 - **Today, This place | All places** (1.42): a two-way switch; the counters and the list switch together. This place
   includes your saved places at the same spot (1.95.0.1, relay 75): a phone on your own place and a board on a saved
   place there named Home share one list, each plane once.
@@ -546,7 +546,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   the letters turn gold. A tap opens the Streak panel. **One thing at a time** (1.124): all a scan brings comes one after the other in the same place: the scan's
   ticket, the streak's pop-up, the passport's pop-up, the new card's pop-up. Swipe or tap one away and the next rises (a pop-up waits for a panel to close); a pop-up
   stays 6.5 seconds. Other planes' tickets step aside for all of this, their time stopped, and come back after. A swipe past 40% of the width or a flick
-  sends a ticket, pop-up or notice away; a shorter one bounces back. From three extras on, a ticket shows them under the first line in two short columns. What's **new** on a ticket (the airline's name, the type, the route's new country) is in **gold foil**, and one beam of light crosses it as the ticket rises. The first plane past a limit still shows a grey pass, "+0 · Common limit reached" (later ones stay
+  sends a ticket, pop-up or notice away; a shorter one bounces back. From three extras on, a ticket shows them under the first line in two short columns; a **torn ticket** (the scan's) always does, from one extra on (1.129.1). In Sky view the passport's and the frequent flyer card's pop-ups are full size again (340 px, the screen less 14 on a narrow phone); elsewhere, and the medal's and the streak's, they stay 255 px. What's **new** on a ticket (the airline's name, the type, the route's new country) is in **gold foil**, and one beam of light crosses it as the ticket rises. The first plane past a limit still shows a grey pass, "+0 · Common limit reached" (later ones stay
   quiet); a scan brings a prize jingle and a buzz. **Golden tickets** (1.101): now and then (about one plane in 20) a
   plane's ticket comes up **gold**: gold foil with a sheen, "GOLDEN TICKET · 10 KM", the stub "GOLDEN" with ×2. Its scan
   pays the plane's points **twice** (a common 10 → 20, a rare 100 → 200; the ticket reads "Rare plane +100 ×2"); the
@@ -838,7 +838,7 @@ Five buttons along the bottom:
 - **Logbook** (1.55): a switch at the top for the views (Logbook and Week & month; Collection and Records moved to the
   Game page in 1.72); the place buttons only under Logbook. Logbook: the totals, most seen model, categories, top aircraft types and airlines, most seen aircraft.
   **Since 1.123 the Logbook is one screen**: the search and the filter icon, three plates you swipe sideways (**Today**, which stays at 0 on a day with no planes yet since 1.124.1,
-  the period, such as "2026 in planes", and **All time**; in that order since 1.127), then the planes. Under Today, the day's. **Under the period and All time the list goes back across days
+  the period, such as "2026 in planes", and **All time**; in that order since 1.127), then the planes. Under Today, the day's, with its amber "Today" headline over the flights as under the others (1.129.1; none on a day with no planes yet). **Under the period and All time the list goes back across days
   (1.127, relay 105)**: the last 50 flights, newest first, then **Show more** at the bottom for the 50 before those, as far as the period's start or the logbook's beginning, with the filters and the chosen place
   applied. Each day has an amber headline (Today, Yesterday, then the date) that stays under the search until the next day's pushes it away. Once more than 50 are loaded, a **Top** key with the
   day you're in shows while you scroll past the first screens; it goes back up to the plates. A new flight waits at the top while you're further down, so what you're reading doesn't move.

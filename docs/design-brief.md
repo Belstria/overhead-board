@@ -38,7 +38,7 @@ two days later mockups again carried sentences and a second row of tabs. These r
    title, like the Settings and Logbook panels; section headings as small-caps labels. No addresses, codes or
    internals ("from the home relay", not a host name). Dave's exception (31 Oct): Recent flights' route and type may
    cut off at 360 px, beside the pill. A panel may carry one small footnote engraved like its title (`.plFoot`) for a
-   fact that belongs to the whole panel ("Resets Mon 00:00"); it is no sentence and opens nothing.
+   fact that belongs to the whole panel ("Resets Mon 00:00"); it is no sentence and opens nothing. It is the type scale's smallest size (`--fs-tag`, `.plate .plFoot`), and its parts share one line with a dot between them ("Resets Mon 00:00 · Last week's winner: David"), each taking a line of its own, never cut, when they don't fit.
 
 **Navigation**
 
@@ -116,7 +116,7 @@ in the sheet a tap opens; the engraved plate title on every sheet.
   twin plates, each a gold name and four named numbers: Today (always there, 0 on an empty day; a tap opens "Today in numbers"), the period (a tap
   opens Week · Month · Year, with the CSV under More) and All time (amber names: each number
   opens its list; Categories, Most seen aircraft, Aircraft types, Airlines, with Counting since as a footnote). The icon opens the segmented filters, this place / All places and Saved
-  places in place under the strip. Then the timeline rows (a rarity bubble, time, flight, route, type, marks at the end, no pills). Under Today: the day's, no headline. Under the period and All time
+  places in place under the strip. Then the timeline rows (a rarity bubble, time, flight, route, type, marks at the end, no pills). Under Today: the day's, with the same amber "Today" headline (since 1.129.1; none on a day with no planes yet). Under the period and All time
   (1.127): back across days, 50 at a time: a day's amber headline between two lines on a 28 px band, sticking under the search until the next pushes it away; a Show more plate with screws at the end,
   which folds away at the period's start or the logbook's beginning; the Top key (arrow, TOP, the day; 106 px at every day in English) while scrolling, once more than 50 are loaded.
 - **Club**: sub-tabs Level, League (with Bingo and Trophies under it; League and Bingo with the weekly reset as a
