@@ -905,7 +905,7 @@ Five buttons along the bottom:
   don't look into the sun). Since 1.90, when the sun or the moon is up but out of the picture, a dashed arrow at the
   edge points to it with how far to turn ("☀ SUN · 139° right"), and a **compass ribbon** above the hint shows the
   whole compass round the way you face, the picture's width in a gold frame and the sun and the moon at their bearings
-  with how high they are. Once lined up (a drag or AUTO), north stays put and the compass is left out until Reset or
+  with how high they are. Once lined up (a drag or Align), north stays put and the compass is left out until Reset or
   Sky view closes. **Align** (1.121, the corners button in the top row) lines the labels up on the sun or the moon: it
   asks you to put the one that's up in a small circle in the middle (☀ ☾ to choose when both are up; while the sun is
   the target it also says not to look into it: look at the screen). As soon as the camera sees it in the circle the labels slide
@@ -913,20 +913,15 @@ Five buttons along the bottom:
   sun". "Lined up · Undo" follows for a moment. With neither up it says so, and when the sun rises. Dragged or
   aligned labels go back with **Reset** in that same bar. It corrects heading and height, not a tilted horizon. The camera finding
   the moon has only been tried on made-up pictures so far; the button works whatever the camera sees.
-  **AUTO** (1.76) stays on but, since 1.121, only makes small corrections after an alignment, without asking: gold corners may
-  frame the sun's ring. It also looks for nearby planes: where it keeps finding one close to its label it slides
-  the labels onto it (gold corners mark the plane; "lined up · 1 plane"). It skips planes too far to see, labels close
-  together and the sun's glare, and ignores cloud edges and contrails; a drag takes over for a few seconds. Since
-  1.114.6.1 it only counts what it finds while the phone is steady (the camera's picture is a little late, so a find
-  made while turning is a few degrees off), and the labels hold still while you keep the phone still, even when the
-  gyroscope's readings pause.
+  The camera's picture is read only while Align is open (1.128.1), and only while the phone is steady; between alignments nothing
+  corrects the labels, so they can drift with the gyroscope until you align again. At night with no moon, only a drag lines them up.
   Since 1.66 a ring sits in the middle: keep a plane in it for a second and a half and its card opens (the ring fills
   meanwhile; it opens again only after the ring was empty; 1.114.6: a plane you have scanned doesn't lock on again,
   its ✓ says so, though the shutter still comes for it). When the heading jumps about while the phone is held still (1.90: only on phones without a gyroscope reading),
   the compass swings against the gyroscope (1.86), or the iPhone says its compass is poor, a note asks for a figure of
   eight or a drag (not once the labels are lined up). **Report** (1.90, the flag; since 1.121 bottom right; the owner's phones
-  only): sends the relay what Sky view knows about the compass (the sensors' readings, north as in use, what AUTO found
-  and how fast the phone was turning then, how far off the sun's ring was, how far the phone's clock is off and how the last alignments went; no
+  only): sends the relay what Sky view knows about the compass (the sensors' readings, north as in use, how far the phone's clock is off, how the last alignments went and what
+  the camera's reads in them cost; no
   picture and no place), to tune Sky view from real phones; the hint says what
   was sent.
   **×2 and ×5** (1.99, the round buttons on the right under the top bar): zoom in for a closer look; the one on is lit

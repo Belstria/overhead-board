@@ -440,7 +440,7 @@ README.md: "- **The game** (1.72" "- **The game stays in the phone app**" "- **R
 tools/test/flows.py: "the game (relay 59)" "relay 71: Recent points" "relay 63: where a sighting on the go was made"
 changelog: game|point|level|league|trophy|trophies|bingo|achievement|hangar|medal|spotters' club|lock-on
 
-[skyview] Sky view and Where to look: camera, compass and gyroscope, labels, AUTO, sun and moon, the ribbon, reports
+[skyview] Sky view and Where to look: camera, compass and gyroscope, labels, the align step, sun and moon, the ribbon, reports
 tools/app/head.html: .look .lookActs #lookCv #arView .arTitle .arIb .arMoved .arZoom .arZoomL .arAlignBar .arAlignGo .arAlignPick .arMini .arAround .arTour
     .arTourBox .arTourAct .arTourRing @arPulse .arTourDrag .arTourPlane .arTourLab .arTourFinger @arDragLab
     @arDragFinger .arShut .arFlash @arFlash .arL .arPeekL .arFullL .arGrip .arPeek .arThumb .arPeekT .arSwipe @arNudge
@@ -450,12 +450,12 @@ tools/app/main.js: lookHeading lookOn lookRaf lookWhy lookWhyLogged lookAt drawL
     drawTape lookSoon lookHeadingFrom lookStart arPossible arOn arSince arStream arList arListAt arQ arQt arGap arGapT
     arWatch arHere arRaf arDrag arHits arSel arOff arDec arHintText arAlt arOffSave AR_AIM_R AR_AIM_MS arAim arRaw
     arCalAt AR_GAP_TAU AR_GAP_MAX AR_GAP_SETTLE AR_GAP_STEADY AR_STILL_MS arAbsR arAbsT arRelQ arRelT arLastQ arRate
-    arMovedAt arGapLog arHeldAt arGap0 arGapRef arGapFast arEvN arHeldWhy arSunLast arNote AR_FOV arFocal arZoom arZk arZc arZcTo arZBase arZSeq arZoomSet arZoomBtns arZoomCss arZoomStep arTurns
+    arMovedAt arGapLog arHeldAt arGap0 arGapRef arGapFast arEvN arHeldWhy arNote AR_FOV arFocal arZoom arZk arZc arZcTo arZBase arZSeq arZoomSet arZoomBtns arZoomCss arZoomStep arTurns
     arFeed AR_LAG_LOW AR_LAG_OFF AR_LAG_MAX arLags arClock arEvent arQuat arQMatrix wrap180 arYaw arOrient arRelHolds AR_REL_TILT AR_REL_YAW AR_REL_RATE arGapStep arGyroStep AR_AHEAD AR_GAP_MS arRd arRdRef arW arFrT arFrN arTim arMo arMotion arQMul arTimPush arTurnLog arTurn arFrame arResume arHold arOpen arOpening arStart arWant arOpenAt arCalCheck
     arClose WMM_EPOCH WMM_C magCache magField magDecl skyBodies arProject arUnproject arPicSig arLoop arSpotIdx arSpotMap arLabel arInfoOf arName arType arTextW arTW arLabelDraw arReportOk arR1 arReport
-    $("arFlag").onclick arShotAt arShownN arLocked arLift arSnapping arSnap arBrackets AR_AUTO_MS AR_AUTO_R AR_AUTO_N
-    arAutoAt arAutoFinds arAutoLock arAutoPause arAutoSaved arCan arCx AR_AUTO_RATE arFindLog arTurnNow arFindNote arAutoStep AR_AUTO_LOG_MS AR_AUTO_PLENTY AR_PLANE_MISS arPlaneMiss arAutoQ arAutoN arAutoLogAt arSunMiss arSunWait arSunTop arCamLog arCamCost arCamSkip arCamLast arAutoPlan arAutoRead arSunCould arGrab arCamTime arAutoSum arFind arSunCan arSunCx
-    arSunFind AR_ALIGN_R AR_ALIGN_WIN AR_ALIGN_N AR_ALIGN_MS AR_ALIGN_TOL AR_ALIGN_FAR_AZ AR_ALIGN_FAR_EL AR_ALIGN_DONE arAlign arAlignUndo arAlignLog arMoonSaw arAlignT arMoonCan arMoonCx arAlignUp arSunUpAt arAlignNote arAlignSeen arAlignBar arAlignBtn arAlignMoved arAlignShow arAlignOpen arAlignStart arAlignEnd arAlignCancel arAlignDo arAlignBack arAlignReset arAlignPress arAlignStep arMoonFind $("arAlignGo").onclick AR_AUTO_NEAR arAligned arGlide AR_LABEL_UP arTopOut AR_CHIP_H AR_CHIP_UP AR_CHIP_GAP arChipTurn arBounds arChipBounds arChipsAt arChipsDraw AR_MINI arMiniSig arAroundNow arMini arAroundOpen $("arMini").onclick arBody arBodyAt arBodiesAt arBodiesDraw arBodyEdge AR_RIB arRibSig arRibbon arMove
+    $("arFlag").onclick arShotAt arShownN arLocked arLift arSnapping arSnap
+    AR_ALIGN_PACE AR_ALIGN_STILL arAlignAt arAlignWait arTurnNow arAlignTick arCamLog arCamCost arCamLast arGrab arCamTime arSunCan arSunCx
+    arSunFind AR_ALIGN_R AR_ALIGN_WIN AR_ALIGN_N AR_ALIGN_MS AR_ALIGN_TOL AR_ALIGN_FAR_AZ AR_ALIGN_FAR_EL AR_ALIGN_DONE arAlign arAlignUndo arAlignLog arMoonSaw arAlignT arMoonCan arMoonCx arAlignUp arSunUpAt arAlignNote arAlignSeen arAlignBar arAlignBtn arAlignMoved arAlignShow arAlignOpen arAlignStart arAlignEnd arAlignCancel arAlignDo arAlignBack arAlignReset arAlignPress arAlignStep arMoonFind $("arAlignGo").onclick arGlide AR_LABEL_UP arTopOut AR_CHIP_H AR_CHIP_UP AR_CHIP_GAP arChipTurn arBounds arChipBounds arChipsAt arChipsDraw AR_MINI arMiniSig arAroundNow arMini arAroundOpen $("arMini").onclick arBody arBodyAt arBodiesAt arBodiesDraw arBodyEdge AR_RIB arRibSig arRibbon arMove
     arWeather arHeight arAimStep arScans arScanned arAimDraw shortType arDragStart arDragMove arDragEnd arMovedNote AR_TOUR arTour
     $("arInfo").onclick arTap arCardSig AR_PEEK_MS arFull arAwayAt arP arPeekHtml arCardRender arSet arRoom arTo
     arPeekWatch arCardDismiss $("arBtn").onclick $("skyVal").onclick $("skyLk").onclick arTry arGoing arGoLive

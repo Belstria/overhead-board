@@ -7898,6 +7898,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.128.1", date: "2026-11-01", notes: [
+    "Sky view uses the camera to line up only while Align is open, on the sun or moon. It no longer looks for planes.",
+    "The gold corners are gone, and labels no longer correct themselves between alignments: Align again if they drift.",
+  ]},
   {v: "1.128", date: "2026-11-01", notes: [
     "The area under the plane's picture is now one slim row above the compass: Sky view, the scan and which way to look.",
     "It says when the plane is in range to scan, or how far it still has to come (Scannable in), and the key turns amber when you can.",
