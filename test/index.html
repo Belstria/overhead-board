@@ -7114,15 +7114,20 @@ function achNext(){
   clearTimeout(achTimer);
   if (!achQueue.length) return;
   if (cardOpenNow()) { achTimer = setTimeout(achNext, 5000); return; }
-  const sp = typeof achSpecial === "function" ? achQueue.findIndex(a => achSpecial(a, true)) : -1;        // 1.81: the app's medals, first
-  if (sp >= 0) { achSpecial(achQueue.splice(sp, 1)[0]); achTimer = setTimeout(achNext, 6500); return; }
+  if (typeof achSpecial === "function") {                 // 1.125: the app's medals, first: into the scan's line, one at a time
+    const medals = achQueue.filter(a => achSpecial(a, true)), rest = achQueue.filter(a => !achSpecial(a, true));
+    achQueue.length = 0; achQueue.push(...rest);
+    medals.forEach(a => achSpecial(a));
+  }
+  if (typeof gLineOn === "function" && gLineOn()) { achTimer = setTimeout(achNext, 1500); return; }   // another achievement's card waits until the line has run
+  if (!achQueue.length) return;
   const list = achQueue.splice(0, 3);
   const tok = cardOpen(`<div class="achBadge" aria-hidden="true">${escH(list[0].icon)}</div>` +
     `<p class="shH">${escH(T("Achievement"))}</p>` +
     list.map(a => `<h3>${escH(a.title + (a.pts ? " +" + nf.format(a.pts) : ""))}</h3><p class="achTx">${escH(a.text)}</p>`).join("") +
     `<div class="achBar"><i style="animation-duration:${ACH_MS}ms"></i></div>`, el => el.classList.add("ach"));
   confetti();
-  fanfare();
+  if (!(typeof achUnlock === "function" && achUnlock(list))) fanfare();   // 1.125: the app's trophy has the unlock sound
   achTimer = setTimeout(() => { if (cardTok === tok && cardOpenNow()) cardClose(); achTimer = setTimeout(achNext, 1500); }, ACH_MS);
 }
 // A short burst of paper bits over the page (fewer and shorter on the weaker TVs; none with reduced motion).
@@ -7879,6 +7884,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.125", date: "2026-11-01", notes: [
+    "A new medal comes as a small paper pop-up: it swings in on its ribbon, one thing at a time, and a tap opens that trophy.",
+    "Trophies show their real medals: won in their metal, dim until you win them.",
+    "Medals, trophies, passport stamps and frequent flyer cards share one new unlock sound.",
+  ]},
   {v: "1.124.1", date: "2026-11-01", notes: [
     "The Logbook's Today numbers are there on a day with no planes yet, at 0.",
     "Frequent flyer's tier bar always shows all four tiers; those with no cards are greyed out.",

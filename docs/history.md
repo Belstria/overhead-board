@@ -555,8 +555,8 @@ The repository is public: no addresses, keys or personal data here either.
   IntersectionObserver in `hgWire`; a photo that fails goes in `hgBad`), the missing ones face down (`.back`), and Other
   types; `hangarCard` (Caught, First, Aircraft, Flight, Airline, About this model → `typeCard`; a missing one opens
   `typeCard`). **Medal moments** (5): `achNext` (board) first asks `achSpecial(a, dry)` (app) whether a queued
-  achievement is a ladder rank: then `#medalMo` swings down (`.mmRib`, Roman numerals, `mmSwing`) with `fanfare()`, and
-  fades after 5 s; singles and the board keep the card. `medalNudge(g0)` toasts once per rank when the next is within 2
+  achievement is a ladder rank: then `#medalMo` swung down (`.mmRib`, Roman numerals, `mmSwing`) with `fanfare()`, and
+  faded after 5 s (since 1.125 a paper pop-up, `medalPop`); singles and the board keep the card. `medalNudge(g0)` toasts once per rank when the next is within 2
   or 2 % (`NUDGE_UNIT`, kept in `ACH_KEY + ".nudge"`). **Player cards** (6): league rows with an `id` (`data-player`;
   `data-pl` is a place link elsewhere) open `playerCard`: `/game/player`, the club's bar and tiles (`.plCard`), medals
   by metal (`.plMedal.m0`–`m4`) and one-offs, rarest catch and this week's best as trophy rows.
@@ -948,6 +948,22 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.125 (to-do #250, Dave's pick A "and the medal swings into the paper frame"; relay unchanged): **The medal's pop-up and
+  the medal in Trophies.** `achSpecial` puts a rank into the scan's line (`gLineAdd`), `medalPop` is the twin of `lyNew`/`ppNew`
+  (`.gAw.mdNew`, 255 px); `#medalMo` and its CSS are gone. `.mdHang` swings about the band's top edge (`mdSwing`, 2.3 s after
+  .25 s), `.mdNew .mid` clips it, one beam (`mdBeam`) once still; the ribbon's strips run on above the svg so that no end
+  shows. `medalFree`: its show waits for a sheet to close (the pop-ups rise under a sheet). `achNext`: all medals into the
+  line at once, then another achievement's card waits until `gLineOn()` is false (board: no `achSpecial`, as before).
+  `medalSound`: the sound and buzz, in one place. `trophySheet(L, id)`: the rank just won and on, then the next; a sheet shows
+  over Sky view, so it stays open. `mdCoin`: each metal's face drawn once as a data-URI picture in one style rule, rows only
+  carry a class (`.mdFace.mN`, `.dim`); so no gradient ids in the page, and the Roman numeral is in paths (`mdRoman`) as a
+  picture can't reach the fonts. `.cups.md`: the 44 px column in Trophies and the sheet, singles keep the cup, centred. Removed
+  `html.daylight .cups li:not(.on):not(.medal) .cup` (a dark stroke on a dark plate: the cup couldn't be seen).
+- 1.125 also (to-do #251, Dave's pick E, Wooden rise): `unlockSound` (`soundE`, `usPartial`, `usNoise`; `fanfare`'s guard) for a
+  medal (`medalSound`), a trophy without ranks (`achUnlock`, asked by `achNext`; other achievements and the board keep
+  `fanfare`), `ppNew` and `lyNew`. It plays as the pop-up rises; those two then drop `fsThud` at 640 ms, which fell in its
+  tail, and keep the buzz there (no E, chimes off or at night: the thud as before). `unlockEnd`: a pop-up swiped away at once
+  brings the next 0.3 s later, so the next sound waits for the last one to end.
 - 1.124.1 (to-do #248, #249; relay unchanged): **The Today plate stays, the tier bar shows all four.** `renderTodayNumbers`:
   `#tdPlate` is never hidden (no `hidden` in head.html); `wait` (relay v5 and the day's first answer not in: `sightRev === null`,
   `fullDay.all` for All places, `liveWaiting()`) draws "–" for the four numbers, then the real ones, 0 on an empty day.

@@ -613,9 +613,12 @@ The main board has everything below. New features are tried on `/test/` first; o
   one screen: each rarity within 15 km and scanned (within 10 km), today against the limits, the extras and the streak's days; since 1.100 bingo and trophies), the league's switch
   sits beside its heading, **Your catch** (by rarity) and **Sets** (to complete) replace Collection and Collections,
   and the trophies show the three closest to winning, with a switch to the ones won and the ones left, each with its count (nearest
-  first). Since 1.79.2 a trophy with ranks shows its rank as a medal (bronze, silver, gold, platinum, diamond) on its
-  cup and beside its dots, and a won one with more ranks names the next. Since 1.81 (app) a new rank swings down as
-  its medal on a ribbon, with its rank in Roman numerals, and a bubble under the points chip says when the next rank is close
+  first). Since 1.79.2 a trophy with ranks shows its rank (bronze, silver, gold, platinum, diamond) beside its dots, and a
+  won one with more ranks names the next; since 1.125 the row shows the medal itself, in its metal once won and dim until
+  then, and a trophy without ranks keeps its cup: you find your medals in Club → League → Trophies. A new rank (1.125, app)
+  comes as a small paper pop-up, one thing at a time, after what a scan brought, with the unlock sound that trophies, passport
+  stamps and frequent flyer cards share (1.125): the medal swings in on its ribbon, it stays
+  6.5 s (a finger holds it, a swipe sends it away) and a tap opens that trophy, the rank won and the next. A bubble under the points chip says when the next rank is close
   ("2 more airlines for Globetrotter"; once a rank). **Your hangar** (1.81, relay 63) replaces the Sets list: a shelf
   per set you swipe sideways, with a collectible card for each type seen (since 1.96 any sighting, on any screen; until
   then only those caught on the go) (the photo of the first one you saw, or of its model; the rarity in its colour,
