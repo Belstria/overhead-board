@@ -838,8 +838,12 @@ button.lbPlate:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba
 .cups li.on:not(:has(.pips b:not(.on))) .tl .bar i{background:#e0aa1f}
 /* 1.79.2: a rank's medal, bronze to diamond: the cup in its metal (filled once won) and a tag before the dots */
 .cups li.m0{--m:#cf8f5a} .cups li.m1{--m:#c6ccd5} .cups li.m2{--m:#e0aa1f} .cups li.m3{--m:#86dccb} .cups li.m4{--m:#9fb9ff}
-.cups li.medal .cup{stroke:var(--m);stroke-width:1.4}
-.cups li.medal.on .cup{fill:var(--m);stroke:var(--m)}
+/* 1.125 (to-do #250): a rank shows its medal (won in its metal, not won yet dim), a trophy without ranks its cup; the picture of each metal: mdCoin */
+.mdFace{display:block;width:var(--d);height:var(--d);border-radius:50%;background-size:100% 100%}
+.ranks.plain.cups.md li{grid-template-columns:44px minmax(0,1fr) auto}
+.cups.md .cup{justify-self:center}
+.cups .mdFace{--d:36px;grid-row:1/3;align-self:center;box-shadow:0 2px 3px rgba(0,0,0,.35)}
+.cups .mdFace.dim{opacity:.32;filter:grayscale(1);box-shadow:none}
 .cups .metal{flex:none;padding:3px 7px 2px;border:1px solid var(--m);border-radius:999px;color:var(--m);font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase}
 .cups .tl .nx{min-width:0;color:var(--muted);font:500 var(--fs-s)/1.2 var(--f-board)}
 /* the year in planes */
@@ -1267,7 +1271,6 @@ html.daylight .svFind input::placeholder,html.daylight #welcome input::placehold
 html.daylight .rv .num{color:#3b3832}
 html.daylight .acCheck b,html.daylight .devTile{color:#191919}
 html.daylight .devTile{background:#fbf8f1;border-color:#d3cab7}
-html.daylight .cups li:not(.on):not(.medal) .cup{stroke:rgba(25,25,25,.3)}
 html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} html.daylight .cups li.m2{--m:#b07d0c} html.daylight .cups li.m3{--m:#23806f} html.daylight .cups li.m4{--m:#4467cc}
 /* 1.65: the whole logbook searched; while a search shows, the logbook's own parts step aside */
 .lbSeg .lbFindBox{flex:1 1 0;min-width:0;margin:0;padding:0}
@@ -1749,22 +1752,6 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .gAw .lyFF em{font-style:normal;font-size:var(--fs-tag);padding:3px 7px;border-radius:3px;background:var(--lbg);color:var(--lk);letter-spacing:.14em;text-transform:uppercase;
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
 .gAw .lyFF.ly0 em{background:none;box-shadow:inset 0 0 0 1px #c9c2b2;color:#888}
-/* 1.81: a medal won (Dave's to-do 5, pick B): it swings down on a ribbon, settles, and fades */
-#medalMo{position:fixed;inset:0;z-index:95;display:grid;justify-items:center;align-content:start;gap:22px;padding-top:var(--sa-top);background:rgba(8,9,10,.88);
-  text-align:center;cursor:pointer;transition:opacity .6s;--m:#cf8f5a}
-#medalMo[hidden]{display:none}
-#medalMo.out{opacity:0}
-.mmRib{display:grid;justify-items:center;transform-origin:50% 0;animation:mmSwing 2.6s cubic-bezier(.25,.7,.35,1) both}
-.mmRib i{width:56px;height:min(28vh,180px);background:linear-gradient(90deg,#7a1f2b 0 33%,#e7e2d6 33% 66%,#7a1f2b 66%);clip-path:polygon(0 0,100% 0,100% 100%,50% 88%,0 100%)}
-.mmRib b{margin-top:-24px;width:120px;height:120px;border-radius:50%;display:grid;place-items:center;font:700 var(--fs-3xl)/1 var(--f-board);color:#17140e;
-  background:radial-gradient(circle at 35% 30%,#fff,var(--m) 55%,color-mix(in srgb,var(--m) 55%,#000));box-shadow:0 10px 30px rgba(0,0,0,.6),inset 0 0 0 4px color-mix(in srgb,var(--m) 70%,#fff)}
-.mmTx{display:grid;gap:8px;padding:0 24px;animation:mmIn .5s .9s both}
-.mmTx span{font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.18em;text-transform:uppercase;color:var(--m)}
-.mmTx h3{margin:0;font:700 var(--fs-2xl)/1.1 var(--f-board);color:var(--ink)}
-.mmTx p{margin:0;font:500 var(--fs-m)/1.35 var(--f-board);color:var(--muted)}
-@keyframes mmSwing{0%{transform:translateY(-110%) rotate(-28deg)}45%{transform:translateY(0) rotate(14deg)}62%{transform:rotate(-8deg)}78%{transform:rotate(4deg)}90%{transform:rotate(-2deg)}100%{transform:none}}
-@keyframes mmIn{from{opacity:0;transform:translateY(8px)}}
-@media (prefers-reduced-motion:reduce){.mmRib,.mmTx{animation:none}}
 .gRule{font-size:var(--fs-s);color:var(--muted)}
 /* 1.79: the club's top in one card (the level; today's points, your place this week and the streak as three numbers;
    How points work), the league's heading with its switch beside it; the trophies: the closest three, the rest folded */
@@ -1925,11 +1912,11 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .gAw .ppRt i{height:2px;background:repeating-linear-gradient(90deg,#999 0 4px,transparent 4px 7px);position:relative}
 .gAw .ppRt i::after{content:"✈";position:absolute;left:50%;top:-9px;transform:translateX(-50%);font-style:normal;font-size:var(--fs-m);color:#444;background:#efe9da;padding:0 3px}
 /* a new country: the card over the ticket; the stamp lands (fsLand), the country inks in by itself (1.113: no more finger) */
-.gAw.ppNew,.gAw.lyNew{width:255px;border-radius:14px;overflow:hidden;background:#f3eee2;box-shadow:0 10px 24px rgba(0,0,0,.5)}
-.ppNew .hd,.lyNew .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;color:#7a2416}
-.ppNew .hd b,.lyNew .hd b{font-size:var(--fs-m);letter-spacing:.04em;color:#111}
+.gAw.ppNew,.gAw.lyNew,.gAw.mdNew{width:255px;border-radius:14px;overflow:hidden;background:#f3eee2;box-shadow:0 10px 24px rgba(0,0,0,.5)}
+.ppNew .hd,.lyNew .hd,.mdNew .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;color:#7a2416}
+.ppNew .hd b,.lyNew .hd b,.mdNew .hd b{font-size:var(--fs-m);letter-spacing:.04em;color:#111}
 .ppNew .ppMap{aspect-ratio:255/128;border-radius:0;box-shadow:none;cursor:pointer}
-.ppNew .ft,.lyNew .ft{padding:9px 12px 11px;font:600 var(--fs-xs)/1.35 var(--f-board);color:#4a4436}
+.ppNew .ft,.lyNew .ft,.mdNew .ft{padding:9px 12px 11px;font:600 var(--fs-xs)/1.35 var(--f-board);color:#4a4436}
 /* 1.124 (to-do #246): the new card's pop-up. The card's insides are placed in px for its usual size: it is drawn at 262 px and scaled down */
 .lyNew .mid{display:flex;justify-content:center;padding:10px 0;background:linear-gradient(#efe9da,#e6dfcd);box-shadow:inset 0 1px 0 rgba(0,0,0,.06),inset 0 -1px 0 rgba(0,0,0,.06)}
 .lyNewBox{width:196.5px;height:124px}
@@ -1940,6 +1927,16 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .lyNew .lyC{left:0;top:0;margin:0;width:100%;height:100%;cursor:inherit}
 .lyNew .lyC::after{display:none}
 @media (prefers-reduced-motion:reduce){.lyNewC.deal{animation:none}}
+/* 1.125 (to-do #250): the medal's pop-up. The medal hangs from the paper band's top edge and swings about it, each swing smaller; once still, one beam */
+.mdNew .ft b{font-weight:700;color:#1d1a12}
+.mdNew .mid{position:relative;height:136px;overflow:hidden;background:linear-gradient(#efe9da,#e6dfcd);box-shadow:inset 0 1px 0 rgba(0,0,0,.06),inset 0 -1px 0 rgba(0,0,0,.06)}
+.mdHang{--d:92px;position:absolute;left:50%;top:0;width:var(--d);height:calc(var(--d)*1.29);margin-left:calc(var(--d)/-2);transform-origin:50% 0;animation:mdSwing 2.3s .25s ease-in-out both}
+.mdHang svg{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible}
+.mdHang .mdFace{position:absolute;left:0;bottom:0;box-shadow:0 5px 7px rgba(60,45,20,.4);overflow:hidden;isolation:isolate}
+.mdHang .mdFace::after{content:"";position:absolute;inset:-10% -60%;background:linear-gradient(105deg,transparent 42%,rgba(255,255,255,.08) 46%,rgba(255,255,255,.82) 50%,rgba(255,255,255,.08) 54%,transparent 58%);opacity:0;animation:mdBeam 1s 2.65s cubic-bezier(.35,.1,.3,1)}
+@keyframes mdSwing{0%{transform:translateY(-135px) rotate(-22deg);animation-timing-function:cubic-bezier(.3,.2,.5,1)}14%{transform:translateY(0) rotate(17deg)}26.3%{transform:translateY(0) rotate(-11deg)}38.6%{transform:translateY(0) rotate(7deg)}50.9%{transform:translateY(0) rotate(-4.4deg)}63.2%{transform:translateY(0) rotate(2.6deg)}75.5%{transform:translateY(0) rotate(-1.4deg)}87.8%{transform:translateY(0) rotate(.6deg)}100%{transform:translateY(0) rotate(0)}}
+@keyframes mdBeam{0%{transform:translateX(-62%);opacity:1}100%{transform:translateX(62%);opacity:1}}
+@media (prefers-reduced-motion:reduce){.mdHang,.mdHang .mdFace::after{animation:none}}
 .pCard.hit{animation:ppCardHit 1.4s ease-out}
 @keyframes ppCardHit{0%,40%{box-shadow:0 0 0 2px var(--amber)}}
 @media (prefers-reduced-motion:reduce){.pCard.hit{animation:none;box-shadow:0 0 0 2px var(--amber)}}
@@ -4335,8 +4332,13 @@ function achNext(){
   clearTimeout(achTimer);
   if (!achQueue.length) return;
   if (cardOpenNow()) { achTimer = setTimeout(achNext, 5000); return; }
-  const sp = typeof achSpecial === "function" ? achQueue.findIndex(a => achSpecial(a, true)) : -1;        // 1.81: the app's medals, first
-  if (sp >= 0) { achSpecial(achQueue.splice(sp, 1)[0]); achTimer = setTimeout(achNext, 6500); return; }
+  if (typeof achSpecial === "function") {                 // 1.125: the app's medals, first: into the scan's line, one at a time
+    const medals = achQueue.filter(a => achSpecial(a, true)), rest = achQueue.filter(a => !achSpecial(a, true));
+    achQueue.length = 0; achQueue.push(...rest);
+    medals.forEach(a => achSpecial(a));
+  }
+  if (typeof gLineOn === "function" && gLineOn()) { achTimer = setTimeout(achNext, 1500); return; }   // another achievement's card waits until the line has run
+  if (!achQueue.length) return;
   const list = achQueue.splice(0, 3);
   const tok = cardOpen(`<div class="achBadge" aria-hidden="true">${escH(list[0].icon)}</div>` +
     `<p class="shH">${escH(T("Achievement"))}</p>` +
@@ -9438,27 +9440,70 @@ function tierIcon(t){
 let gTrTab = "near";
 const trProg = x => x.st.next && x.st.have != null ? Math.min(1, x.st.have / x.st.next[1]) : 0;
 const trPips = st => `<span class="pips">${st.tiers.map(x => `<b class="${st.won[x[0]] ? "on" : ""}"></b>`).join("")}</span>`;
-const trMedal = (st, t) => { const i = st.tiers.indexOf(t); return {cls: ` medal m${i}`, tag: `<span class="metal">${escH(T(TROPHY_MEDALS[i]))}</span>`}; };
-const trRow = (on, name, what, right, extra = "", cls = "") => `<li class="${on ? "on" : ""}${cls}">${CUP}<span class="name">${escH(name)}${what ? ` <span class="s">${escH(what)}</span>` : ""}</span>` +
+const trMedal = (st, t) => { const i = st.tiers.indexOf(t); return {i, cls: ` medal m${i}`, tag: `<span class="metal">${escH(T(TROPHY_MEDALS[i]))}</span>`}; };
+/* 1.125 (to-do #250): the medal itself. Each metal's face is drawn once, as one picture in a style rule, so 35 rows redrawn
+   by renderGame are only a class each, and no gradient of one svg can point into another (hidden) one. A picture can't
+   reach the page's fonts: the rank's Roman numeral is drawn in paths. */
+const MD_M = [{l: "#ffdcb4", b: "#cf8f5a", d: "#8d5727", x: "#4d2c12"}, {l: "#ffffff", b: "#c6ccd5", d: "#7b828e", x: "#3e434c"}, {l: "#fff3b8", b: "#e0aa1f", d: "#9a6f0e", x: "#573f07"},
+  {l: "#eafff9", b: "#86dccb", d: "#458e7f", x: "#1f4c42"}, {l: "#ffffff", b: "#9fb9ff", d: "#5570c8", x: "#232f70"}];
+const MD_RN = {I: [3.4, x => `M${x} 78.2h3.4v1.1h-1v7.4h1v1.1h-3.4v-1.1h1v-7.4h-1z`], V: [9, x => `M${x} 78.2h3.3v1l-.6.1 1.9 5.7 1.9-5.7-.6-.1v-1h2.9v1l-.8.1-3.1 8.7h-1.2l-3.3-8.7-.8-.1z`]};
+function mdRoman(i){
+  const cs = [...["I", "II", "III", "IV", "V"][i]], gap = 1, w = cs.reduce((n, c) => n + MD_RN[c][0] + gap, -gap);
+  let x = 60 - w / 2, d = "";
+  for (const c of cs) { d += MD_RN[c][1](x.toFixed(2)); x += MD_RN[c][0] + gap; }
+  return `<path d="${d}"/>`;
+}
+function mdFaceSvg(i){                                      // a reeded rim, a bevel, a field in its metal with a laurel, the cup and the rank struck into it; diamond cut
+  const m = MD_M[i], leaves = [];
+  for (let k = 0; k < 8; k++) {
+    const th = 22 + k * 15.5, a = th * Math.PI / 180, x = 37.5 * Math.sin(a), y = 37.5 * Math.cos(a), rot = -th - 66;
+    for (const [sx, r] of [[1, rot], [-1, -rot]]) leaves.push(`<ellipse cx="${(60 + sx * x).toFixed(2)}" cy="${(60 + y).toFixed(2)}" rx="1.9" ry="4.7" transform="rotate(${r.toFixed(1)} ${(60 + sx * x).toFixed(2)} ${(60 + y).toFixed(2)})"/>`);
+  }
+  const facets = i === 4 ? Array.from({length: 16}, (_, k) => {
+    const a0 = k * 22.5 * Math.PI / 180, a1 = (k + 1) * 22.5 * Math.PI / 180, r = 49;
+    return `<path d="M60 60L${(60 + r * Math.cos(a0)).toFixed(2)} ${(60 + r * Math.sin(a0)).toFixed(2)}L${(60 + r * Math.cos(a1)).toFixed(2)} ${(60 + r * Math.sin(a1)).toFixed(2)}Z" fill="${k % 2 ? "#ffffff" : "#1a2a78"}" opacity="${k % 2 ? (.1 + (k % 5) * .05).toFixed(2) : (.06 + (k % 3) * .05).toFixed(2)}"/>`;
+  }).join("") : "";
+  const mark = `<g transform="translate(60 49) scale(1.72) translate(-12 -10.6)"><path d="M7 3h10c0 5-1.5 8-5 8.5C8.5 11 7 8 7 3zM11 11.5h2l.5 4h-3zM8 16h8v2.2H8z"/><path d="M7 4.5C4.5 4.5 4 8 7.5 9M17 4.5c2.5 0 3 3.5-.5 4.5" fill="none" stroke-width="1.5" stroke="currentColor"/></g>` + mdRoman(i);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><defs>` +
+    `<linearGradient id="r" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${m.l}"/><stop offset=".45" stop-color="${m.b}"/><stop offset="1" stop-color="${m.d}"/></linearGradient>` +
+    `<linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${m.d}"/><stop offset=".55" stop-color="${m.b}"/><stop offset="1" stop-color="${m.l}"/></linearGradient>` +
+    `<radialGradient id="f" cx=".36" cy=".3" r=".85"><stop offset="0" stop-color="${m.l}"/><stop offset=".5" stop-color="${m.b}"/><stop offset="1" stop-color="${m.d}"/></radialGradient></defs>` +
+    `<circle cx="60" cy="60" r="60" fill="url(#r)"/><circle cx="60" cy="60" r="57" fill="none" stroke="${m.x}" stroke-opacity=".42" stroke-width="3" stroke-dasharray="1.3 1.68"/>` +
+    `<circle cx="60" cy="60" r="53.5" fill="url(#b)"/><circle cx="60" cy="60" r="49.5" fill="url(#f)"/>${facets}` +
+    `<g fill="${m.l}" color="${m.l}" opacity=".85" transform="translate(.8 .9)">${leaves.join("")}${mark}</g><g fill="${m.x}" color="${m.x}">${leaves.join("")}${mark}</g></svg>`;
+}
+let mdDrawn = false;
+function mdCoin(i, dim){
+  if (!mdDrawn) {
+    mdDrawn = true;
+    const st = document.createElement("style");
+    st.textContent = MD_M.map((_, k) => `.mdFace.m${k}{background-image:url("data:image/svg+xml,${encodeURIComponent(mdFaceSvg(k))}")}`).join("");
+    document.head.appendChild(st);
+  }
+  return `<i class="mdFace m${i}${dim ? " dim" : ""}" aria-hidden="true"></i>`;
+}
+// The ribbon, two strips crossing into the top of the disc; they go on above the svg, so that no end shows as it swings.
+const MD_RIBBON = '<svg viewBox="0 0 100 129" aria-hidden="true"><path d="M2.5-30H27.3L64 36 48 48z" fill="#7a1f2b"/><path d="M10.6-30h8.6L55 34l-5 4z" fill="#e7e2d6"/><path d="M97.5-30H72.7L36 36l16 12z" fill="#94283a"/><path d="M89.4-30h-8.6L45 34l5 4z" fill="#f0ebdf"/></svg>';
+const trRow = (on, name, what, right, extra = "", cls = "", ico = CUP) => `<li class="${on ? "on" : ""}${cls}">${ico}<span class="name">${escH(name)}${what ? ` <span class="s">${escH(what)}</span>` : ""}</span>` +
   `<span class="n">${escH(right)}</span>${extra}</li>`;
 const trToGo = x => { const t = x.st.next, m = trMedal(x.st, t);
   return trRow(false, T(t[2]), T(x.L[1], {n: nf.format(t[1])}), x.st.have != null ? `${nf.format(Math.min(x.st.have, t[1]))} / ${nf.format(t[1])}` : "",
-    `<span class="tl">${m.tag}${trPips(x.st)}<span class="bar"><i style="width:${(trProg(x) * 100).toFixed(1)}%"></i></span></span>`, m.cls); };
-const trWon = x => { const t = x.st.last, m = trMedal(x.st, t);
+    `<span class="tl">${m.tag}${trPips(x.st)}<span class="bar"><i style="width:${(trProg(x) * 100).toFixed(1)}%"></i></span></span>`, m.cls, mdCoin(m.i, true)); };
+const trWon = (x, t = x.st.last) => { const m = trMedal(x.st, t);
   return trRow(true, T(t[2]), T(x.L[1], {n: nf.format(t[1])}), fmtDay(x.st.won[t[0]]),
-    `<span class="tl">${m.tag}${trPips(x.st)}${x.st.next ? `<span class="nx">${escH(T("Next: {name}", {name: T(x.st.next[2])}))}</span>` : ""}</span>`, m.cls); };
+    `<span class="tl">${m.tag}${trPips(x.st)}${x.st.next ? `<span class="nx">${escH(T("Next: {name}", {name: T(x.st.next[2])}))}</span>` : ""}</span>`, m.cls, mdCoin(m.i)); };
 function trophiesHtml(g0){
   const won = g0.trophies || {}, nWon = TROPHY_IDS.filter(k => won[k]).length;
   const lads = TROPHY_LADDERS.map(L => ({L, st: trophyLadder(g0, L)}));
   const todo = lads.filter(x => x.st.next).sort((a, b) => trProg(b) - trProg(a));
   const single = k => { const [nm, what] = trophyText(k); return trRow(!!won[k], nm, what, won[k] ? fmtDay(won[k]) : ""); };
   const lists = {near: todo.slice(0, 3).map(trToGo),
-    won: lads.filter(x => x.st.last).map(trWon).concat(TROPHY_SINGLES.filter(k => won[k]).map(single)),
+    won: lads.filter(x => x.st.last).map(x => trWon(x)).concat(TROPHY_SINGLES.filter(k => won[k]).map(single)),
     todo: todo.map(trToGo).concat(TROPHY_SINGLES.filter(k => !won[k]).map(single))};
   const tabs = [["near", T("Closest")], ["won", T("Won: {n}", {n: nWon})], ["todo", T("Left: {n}", {n: TROPHY_IDS.length - nWon})]];   // 1.122 (to-do #231, Dave)
   const none = {near: "Every rank is won.", won: "No trophies won yet.", todo: "Every trophy is won."}[gTrTab];
   return secPlate(T("Trophies"), `<div class="seg trSeg" role="group">${tabs.map(([k, l]) => `<button type="button" data-tt="${k}" aria-pressed="${k === gTrTab}">${escH(l)}</button>`).join("")}</div>` +
-    (lists[gTrTab].length ? `<ul class="ranks plain cups">${lists[gTrTab].join("")}</ul>` : `<p class="sum">${escH(T(none))}</p>`), "trPlate");
+    (lists[gTrTab].length ? `<ul class="ranks plain cups md">${lists[gTrTab].join("")}</ul>` : `<p class="sum">${escH(T(none))}</p>`), "trPlate");
 }
 // The trophies' switch, on the Spotters' Club page or the Logbook's Records: redraws the page that shows it.
 function trWire(box, redraw){
@@ -11566,7 +11611,7 @@ setTimeout(androidHandover, 4000);
 function backStep(){
   const shown = el => !!el && !el.hidden && el.getClientRects().length > 0;
   if (shown($("welcome"))) return null;                                    // the welcome has no step to go back to
-  for (const id of ["medalMo", "gLvUp"]) if (shown($(id))) return () => $(id).click();   // a pop-up: as a tap on it
+  if (shown($("gLvUp"))) return () => $("gLvUp").click();                  // a pop-up: as a tap on it
   const tipL = $("tipLayer");
   if (shown(tipL) && !tipL.style.pointerEvents) return () => tipL.click();      // a first-time tip: "Got it"
   if (cardOpenNow()) return cardClose;                                     // a card or sheet, also over Sky view
@@ -12695,6 +12740,10 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.125", date: "2026-11-01", notes: [
+    "A new medal comes as a small paper pop-up: it swings in on its ribbon, one thing at a time, and a tap opens that trophy.",
+    "Trophies show their real medals: won in their metal, dim until you win them.",
+  ]},
   {v: "1.124.1", date: "2026-11-01", notes: [
     "The Logbook's Today numbers are there on a day with no planes yet, at 0.",
     "Frequent flyer's tier bar always shows all four tiers; those with no cards are greyed out.",
@@ -16234,25 +16283,29 @@ async function playerCard(id){
     (ra ? `<li class="on" style="--lamp:${TIER_COL[ra.tier] || TIER_COL.uncommon}">${CUP}<span class="name">${escH(T("Rarest catch"))} <span class="s">${escH(ra.name || TYPES[ra.code] || ra.code)}</span></span><span class="n">${escH(T(TIER_NAME[ra.tier] || ""))}</span></li>` : "") +
     (b ? `<li class="on">${CUP}<span class="name">${escH(T("Best this week"))} <span class="s">${escH([b.type, b.flight].filter(Boolean).join(" · "))}</span></span><span class="n">${nf.format(b.pts || 0)}</span></li>` : "") + `</ul></div>`, el => { scPics(el); if (p.me) scEmpWire(el); });
 }
-/* 1.81 (Dave's to-do 5, his picks: B's medal, A's nudge): a rank won swings down as a medal on a ribbon, the rank in Roman
-   numerals, its name and what it took under it; it settles and fades after a few seconds (or a tap). Other achievements,
-   and the board, keep their card: achNext asks achSpecial first (dry: only whether it is a medal). */
-const ROMAN = ["I", "II", "III", "IV", "V"];
-let medalT = 0;
+/* 1.125 (to-do #250, Dave's pick: A, and the medal swings into the paper frame): a rank won is a paper pop-up, a twin of the
+   card's and the passport's, standing in the scan's line (gLine). A tap opens that trophy. Other achievements, and the
+   board, keep their card: achNext asks achSpecial first (dry: only whether it is a medal). */
+const medalSound = () => { fanfare(); try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch {} };   // the medal's sound and buzz, as it rises
+// It waits for a sheet to close (one opened by a tap on the medal before it, say): the pop-ups rise under a sheet.
+const medalFree = () => new Promise(res => { const go = () => cardOpenNow() ? setTimeout(go, 300) : res(); go(); });
+function medalPop(a, id, tr, L){
+  const el = document.createElement("div"), i = L[2].findIndex(t => t[0] === id);
+  el.className = "gAw mdNew"; el.setAttribute("role", "status");
+  el.innerHTML = `<div class="hd"><span>${escH(T("NEW MEDAL · {m}", {m: T(TROPHY_MEDALS[i]).toUpperCase()}))}</span>${a.pts ? `<b>+${nf.format(a.pts)}</b>` : ""}</div>` +
+    `<div class="mid"><div class="mdHang">${MD_RIBBON}${mdCoin(i)}</div></div>` +
+    `<div class="ft"><b>${escH(T("Trophy {name}", {name: T(tr.name)}))}</b>: ${escH(T(tr.text, {n: nf.format(tr.at)}))}</div>`;
+  gAwsBox().appendChild(el); gTixStack();
+  el.out = () => { if (!el.isConnected || el.classList.contains("out")) return; el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); gTixBack(); }, 350); };
+  gAwTap(el, () => trophySheet(L, id));
+  gAwTimer(el, POP_MS);
+  medalSound();
+  return el;
+}
 function achSpecial(a, dry){
   const id = a && /^tr:/.test(a.k) ? a.k.slice(3) : "", tr = id ? TROPHY_TIER.get(id) : null, L = tr && TROPHY_LADDERS.find(l => l[0] === tr.key);
   if (!L || dry) return !!L;
-  const i = L[2].findIndex(t => t[0] === id);
-  let box = $("medalMo");
-  if (!box) { box = document.createElement("div"); box.id = "medalMo"; box.setAttribute("role", "dialog"); document.body.appendChild(box); }
-  box.style.setProperty("--m", MEDAL_COL[i]); box.setAttribute("aria-label", T("New medal"));
-  box.innerHTML = `<div class="mmRib"><i></i><b>${ROMAN[i]}</b></div><div class="mmTx"><span>${escH(T("New medal · {m}", {m: T(TROPHY_MEDALS[i])}) + (a.pts ? " · +" + nf.format(a.pts) : ""))}</span>` +
-    `<h3>${escH(T(tr.name))}</h3><p>${escH(T(tr.text, {n: nf.format(tr.at)}))} · ${escH(T("rank {i} of {n}", {i: i + 1, n: L[2].length}))}</p></div>`;
-  box.hidden = false; box.classList.remove("out");
-  fanfare();
-  try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch {}
-  const close = () => { clearTimeout(medalT); box.classList.add("out"); medalT = setTimeout(() => { box.hidden = true; box.classList.remove("out"); }, 600); };
-  box.onclick = close; clearTimeout(medalT); medalT = setTimeout(close, 5000);
+  gLineAdd(() => medalFree().then(() => medalPop(a, id, tr, L)), true);
   return true;
 }
 // The nudge: when a trophy's next rank is close (two airlines to go, say), a notice from the right, once for each rank.
@@ -16261,11 +16314,14 @@ const NUDGE_DO = {planes: ["see {n} more plane", "see {n} more planes"], types: 
   regs: ["see {n} more aircraft", "see {n} more aircraft"], countries: ["see {n} more country", "see {n} more countries"], points: ["earn {n} more point", "earn {n} more points"],
   legendary: ["see {n} more special plane", "see {n} more special planes"], today: ["see {n} more plane today", "see {n} more planes today"],
   friend: ["see that aircraft {n} more time", "see that aircraft {n} more times"], streak: ["points {n} more day", "points {n} more days"]};
-function trophySheet(L){
+// id (1.125, a tap on the medal's pop-up): the rank just won and its medal first, then what comes after it.
+function trophySheet(L, id){
   const g0 = (lbData() || {}).game, x = {L, st: trophyLadder(g0, L)}, t = x.st.next || x.st.last;
   if (!t) return;
   ctlSound.nav();
-  plateSheet(T("Trophy"), `<ul class="ranks plain cups">${x.st.next ? trToGo(x) : trWon(x)}</ul>`);
+  const from = id ? x.st.tiers.findIndex(r => r[0] === id) : -1;
+  const won = from < 0 ? [] : x.st.tiers.slice(from).filter(r => x.st.won[r[0]]).map(r => trWon(x, r));
+  plateSheet(T("Trophy"), `<ul class="ranks plain cups md">${won.join("")}${x.st.next ? trToGo(x) : won.length ? "" : trWon(x)}</ul>`);
 }
 function medalNudge(g0){
   if (!g0 || !g0.trophyCounts || S.demo) return;

@@ -2778,6 +2778,60 @@ def browser_checks(browser):
                     bad.append(f"a tap on the card's pop-up landed on {got}, not {code}")
             if e("window.__many"):
                 bad.append("two things of one scan on screen at once")
+    # 1.125 (to-do #250): a medal's pop-up, in the line, one at a time; its tap; the medal in the Trophies list
+    won = """(lbData().game.trophies = {...(lbData().game.trophies || {}), airlines25: "2026-10-14", airlines50: "2026-11-01"},
+      lbData().game.trophyCounts = {...(lbData().game.trophyCounts || {}), airlines: 50}, 1)"""
+    e("[...document.querySelectorAll('#gAws .gAw')].forEach(x => x.remove()); gLine.q.length = 0; if (cardOpenNow()) cardClose(); 1")
+    pg.wait_for_timeout(800)
+    e(won)
+    e("""achQueue.push({k: 'tr:airlines50', pts: 100, title: 't', text: 'x', icon: '*'}, {k: 'tr:century', pts: 0, title: 't', text: 'x', icon: '*'},
+         {k: 'x:other', pts: 0, title: 'Another achievement', text: 'x', icon: '*'}); achNext(); 1""")
+    pg.wait_for_timeout(1000)
+    state = lambda: e("[document.querySelectorAll('#gAws .mdNew:not(.out)').length, cardOpenNow()]")   # noqa: E731
+    if state() != [1, False]:
+        bad.append(f"two medals and a card: {state()}, not one medal alone")
+    if e("document.querySelector('.mdNew').offsetWidth") != 255:
+        bad.append("the medal's pop-up isn't 255 px wide")
+    head = e("document.querySelector('.mdNew .hd').innerText").split()
+    if head[:2] != ["NEW", "MEDAL"] or head[-1] != "+100":
+        bad.append(f"the medal's heading says {head}")
+    if "Trophy High flyer" not in e("document.querySelector('.mdNew .ft').innerText"):
+        bad.append("the medal's pop-up doesn't name its trophy")
+    if e("Math.abs(document.querySelector('.mdHang').offsetHeight - 118.68) > 1 ? 1 : 0"):
+        bad.append("the medal hangs at the wrong size")
+    e(won)
+    e("document.querySelector('.mdNew').click(); 1")           # the tap: that trophy; the second medal waits for the sheet
+    pg.wait_for_timeout(700)
+    rows = e("[...document.querySelectorAll('#cardBox .cups li')].map(l => [l.querySelector('.mdFace').className, l.querySelector('.name').textContent.split(' ')[0]])")
+    if rows != [["mdFace m1", "High"], ["mdFace m2 dim", "Jet"]]:
+        bad.append(f"a tap on the medal opened {rows}")
+    pg.wait_for_timeout(1000)
+    if e("document.querySelectorAll('#gAws .mdNew').length"):
+        bad.append("the second medal rose under the sheet")
+    e("cardClose(); 1")
+    pg.wait_for_timeout(1500)
+    if state() != [1, False] or "Century" not in e("document.querySelector('.mdNew .ft').innerText"):
+        bad.append(f"the second medal didn't come after the sheet: {state()}")
+    if "+" in e("document.querySelector('.mdNew .hd').innerText"):
+        bad.append("an award with no points shows points")
+    e("document.querySelector('.mdNew').out(); 1")
+    pg.wait_for_timeout(2300)
+    if not e("cardOpenNow()"):
+        bad.append("another achievement's card didn't follow the medals")
+    e("if (cardOpenNow()) cardClose(); 1")
+    pg.wait_for_timeout(400)
+    e("showTab('game'); gSub = 'league'; 1")
+    pg.wait_for_timeout(500)
+    # the made-up win and the look in one go: a logbook coming in would take it back
+    rows, pic = e(won[:-1] + """, gTrTab = 'won', gPlates = null, renderGame(), [[...document.querySelectorAll('.trPlate .cups li')].map(l => [l.querySelector('.name').textContent.split(' ')[0], (l.querySelector('.mdFace') || {}).className]),
+        (document.querySelector('.trPlate .mdFace') ? getComputedStyle(document.querySelector('.trPlate .mdFace')).backgroundImage : '').indexOf('data:image/svg') >= 0])""")
+    if ["High", "mdFace m1"] not in rows:
+        bad.append(f"Trophies, Won: no silver medal on High flyer: {rows}")
+    if not pic:
+        bad.append("the medal in the list has no picture")
+    if not e(won[:-1] + """, gTrTab = 'todo', gPlates = null, renderGame(), !!(document.querySelector('.trPlate .cups li.medal .mdFace.dim') && document.querySelector('.trPlate .cups li:not(.medal) .cup') && !document.querySelector('.trPlate .cups li.medal .cup')))"""):
+        bad.append("Trophies, Left: a rank isn't a dim medal, or a single has no cup")
+    e("gTrTab = 'near'; 1")
     e("clearInterval(window.__si); 1")
     # 1.124: an airline outside the table: its name and IATA code from the logbook, then the card says so
     got = e("""(() => { const had = !!AIRLINES.XQX, A = (lbData().airlines ||= {}); A.XQX = {name: 'Aer Lingus', iata: 'XQ'};

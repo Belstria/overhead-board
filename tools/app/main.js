@@ -2215,27 +2215,70 @@ function tierIcon(t){
 let gTrTab = "near";
 const trProg = x => x.st.next && x.st.have != null ? Math.min(1, x.st.have / x.st.next[1]) : 0;
 const trPips = st => `<span class="pips">${st.tiers.map(x => `<b class="${st.won[x[0]] ? "on" : ""}"></b>`).join("")}</span>`;
-const trMedal = (st, t) => { const i = st.tiers.indexOf(t); return {cls: ` medal m${i}`, tag: `<span class="metal">${escH(T(TROPHY_MEDALS[i]))}</span>`}; };
-const trRow = (on, name, what, right, extra = "", cls = "") => `<li class="${on ? "on" : ""}${cls}">${CUP}<span class="name">${escH(name)}${what ? ` <span class="s">${escH(what)}</span>` : ""}</span>` +
+const trMedal = (st, t) => { const i = st.tiers.indexOf(t); return {i, cls: ` medal m${i}`, tag: `<span class="metal">${escH(T(TROPHY_MEDALS[i]))}</span>`}; };
+/* 1.125 (to-do #250): the medal itself. Each metal's face is drawn once, as one picture in a style rule, so 35 rows redrawn
+   by renderGame are only a class each, and no gradient of one svg can point into another (hidden) one. A picture can't
+   reach the page's fonts: the rank's Roman numeral is drawn in paths. */
+const MD_M = [{l: "#ffdcb4", b: "#cf8f5a", d: "#8d5727", x: "#4d2c12"}, {l: "#ffffff", b: "#c6ccd5", d: "#7b828e", x: "#3e434c"}, {l: "#fff3b8", b: "#e0aa1f", d: "#9a6f0e", x: "#573f07"},
+  {l: "#eafff9", b: "#86dccb", d: "#458e7f", x: "#1f4c42"}, {l: "#ffffff", b: "#9fb9ff", d: "#5570c8", x: "#232f70"}];
+const MD_RN = {I: [3.4, x => `M${x} 78.2h3.4v1.1h-1v7.4h1v1.1h-3.4v-1.1h1v-7.4h-1z`], V: [9, x => `M${x} 78.2h3.3v1l-.6.1 1.9 5.7 1.9-5.7-.6-.1v-1h2.9v1l-.8.1-3.1 8.7h-1.2l-3.3-8.7-.8-.1z`]};
+function mdRoman(i){
+  const cs = [...["I", "II", "III", "IV", "V"][i]], gap = 1, w = cs.reduce((n, c) => n + MD_RN[c][0] + gap, -gap);
+  let x = 60 - w / 2, d = "";
+  for (const c of cs) { d += MD_RN[c][1](x.toFixed(2)); x += MD_RN[c][0] + gap; }
+  return `<path d="${d}"/>`;
+}
+function mdFaceSvg(i){                                      // a reeded rim, a bevel, a field in its metal with a laurel, the cup and the rank struck into it; diamond cut
+  const m = MD_M[i], leaves = [];
+  for (let k = 0; k < 8; k++) {
+    const th = 22 + k * 15.5, a = th * Math.PI / 180, x = 37.5 * Math.sin(a), y = 37.5 * Math.cos(a), rot = -th - 66;
+    for (const [sx, r] of [[1, rot], [-1, -rot]]) leaves.push(`<ellipse cx="${(60 + sx * x).toFixed(2)}" cy="${(60 + y).toFixed(2)}" rx="1.9" ry="4.7" transform="rotate(${r.toFixed(1)} ${(60 + sx * x).toFixed(2)} ${(60 + y).toFixed(2)})"/>`);
+  }
+  const facets = i === 4 ? Array.from({length: 16}, (_, k) => {
+    const a0 = k * 22.5 * Math.PI / 180, a1 = (k + 1) * 22.5 * Math.PI / 180, r = 49;
+    return `<path d="M60 60L${(60 + r * Math.cos(a0)).toFixed(2)} ${(60 + r * Math.sin(a0)).toFixed(2)}L${(60 + r * Math.cos(a1)).toFixed(2)} ${(60 + r * Math.sin(a1)).toFixed(2)}Z" fill="${k % 2 ? "#ffffff" : "#1a2a78"}" opacity="${k % 2 ? (.1 + (k % 5) * .05).toFixed(2) : (.06 + (k % 3) * .05).toFixed(2)}"/>`;
+  }).join("") : "";
+  const mark = `<g transform="translate(60 49) scale(1.72) translate(-12 -10.6)"><path d="M7 3h10c0 5-1.5 8-5 8.5C8.5 11 7 8 7 3zM11 11.5h2l.5 4h-3zM8 16h8v2.2H8z"/><path d="M7 4.5C4.5 4.5 4 8 7.5 9M17 4.5c2.5 0 3 3.5-.5 4.5" fill="none" stroke-width="1.5" stroke="currentColor"/></g>` + mdRoman(i);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><defs>` +
+    `<linearGradient id="r" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${m.l}"/><stop offset=".45" stop-color="${m.b}"/><stop offset="1" stop-color="${m.d}"/></linearGradient>` +
+    `<linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${m.d}"/><stop offset=".55" stop-color="${m.b}"/><stop offset="1" stop-color="${m.l}"/></linearGradient>` +
+    `<radialGradient id="f" cx=".36" cy=".3" r=".85"><stop offset="0" stop-color="${m.l}"/><stop offset=".5" stop-color="${m.b}"/><stop offset="1" stop-color="${m.d}"/></radialGradient></defs>` +
+    `<circle cx="60" cy="60" r="60" fill="url(#r)"/><circle cx="60" cy="60" r="57" fill="none" stroke="${m.x}" stroke-opacity=".42" stroke-width="3" stroke-dasharray="1.3 1.68"/>` +
+    `<circle cx="60" cy="60" r="53.5" fill="url(#b)"/><circle cx="60" cy="60" r="49.5" fill="url(#f)"/>${facets}` +
+    `<g fill="${m.l}" color="${m.l}" opacity=".85" transform="translate(.8 .9)">${leaves.join("")}${mark}</g><g fill="${m.x}" color="${m.x}">${leaves.join("")}${mark}</g></svg>`;
+}
+let mdDrawn = false;
+function mdCoin(i, dim){
+  if (!mdDrawn) {
+    mdDrawn = true;
+    const st = document.createElement("style");
+    st.textContent = MD_M.map((_, k) => `.mdFace.m${k}{background-image:url("data:image/svg+xml,${encodeURIComponent(mdFaceSvg(k))}")}`).join("");
+    document.head.appendChild(st);
+  }
+  return `<i class="mdFace m${i}${dim ? " dim" : ""}" aria-hidden="true"></i>`;
+}
+// The ribbon, two strips crossing into the top of the disc; they go on above the svg, so that no end shows as it swings.
+const MD_RIBBON = '<svg viewBox="0 0 100 129" aria-hidden="true"><path d="M2.5-30H27.3L64 36 48 48z" fill="#7a1f2b"/><path d="M10.6-30h8.6L55 34l-5 4z" fill="#e7e2d6"/><path d="M97.5-30H72.7L36 36l16 12z" fill="#94283a"/><path d="M89.4-30h-8.6L45 34l5 4z" fill="#f0ebdf"/></svg>';
+const trRow = (on, name, what, right, extra = "", cls = "", ico = CUP) => `<li class="${on ? "on" : ""}${cls}">${ico}<span class="name">${escH(name)}${what ? ` <span class="s">${escH(what)}</span>` : ""}</span>` +
   `<span class="n">${escH(right)}</span>${extra}</li>`;
 const trToGo = x => { const t = x.st.next, m = trMedal(x.st, t);
   return trRow(false, T(t[2]), T(x.L[1], {n: nf.format(t[1])}), x.st.have != null ? `${nf.format(Math.min(x.st.have, t[1]))} / ${nf.format(t[1])}` : "",
-    `<span class="tl">${m.tag}${trPips(x.st)}<span class="bar"><i style="width:${(trProg(x) * 100).toFixed(1)}%"></i></span></span>`, m.cls); };
-const trWon = x => { const t = x.st.last, m = trMedal(x.st, t);
+    `<span class="tl">${m.tag}${trPips(x.st)}<span class="bar"><i style="width:${(trProg(x) * 100).toFixed(1)}%"></i></span></span>`, m.cls, mdCoin(m.i, true)); };
+const trWon = (x, t = x.st.last) => { const m = trMedal(x.st, t);
   return trRow(true, T(t[2]), T(x.L[1], {n: nf.format(t[1])}), fmtDay(x.st.won[t[0]]),
-    `<span class="tl">${m.tag}${trPips(x.st)}${x.st.next ? `<span class="nx">${escH(T("Next: {name}", {name: T(x.st.next[2])}))}</span>` : ""}</span>`, m.cls); };
+    `<span class="tl">${m.tag}${trPips(x.st)}${x.st.next ? `<span class="nx">${escH(T("Next: {name}", {name: T(x.st.next[2])}))}</span>` : ""}</span>`, m.cls, mdCoin(m.i)); };
 function trophiesHtml(g0){
   const won = g0.trophies || {}, nWon = TROPHY_IDS.filter(k => won[k]).length;
   const lads = TROPHY_LADDERS.map(L => ({L, st: trophyLadder(g0, L)}));
   const todo = lads.filter(x => x.st.next).sort((a, b) => trProg(b) - trProg(a));
   const single = k => { const [nm, what] = trophyText(k); return trRow(!!won[k], nm, what, won[k] ? fmtDay(won[k]) : ""); };
   const lists = {near: todo.slice(0, 3).map(trToGo),
-    won: lads.filter(x => x.st.last).map(trWon).concat(TROPHY_SINGLES.filter(k => won[k]).map(single)),
+    won: lads.filter(x => x.st.last).map(x => trWon(x)).concat(TROPHY_SINGLES.filter(k => won[k]).map(single)),
     todo: todo.map(trToGo).concat(TROPHY_SINGLES.filter(k => !won[k]).map(single))};
   const tabs = [["near", T("Closest")], ["won", T("Won: {n}", {n: nWon})], ["todo", T("Left: {n}", {n: TROPHY_IDS.length - nWon})]];   // 1.122 (to-do #231, Dave)
   const none = {near: "Every rank is won.", won: "No trophies won yet.", todo: "Every trophy is won."}[gTrTab];
   return secPlate(T("Trophies"), `<div class="seg trSeg" role="group">${tabs.map(([k, l]) => `<button type="button" data-tt="${k}" aria-pressed="${k === gTrTab}">${escH(l)}</button>`).join("")}</div>` +
-    (lists[gTrTab].length ? `<ul class="ranks plain cups">${lists[gTrTab].join("")}</ul>` : `<p class="sum">${escH(T(none))}</p>`), "trPlate");
+    (lists[gTrTab].length ? `<ul class="ranks plain cups md">${lists[gTrTab].join("")}</ul>` : `<p class="sum">${escH(T(none))}</p>`), "trPlate");
 }
 // The trophies' switch, on the Spotters' Club page or the Logbook's Records: redraws the page that shows it.
 function trWire(box, redraw){
@@ -4347,7 +4390,7 @@ setTimeout(androidHandover, 4000);
 function backStep(){
   const shown = el => !!el && !el.hidden && el.getClientRects().length > 0;
   if (shown($("welcome"))) return null;                                    // the welcome has no step to go back to
-  for (const id of ["medalMo", "gLvUp"]) if (shown($(id))) return () => $(id).click();   // a pop-up: as a tap on it
+  if (shown($("gLvUp"))) return () => $("gLvUp").click();                  // a pop-up: as a tap on it
   const tipL = $("tipLayer");
   if (shown(tipL) && !tipL.style.pointerEvents) return () => tipL.click();      // a first-time tip: "Got it"
   if (cardOpenNow()) return cardClose;                                     // a card or sheet, also over Sky view
@@ -7025,25 +7068,29 @@ async function playerCard(id){
     (ra ? `<li class="on" style="--lamp:${TIER_COL[ra.tier] || TIER_COL.uncommon}">${CUP}<span class="name">${escH(T("Rarest catch"))} <span class="s">${escH(ra.name || TYPES[ra.code] || ra.code)}</span></span><span class="n">${escH(T(TIER_NAME[ra.tier] || ""))}</span></li>` : "") +
     (b ? `<li class="on">${CUP}<span class="name">${escH(T("Best this week"))} <span class="s">${escH([b.type, b.flight].filter(Boolean).join(" · "))}</span></span><span class="n">${nf.format(b.pts || 0)}</span></li>` : "") + `</ul></div>`, el => { scPics(el); if (p.me) scEmpWire(el); });
 }
-/* 1.81 (Dave's to-do 5, his picks: B's medal, A's nudge): a rank won swings down as a medal on a ribbon, the rank in Roman
-   numerals, its name and what it took under it; it settles and fades after a few seconds (or a tap). Other achievements,
-   and the board, keep their card: achNext asks achSpecial first (dry: only whether it is a medal). */
-const ROMAN = ["I", "II", "III", "IV", "V"];
-let medalT = 0;
+/* 1.125 (to-do #250, Dave's pick: A, and the medal swings into the paper frame): a rank won is a paper pop-up, a twin of the
+   card's and the passport's, standing in the scan's line (gLine). A tap opens that trophy. Other achievements, and the
+   board, keep their card: achNext asks achSpecial first (dry: only whether it is a medal). */
+const medalSound = () => { fanfare(); try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch {} };   // the medal's sound and buzz, as it rises
+// It waits for a sheet to close (one opened by a tap on the medal before it, say): the pop-ups rise under a sheet.
+const medalFree = () => new Promise(res => { const go = () => cardOpenNow() ? setTimeout(go, 300) : res(); go(); });
+function medalPop(a, id, tr, L){
+  const el = document.createElement("div"), i = L[2].findIndex(t => t[0] === id);
+  el.className = "gAw mdNew"; el.setAttribute("role", "status");
+  el.innerHTML = `<div class="hd"><span>${escH(T("NEW MEDAL · {m}", {m: T(TROPHY_MEDALS[i]).toUpperCase()}))}</span>${a.pts ? `<b>+${nf.format(a.pts)}</b>` : ""}</div>` +
+    `<div class="mid"><div class="mdHang">${MD_RIBBON}${mdCoin(i)}</div></div>` +
+    `<div class="ft"><b>${escH(T("Trophy {name}", {name: T(tr.name)}))}</b>: ${escH(T(tr.text, {n: nf.format(tr.at)}))}</div>`;
+  gAwsBox().appendChild(el); gTixStack();
+  el.out = () => { if (!el.isConnected || el.classList.contains("out")) return; el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); gTixBack(); }, 350); };
+  gAwTap(el, () => trophySheet(L, id));
+  gAwTimer(el, POP_MS);
+  medalSound();
+  return el;
+}
 function achSpecial(a, dry){
   const id = a && /^tr:/.test(a.k) ? a.k.slice(3) : "", tr = id ? TROPHY_TIER.get(id) : null, L = tr && TROPHY_LADDERS.find(l => l[0] === tr.key);
   if (!L || dry) return !!L;
-  const i = L[2].findIndex(t => t[0] === id);
-  let box = $("medalMo");
-  if (!box) { box = document.createElement("div"); box.id = "medalMo"; box.setAttribute("role", "dialog"); document.body.appendChild(box); }
-  box.style.setProperty("--m", MEDAL_COL[i]); box.setAttribute("aria-label", T("New medal"));
-  box.innerHTML = `<div class="mmRib"><i></i><b>${ROMAN[i]}</b></div><div class="mmTx"><span>${escH(T("New medal · {m}", {m: T(TROPHY_MEDALS[i])}) + (a.pts ? " · +" + nf.format(a.pts) : ""))}</span>` +
-    `<h3>${escH(T(tr.name))}</h3><p>${escH(T(tr.text, {n: nf.format(tr.at)}))} · ${escH(T("rank {i} of {n}", {i: i + 1, n: L[2].length}))}</p></div>`;
-  box.hidden = false; box.classList.remove("out");
-  fanfare();
-  try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch {}
-  const close = () => { clearTimeout(medalT); box.classList.add("out"); medalT = setTimeout(() => { box.hidden = true; box.classList.remove("out"); }, 600); };
-  box.onclick = close; clearTimeout(medalT); medalT = setTimeout(close, 5000);
+  gLineAdd(() => medalFree().then(() => medalPop(a, id, tr, L)), true);
   return true;
 }
 // The nudge: when a trophy's next rank is close (two airlines to go, say), a notice from the right, once for each rank.
@@ -7052,11 +7099,14 @@ const NUDGE_DO = {planes: ["see {n} more plane", "see {n} more planes"], types: 
   regs: ["see {n} more aircraft", "see {n} more aircraft"], countries: ["see {n} more country", "see {n} more countries"], points: ["earn {n} more point", "earn {n} more points"],
   legendary: ["see {n} more special plane", "see {n} more special planes"], today: ["see {n} more plane today", "see {n} more planes today"],
   friend: ["see that aircraft {n} more time", "see that aircraft {n} more times"], streak: ["points {n} more day", "points {n} more days"]};
-function trophySheet(L){
+// id (1.125, a tap on the medal's pop-up): the rank just won and its medal first, then what comes after it.
+function trophySheet(L, id){
   const g0 = (lbData() || {}).game, x = {L, st: trophyLadder(g0, L)}, t = x.st.next || x.st.last;
   if (!t) return;
   ctlSound.nav();
-  plateSheet(T("Trophy"), `<ul class="ranks plain cups">${x.st.next ? trToGo(x) : trWon(x)}</ul>`);
+  const from = id ? x.st.tiers.findIndex(r => r[0] === id) : -1;
+  const won = from < 0 ? [] : x.st.tiers.slice(from).filter(r => x.st.won[r[0]]).map(r => trWon(x, r));
+  plateSheet(T("Trophy"), `<ul class="ranks plain cups md">${won.join("")}${x.st.next ? trToGo(x) : won.length ? "" : trWon(x)}</ul>`);
 }
 function medalNudge(g0){
   if (!g0 || !g0.trophyCounts || S.demo) return;
