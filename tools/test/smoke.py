@@ -50,6 +50,12 @@ def syntax():
             if r.returncode:
                 bad += 1
                 print(f"{f.relative_to(REPO).as_posix()}:\n{r.stderr.strip()}\n")
+    for page in PAGES[1:]:                         # 1.129.2: CHANGELOG's newest entries run newest first (VERSION is its first entry);
+        vs = [tuple(int(n) for n in v.split(".")) for v in re.findall(r'^  \{v: "(\d+(?:\.\d+)+)"', (REPO / page).read_text(encoding="utf-8"), re.M)]
+        top = vs[:15]                              # older history was kept in the order it was merged; the main board follows later
+        if vs and (vs[0] != max(vs) or any(a <= b for a, b in zip(top, top[1:]))):
+            bad += 1
+            print(f"{page}: CHANGELOG isn't newest first at the top: {', '.join('.'.join(map(str, v)) for v in top[:4])} ...")
     stale = assets.stamp(check=True)
     if stale:
         bad += 1

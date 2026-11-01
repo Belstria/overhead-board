@@ -3735,6 +3735,7 @@ def browser_checks(browser):
     logbook_list_checks(browser, bad)
     demo_rows_checks(browser, bad)
     sky_sizes_checks(browser, bad)
+    styles_cell_checks(browser, bad)
     sky_row_checks(browser, bad)
     for b_ in bad:
         print("flow:", b_)
@@ -3913,6 +3914,82 @@ def sky_read_checks(browser):
         print("flow:", b_)
     print("Sky view reads the camera only in the align step, which still finishes on the sun and the moon" if not bad else f"{len(bad)} Sky view read check(s) failed")
     return bad
+
+
+def styles_cell_checks(browser, bad):
+    """To-do #266: Settings → Display carries the Styles cell: the look's name on 15 real flaps, a key under it. A tap on
+    the strip opens the gallery on its Board tab; the name follows a change of look, silently; a re-rendered cockpit
+    (Save, Cancel) and opening Display ten times leave `panels` and `allCells` as they were; every look's name fits the
+    flaps' drum in 15 letters; with no game (demo) the cell is the same."""
+    def hooked(route):
+        r = route.fetch()
+        t = r.text()
+        i = t.rindex("})();")
+        route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+    for what, url in (("with a game", "/app/"), ("in demo", "/app/?demo")):
+        ctx = browser.new_context(viewport={"width": 390, "height": 844})
+        ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+        ctx.route("**/app/", hooked)
+        ctx.route("**/app/?demo", hooked)
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: bad.append(f"styles cell page error: {e}"))
+        pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
+        pg.goto(BASE + url)
+        pg.wait_for_function("!!window.__e", timeout=20000)
+        pg.wait_for_timeout(4500)
+        e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
+        e("applySettings({...S, theme: 'classic', palette: '', finish: '', badge: ''}); 1")
+        pg.click("[data-tab=settings]")
+        sizes = []
+        for _ in range(10):
+            pg.click("[data-set=display]")
+            pg.wait_for_timeout(300)
+            sizes.append(e("panels.length + '/' + allCells.length"))
+            e("cardClose(); 1")
+            pg.wait_for_timeout(300)
+        e("for (let i = 0; i < 5; i++) cockpitOpen(); 1")
+        sizes.append(e("panels.length + '/' + allCells.length"))
+        if len(set(sizes)) != 1:
+            bad.append(f"styles cell {what}: panels piled up: {sizes}")
+        pg.click("[data-set=display]")
+        pg.wait_for_timeout(500)
+        if e("fields.stlook.cells.map(c => c.cur).join('').trim()") != "CLASSIC":
+            bad.append(f"styles cell {what}: the flaps don't read CLASSIC")
+        if e("fields.stlook.cells.some(c => c.anim || c.queue.length)"):
+            bad.append(f"styles cell {what}: the flaps are turning on opening")
+        if not pg.is_visible(".stStrip") or not pg.is_visible(".stKey"):
+            bad.append(f"styles cell {what}: the strip or the key isn't there")
+        if pg.evaluate("document.querySelector('.stKey').getBoundingClientRect().width") < 250:
+            bad.append(f"styles cell {what}: the Styles key isn't the full width")
+        if pg.query_selector("[data-styles]"):
+            bad.append(f"styles cell {what}: an old Look or Badge key is still on the phone")
+        for sel, nm in ((".stStrip", "the strip"), (".stKey", "the key")):
+            pg.click(sel)
+            pg.wait_for_timeout(600)
+            if not e("!$('t-styles').hidden") or e("stTab") != "board":
+                bad.append(f"styles cell {what}: a tap on {nm} didn't open the gallery on Board")
+            e("applySettings({...S, theme: 'tokyo'}); stylesHide(); 1")
+            pg.wait_for_timeout(1500)
+            if e("fields.stlook.cells.map(c => c.cur).join('').trim()") != "TOKYO NIGHT":
+                bad.append(f"styles cell {what}: after a change of look the flaps read {e('fields.stlook.cells.map(c => c.cur).join(\"\")')!r}")
+            e("applySettings({...S, theme: 'classic'}); 1")
+            pg.wait_for_timeout(1500)
+            e("cardClose(); 1")
+            pg.wait_for_timeout(300)
+            pg.click("[data-set=display]")
+            pg.wait_for_timeout(500)
+        # every look's name fits the 15 flaps and the drum
+        names = e("STYLES.find(x => x[0] === 'theme')[2].map(x => [x[1], DRUM_ALPHA])")
+        for nm, drum in names:
+            up = nm.upper()
+            if len(up) > 15 or any(ch not in drum for ch in up):
+                bad.append(f"a look's name doesn't fit the flaps: {nm!r}")
+        if e("styleShort('theme')") != "Classic" or not all(k in e("STYLE_SHORT") for k in ("goldleaf", "firstclass")):
+            bad.append("the short names of Gold leaf and First Class are missing")
+        e("applySettings({...S, theme: 'classic', palette: '', finish: '', badge: '', demo: false}); 1")      # the profile is saved on the relay: leave it as it was
+        pg.wait_for_timeout(1500)
+        ctx.close()
+    print("the Styles cell holds" if not [b for b in bad if b.startswith("styles cell")] else "styles cell check(s) failed")
 
 
 def demo_rows_checks(browser, bad):

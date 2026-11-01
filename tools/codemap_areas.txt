@@ -261,9 +261,9 @@ test/index.html: DEFAULTS GUEST SKEY loadSettings overRule saveSettings S meBase
     +accountOpen +ctlNoise +ctlReady +ctlBurst +ctlRing +ctlSound +hereNow +nearestAirport +nearbyAirports +putDraft
     +locatedAt +wireLocation +settingsSync +wireSearch applySettings #cockpit .plate .inst #hintTip .lcd .rotary
     .toggle .wheels .wheel @rollUp @rollDown .ctlCap .ctlTop .ctlBot +stylesCard +favCounts +accountBox
-tools/app/head.html: #cockpit .syncNote #t-settings .setSave .setAsk .idxH .idx #setExtra #setList
+tools/app/head.html: #cockpit .syncNote #t-settings .setSave .setAsk .idxH .idx #setExtra #setList .inst.stCell .stCell .stStrip .stPanel .stKey
 tools/app/main.js: GUEST DEFAULTS SKEY LIGHT_FIXED loadSettings overRule saveMe located saveSettings S meBase
-    COCKPIT_FOR plateHtml cockpitOpen savedTimer cockpitDone cockpitMark SET_ICO setPid setHome setHeld setAsking
+    COCKPIT_FOR plateHtml cockpitOpen savedTimer cockpitDone cockpitMark SET_ICO setPid setHome setHeld setAsking STRIP_N STRIP_ID stripP stripRO stripText stripPaint stripSet stripDrop stripMount
     pushLine setCap setLine setListRender setOpen setBack setAsk setRestore settingsExtra topSize
     applySettings +renderPush +renderFavBox +renderAbout +showTab
 relay/serve.py: /me +Handler.profile_post

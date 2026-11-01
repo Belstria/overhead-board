@@ -744,6 +744,14 @@ body.arOpen #sheet{z-index:75}
 #cockpit{position:static;display:flex;flex-direction:column;gap:14px;--k:1}
 #cockpit .plate{--pt:14px;--px:14px;padding:var(--pt) var(--px) 16px;gap:10px}
 #cockpit .inst.wide .lcd{width:100%}
+/* 1.130: the Display panel's Styles cell, the whole row: the look's name on flaps (stripMount), the Styles key under it.
+   `#cardBox .cBtn` (the sheet's key) is `all:unset`, which drops the display, centring and width: set them back here
+   with a rule of the same weight as it (an id and two classes), not !important. */
+.inst.stCell{grid-column:1/-1;align-items:stretch;gap:calc(8px*var(--k,1));padding:calc(7px*var(--k,1)) calc(7px*var(--k,1)) calc(8px*var(--k,1))}
+.stCell .stStrip{flex:none;cursor:pointer;border-radius:4px;-webkit-tap-highlight-color:transparent}
+.stCell .stStrip:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.stCell .stPanel{border-radius:4px;overflow:hidden;box-shadow:0 0 0 2px #050505,0 1px 0 3px rgba(255,255,255,.07)}
+.stCell .cBtn.stKey,#cardBox .stCell .cBtn.stKey{display:flex;align-items:center;justify-content:center;width:100%;text-align:center}
 /* the airport statuses carry a small plane taking off or landing */
 .chip .apic{display:inline-grid;width:17px;height:17px;margin-right:6px}
 .chip .apic svg{width:100%;height:100%;fill:currentColor}

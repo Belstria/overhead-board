@@ -705,7 +705,14 @@ country still to stamp** face down after your stamps, nearest first; regions wit
     Class** (claret leather with a stitched seam, cream flaps with claret letters) is for last week's league winner,
     that week only. Styles picked before 1.72 stay.
   - LED dots: since 1.61 a real 5x7 dot font on dark flaps, readable on a TV.
-  - **In the app since 1.110**, Settings → Styles (Look or Badge, or Try it after a level-up) is a **gallery** on a page
+  - **In the app since 1.129.2**, Settings → Display opens with the Styles cell across the whole panel: your look's name
+    (the board style, "Classic") on 15 real flaps beside the logo square (with the badge in use), on a metal strip in
+    the look's own colours, and a full-width **Styles** key under it. The name is simply there when the panel opens (no
+    turning, no sound); a tap on the strip or the key opens the gallery on Board. There is no Look or Badge key, no
+    ticket and no count any more: Ticket and Badge are a tab of the gallery (Settings, Display, Styles, a tab). Without
+    a game (demo) the cell is the same. Units, Realistic look, Daylight and Demo mode fill the grid two by two.
+    The board's own Settings (the TVs) keep Look and Badge.
+  - **In the app since 1.110**, Settings → Styles (the Styles cell, or Try it after a level-up) is a **gallery** on a page
     of its own: tabs **Board · Ticket · Badge**, each a two-column grid of preview cards (the style in its own colours
     and font, the ticket in its design) marked IN USE, ✓ YOURS or 🔒 with what unlocks it ("Level 14", "A gold medal",
     "Last week's winner"). Board has the board styles, then Classic's colours and flaps in a section of their own
