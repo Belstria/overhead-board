@@ -1026,7 +1026,8 @@ the remote).
 - Live aircraft positions: [adsb.lol](https://adsb.lol), [adsb.fi](https://adsb.fi) and [airplanes.live](https://airplanes.live)
   (ODbL), tried in that order, with [AvioADSB](https://avioadsb.org) (data [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/))
   as an emergency backup. The boards' About links to each of them, as their terms ask.
-- Routes, airlines and aircraft details: [adsbdb](https://www.adsbdb.com) and the adsb.lol route service.
+- Routes, airlines and aircraft details: [adsbdb](https://www.adsbdb.com) and the adsb.lol route service; routes they don't have from
+  [Virtual Radar Server's standing data](https://github.com/vradarserver/standing-data) (CC0), when the plane's position fits.
   These are looked up by callsign, and airlines reuse callsigns (Ryanair especially), so a listed route is only
   shown when the plane is actually along it and heading towards its destination; otherwise the route stays blank.
 - The watchlist: [plane-alert-db](https://github.com/sdr-enthusiasts/plane-alert-db) (ODbL 1.0 / DbCL 1.0).
@@ -1089,6 +1090,14 @@ Moving from another computer: stop the relay there and copy its `overhead.json` 
 Then open `http://localhost:8080`, or `http://<computer-name>:8080` from the TV, tablet or phone.
 The relay prints the addresses when it starts. Your location stays on the relay machine: it is handed
 to the board when the page loads, so nothing personal lives in this repository.
+
+Filled-in routes (relay 106): a flight neither adsbdb, adsb.lol nor Flightradar24 has a route for gets Virtual Radar
+Server's, only when the plane's position and heading fit it (a stopover route: the leg they fit; no position, no
+heading or an unknown airport: no route). The relay downloads one airline's file at a time when a flight needs it,
+asking by airline code only, and keeps it in `data/vrs-routes/` for a week; a failed download changes nothing. These
+routes show like any other, but about 1 in 9 listed routes is wrong before the check, so they don't stamp the passport,
+pay at a scan or set the farthest record, and any other source's route replaces one. Saved days are caught up once in
+the background, and the log says what came of it per profile ("Routes: N filled, M refused by position, ...").
 
 Airline names (relay 68): the route database names the airline only together with a route, so the relay also keeps
 Virtual Radar Server's airline list (public domain) in `data/airlines.json`, downloaded at start and refreshed weekly

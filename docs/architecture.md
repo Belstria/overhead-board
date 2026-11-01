@@ -54,7 +54,8 @@ Fire TV lays out at 960x540, so board CSS in the cockpit and views scales with `
 apdep (`pageOrder()`), `apFeature` picks the plane; runways from `AIRPORTS` or the relay's `/airport`.
 
 **Data**: positions from the relay (`/aircraft/...`); routes and aircraft from adsbdb (browser) and adsb.lol's routeset
-(via the relay); Spotted today and the logbook from the relay (`/sightings`, `/logbook`); times from Vienna Airport
+(via the relay); where none has a route, VRS's standing data on the relay (relay 106, `routeSrc: "vrs"`, only if `_vrs_route` accepts it; the game and records
+don't read it; the boards' own lookups borrow it with `borrowFilledRoutes`); Spotted today and the logbook from the relay (`/sightings`, `/logbook`); times from Vienna Airport
 (`/times`); Flightradar24 via `/flightinfo`; photos in the order Planespotters.net (`/planephoto`, relay 73; never kept
 or passed on, so never in the share picture), adsbdb's, the model's from Wikipedia (`planePic`, 1.93; found by `modelPage`: the code's page in `MODEL_PAGES`, then the names, never another model's, 1.93.1.1). The info cards (1.94, `infoCard`: Sky view's card
 style, More info, fun facts) get Wikipedia's and Wikidata's facts cleaned by the relay (`/facts`, relay 74: a model by

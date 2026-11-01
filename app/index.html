@@ -6463,13 +6463,22 @@ function fromRelay(r){
     flight: r.flightIata ? fmtFlight(r.flightIata) : al && al[0] ? al[0] + " " + m[2] : m && r.airlineIata ? r.airlineIata + " " + m[2] :
       (cs || r.reg || String(r.hex || "").toUpperCase()),
     airline: r.airlineName || (al ? al[1] : ""), airlineCode: r.airlineIata || (al ? al[0] : ""),
-    from: r.from || null, to: r.to || null, type: TYPES[r.typeCode] || (tn.sure ? tn.name : dbType || tn.name), typeCode: r.typeCode || "", desc: r.desc || "",
+    from: r.from || null, to: r.to || null, routeSrc: r.routeSrc || "", type: TYPES[r.typeCode] || (tn.sure ? tn.name : dbType || tn.name), typeCode: r.typeCode || "", desc: r.desc || "",
     minDist: r.minDist, altAtMin: r.altAtMin, maxSpeed: r.maxSpeed, military: r.military, interesting: r.interesting, emergency: r.emergency,
     newType: r.newType, newAirline: r.newAirline, newReg: r.newReg, tier: r.tier, watch: r.watch || "",
     gp: r.gp, lock: r.lock, scan: r.scan, gs: r.gs, liveMin: r.liveMin, gn: r.gn, gNewType: r.gNewType, gNewAirline: r.gNewAirline, gNewReg: r.gNewReg,   // 1.72: the game (1.96: scan, gs)
     photo: r.photo, owner: r.owner, ownerCountry: r.ownerCountry, aircraftType: r.aircraftType, manufacturer: r.manufacturer,
     fr24: !!r.fr24, category: r.category, operator: r.operator, livery: r.livery, divertedTo: r.divertedTo, ...marketedBy(r.fr24 && r.flightIata),
     done: sightDone(r)};
+}
+// 1.129 (relay 106): the relay fills a route the free lookups don't have. The plane on top and the Radar take theirs from
+// the lookups, so they borrow it from the shared list; a real answer arriving later overwrites it.
+function borrowFilledRoutes(){
+  for (const s of spotted) {
+    if (s.routeSrc !== "vrs" || !s.from || !s.to) continue;
+    const info = (infoCache.get(s.hex + "|" + s.callsign) || {}).info;
+    if (info && !info.from && !info.to) { info.from = s.from; info.to = s.to; infoChanged(info); }
+  }
 }
 // The relay (41) marks a sighting `looked` once its route and aircraft were looked up, and `fr24Wait` while Flightradar24
 // is still to answer; older sightings (or a relay restarted mid-lookup) count as done after ten minutes.
@@ -6489,6 +6498,7 @@ async function syncSightings(){
     if (j.fr24 === false) apiOff();
     const first = sightRev === null;
     spotted = (j.entries || []).map(fromRelay);
+    borrowFilledRoutes();
     relayStats = j.stats || null;
     sightRev = String(j.rev); sightDay = j.date || null;
     if (first) dlog("info", `Spotted today comes from the relay (${spotted.length} so far)`);
@@ -13103,6 +13113,10 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.129", date: "2026-11-01", notes: [
+    "More flights show a route: when no other source has one, a public route list fills it in if the plane's position fits it.",
+    "Those routes aren't certain, so they don't stamp the passport, pay at a scan or set a record. Earlier days get them too.",
+  ]},
   {v: "1.128.1", date: "2026-11-01", notes: [
     "Sky view uses the camera to line up only while Align is open, on the sun or moon. It no longer looks for planes.",
     "The gold corners are gone, and labels no longer correct themselves between alignments: Align again if they drift.",
@@ -14088,7 +14102,7 @@ function aboutHtml(part){
     `<p>${escH(T("Sounds: switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE, cabin chime and the Airbus “barking dog” by arunangshubanerjee (Pixabay Content License). Pictograms for take-off and landing: Tabler Icons (MIT)."))} ${escH(T("Button and navigation clicks: Pixabay (Pixabay Content License)."))}</p>`,
     `<p>${escH(T("Ticket tear: Zapsplat (zapsplat.com)"))}</p>`,
     `<p>${escH(T("Typefaces: Archivo Narrow, Oswald and Barlow Condensed (SIL Open Font License), served by the board itself."))}</p>`,
-    `<p>${siteLinks(escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home, with AvioADSB (CC BY 4.0) as a backup; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, airline names from Virtual Radar Server, the watchlist from plane-alert-db (ODbL), photos from Planespotters.net and airport-data.com, logos from Aviasales.")))}</p>`,
+    `<p>${siteLinks(escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home, with AvioADSB (CC BY 4.0) as a backup; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, airline names and some routes from Virtual Radar Server, the watchlist from plane-alert-db (ODbL), photos from Planespotters.net and airport-data.com, logos from Aviasales.")))}</p>`,
     `<p>${escH(T("Radar map: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors."))}</p>`,
     `<p>${escH(T("True north in Sky view: the World Magnetic Model (WMM2025) of NOAA's National Centers for Environmental Information."))}</p>`].slice(...at).join("");
 }

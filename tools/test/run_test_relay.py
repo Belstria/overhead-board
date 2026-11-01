@@ -103,7 +103,9 @@ def run(a, tmp, procs):
     fakes = [("https://api.adsbdb.com", FAKE), ("https://fr24api.flightradar24.com/api", FAKE + "/api"),
              ("https://viennaairport.com/jart", FAKE + "/jart"),
              ("https://nominatim.openstreetmap.org", FAKE + "/nominatim"),
-             ("https://raw.githubusercontent.com/vradarserver/standing-data/main/airlines/schema-01/airlines.csv", FAKE + "/airlines.csv")]
+             ("https://raw.githubusercontent.com/vradarserver/standing-data/main/airlines/schema-01/airlines.csv", FAKE + "/airlines.csv"),
+             ("https://raw.githubusercontent.com/vradarserver/standing-data/main/routes/schema-01", FAKE + "/vrs-routes"),   # relay 106
+             ("https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/airports.csv", FAKE + "/airports.csv")]
     if not a.live_photos:
         fakes.append(("https://api.planespotters.net/pub/photos", FAKE + "/ps/pub/photos"))
     if not a.live_facts:                  # relay 74: the cards' facts from the fake's few pages

@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 105
+RELAY_VERSION = 106
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -118,6 +118,16 @@ AIRPORTS_FILE = DATA_DIR / "airports.json"
 AIRLINES_CSV = "https://raw.githubusercontent.com/vradarserver/standing-data/main/airlines/schema-01/airlines.csv"
 AIRLINES_FILE = DATA_DIR / "airlines.json"
 AIRLINES_EVERY_S = 7 * 86400
+# Relay 106 (to-do #262): routes for flights no other source has one for, from the same standing data (CC0), one
+# airline's file at a time when a flight needs it: <letter>/<CODE>-all.csv, or <CODE>-<first digit>.csv for an airline with
+# over 10,000 routes. Kept in data/vrs-routes (a missing file too), refreshed weekly when used; the old copy stays on a failure.
+VRS_ROUTES = "https://raw.githubusercontent.com/vradarserver/standing-data/main/routes/schema-01"
+VRS_DIR = DATA_DIR / "vrs-routes"
+VRS_EVERY_S = 7 * 86400
+VRS_GAP_S = 3                # at least this long between two downloads
+VRS_FAIL_S = 1800            # after a failed download, no other is tried for this long
+VRS_KEEP = 8                 # files kept in memory
+VRS_CATCHUP_WAIT_S = 120     # the saved days' catch-up starts this long after the relay
 RUNWAYS_CSV = "https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/runways.csv"
 CITY_FIX = {"SAW": "Istanbul", "NCL": "Newcastle", "STN": "London", "LGW": "London", "LTN": "London", "BVA": "Paris",
             "CRL": "Brussels", "NYO": "Stockholm", "BGY": "Milan", "MXP": "Milan", "LIN": "Milan", "CIA": "Rome", "FCO": "Rome"}
@@ -505,7 +515,7 @@ def note_records(book, e, center=None):
     gs = e.get("maxSpeed")
     if isinstance(gs, (int, float)) and 0 < gs <= 750:         # faster than that is a bad reading
         hit |= better("fastest", gs, False)
-    if center:
+    if center and e.get("routeSrc") != "vrs":      # relay 106: a filled route may be wrong, so it sets no record
         far = None
         for k in ("from", "to"):
             p = e.get(k) or {}
@@ -2108,6 +2118,8 @@ def route_countries(e, db):
     """Relay 90 (to-do #150): the countries of a sighting's known route, [(country, airport code)], origin first, each
     country once; [] without a route (both ends) or an airport the list lacks."""
     out = []
+    if e.get("routeSrc") == "vrs":     # relay 106: a filled route may be wrong (about 1 in 9): it stamps and pays nothing
+        return out
     if not (isinstance(e.get("from"), dict) and isinstance(e.get("to"), dict)):
         return out
     for k in ("from", "to"):
@@ -2611,6 +2623,10 @@ def _enricher():
                 route = None
             if route:
                 e.update(route)
+                if e.get("routeSrc") == "vrs":        # relay 106: a real route replaces a filled one
+                    del e["routeSrc"]
+            elif _vrs_wants(e):
+                _vrs_q.put((spot, eid))               # relay 106: no route from anyone; its own thread, so this never waits
             late_type = late_reg = False
             if info:
                 e.update({k: v for k, v in info.items() if v})
@@ -2645,6 +2661,246 @@ def _enricher():
                 a["iata"] = a.get("iata") or airline.get("airlineIata", "")
             spot.changed("day", "book")
         time.sleep(.4)
+
+
+# ---------- Virtual Radar Server's routes fill the gaps (relay 106, to-do #262) ----------
+# About 1 in 9 of these routes is wrong before the position check, so: only where no other source has a route (any of
+# them replaces it), only when the check really ran, marked routeSrc "vrs", and nothing in the game or the records reads it
+# (route_countries, note_records). The relay asks by airline code only, never saying where anyone is.
+_vrs_q = queue.Queue()       # (spot, sighting id) of today's sightings the other sources had no route for
+_vrs_lock = threading.Lock()
+_vrs_mem = collections.OrderedDict()     # the VRS_KEEP files used last, by name
+_vrs_next = 0.0              # no download before this
+_vrs_down_until = 0.0        # the last download failed: none before this
+
+
+def _vrs_piece(code, part):
+    """One of VRS's route files: {"v", "fetched", "routes": {callsign: "ICAO-ICAO"}, or None when there is no such file}.
+    The copy in data/ while it's under a week old (or the download fails); None when it can't be told now."""
+    global _vrs_next, _vrs_down_until
+    name, now = f"{code}-{part}", time.time()
+    path = VRS_DIR / f"{name}.json"
+    with _vrs_lock:
+        have = _vrs_mem.get(name)
+        if have is None:
+            have = _load(path, None)
+            if not (isinstance(have, dict) and have.get("v") == 1):
+                have = None
+        if have is None or now - have.get("fetched", 0) >= VRS_EVERY_S:
+            if now < _vrs_down_until:
+                return have
+            time.sleep(max(0, _vrs_next - now))
+            status, _, body, _ = fetch(f"{VRS_ROUTES}/{code[0]}/{name}.csv", timeout=20)
+            _vrs_next = time.time() + VRS_GAP_S
+            routes, ok = None, status == 404
+            if status == 200:
+                rows = csv.DictReader(io.StringIO(body.decode("utf-8-sig", "replace")))
+                if {"Callsign", "AirportCodes"} <= set(rows.fieldnames or []):
+                    routes, ok = {}, True
+                    for r in rows:
+                        routes[(r.get("Callsign") or "").strip().upper()] = (r.get("AirportCodes") or "").strip().upper()
+            if not ok:
+                _vrs_down_until = time.time() + VRS_FAIL_S
+                event("warn", f"Couldn't download a route list (HTTP {status}); trying again in half an hour", echo=False)
+                return have
+            have = {"v": 1, "fetched": time.time(), "routes": routes}
+            try:
+                VRS_DIR.mkdir(parents=True, exist_ok=True)
+                tmp = path.with_suffix(".tmp")
+                tmp.write_text(json.dumps(have, separators=(",", ":")), encoding="utf-8")
+                os.replace(tmp, path)
+            except OSError:
+                pass
+        _vrs_mem[name] = have
+        _vrs_mem.move_to_end(name)
+        while len(_vrs_mem) > VRS_KEEP:
+            _vrs_mem.popitem(last=False)
+        return have
+
+
+def _vrs_listed(cs):
+    """A callsign's airports as VRS lists them ("LOWW-EDDF"), "" when it doesn't, None when that can't be told now.
+    Normalised as its README says: the number's leading zeros go, and a number left empty or only letters gets one back."""
+    m = re.fullmatch(r"([A-Z]{3})(\d[A-Z0-9]*)", cs or "")
+    if not m:
+        return ""
+    code, num = m.group(1), m.group(2).lstrip("0")
+    if not num or num.isalpha():
+        num = "0" + num
+    for part in ("all", num[0]):
+        piece = _vrs_piece(code, part)
+        if piece is None:
+            return None
+        if piece.get("routes") is not None:
+            return piece["routes"].get(code + num, "")
+    return ""
+
+
+def _vrs_place(db, code):
+    """An airport as a route's end, by its ICAO code; None when the airport list lacks it (so no coordinates)."""
+    iata = (db.get("icao") or {}).get(code) or code
+    row = (db.get("iata") or {}).get(iata)
+    if not row or row[1] is None or row[2] is None:
+        return None
+    return {"code": iata, "city": row[0], "lat": row[1], "lon": row[2]}
+
+
+def _vrs_route(cs, pos):
+    """The route to fill in for a callsign at a position (lat, lon, track), and why: (route, "filled"), or (None, "nopos",
+    "notlisted", "noairport", "refused", or "failed": can't be told now). _route_fits lets through a position or airport it
+    can't check; here those mean no route. A stopover route: the leg that fits; of several, one the plane is heading
+    along, then the smallest detour."""
+    if not (isinstance(pos, (list, tuple)) and len(pos) >= 3 and
+            all(isinstance(x, (int, float)) and not isinstance(x, bool) for x in pos[:3])):
+        return None, "nopos"
+    listed = _vrs_listed(cs)
+    if listed is None:
+        return None, "failed"
+    stops = [x for x in listed.split("-") if x]
+    if len(stops) < 2:
+        return None, "notlisted"
+    db = _airports_ready()
+    if not db:
+        return None, "failed"
+    known, fits = False, []
+    for a, b in zip(stops, stops[1:]):
+        f, t = _vrs_place(db, a), _vrs_place(db, b)
+        if not f or not t or f["code"] == t["code"]:
+            continue
+        known = True
+        if _route_fits({"from": f, "to": t}, pos):
+            fits.append((f, t))
+    if not fits:
+        return None, "refused" if known else "noairport"
+    la, lo, track = pos[:3]
+
+    def rank(leg):
+        f, t = leg
+        y = math.sin(math.radians(t["lon"] - lo)) * math.cos(math.radians(t["lat"]))
+        x = (math.cos(math.radians(la)) * math.sin(math.radians(t["lat"])) -
+             math.sin(math.radians(la)) * math.cos(math.radians(t["lat"])) * math.cos(math.radians(t["lon"] - lo)))
+        off = abs(((track - math.degrees(math.atan2(y, x)) + 540) % 360) - 180)
+        detour = _gc_km((la, lo), (f["lat"], f["lon"])) + _gc_km((la, lo), (t["lat"], t["lon"])) - _gc_km((f["lat"], f["lon"]), (t["lat"], t["lon"]))
+        return (off > 100, detour)
+    f, t = min(fits, key=rank)
+    return {"from": f, "to": t, "routeSrc": "vrs"}, "filled"
+
+
+def _vrs_wants(e):
+    """A sighting with a callsign and no route from anyone."""
+    return bool(e.get("callsign")) and not e.get("from") and not e.get("to") and not e.get("divertedTo")
+
+
+def _vrs_worker():
+    """Today's sightings no other source had a route for. Apart from the enricher: a slow or failed download holds up nothing."""
+    while True:
+        spot, eid = _vrs_q.get()
+        try:
+            with _data_lock:
+                e = next((x for x in spot.entries if x.get("id") == eid), None)
+                cs, pos = (e or {}).get("callsign"), (e or {}).get("pos")
+                if not e or not _vrs_wants(e):
+                    continue
+            route, why = _vrs_route(cs, pos)
+            if route:
+                with _data_lock:
+                    if _vrs_wants(e) and e in spot.entries:      # anything real that came meanwhile stays
+                        e.update(route)
+                        spot.changed("day")
+            if why in ("filled", "refused"):
+                event("debug", f"Route for {cs}: {why}" + (f", {route['from']['code']} → {route['to']['code']}" if route else ""), echo=False)
+        except Exception as ex:  # never let the extra break the relay
+            event("warn", f"Route list: {ex}", echo=False)
+
+
+def _vrs_truth_check(cs, e, n):
+    """A sighting with Flightradar24's route: what would the filler have done? Only counted, nothing changes; so one line in
+    the log says how often VRS is wrong here and how many of those the position check catches, on real positions."""
+    route, why = _vrs_route(cs, e.get("pos"))
+    if why not in ("filled", "refused"):
+        return why != "failed"
+    fr, to = str(e["from"].get("code") or ""), str(e["to"].get("code") or "")
+    if route:
+        n["rightKept" if route["from"]["code"] == fr and route["to"]["code"] == to else "wrongPassed"] += 1
+        return True
+    db = _airports_ready() or {}
+    ends = [(db.get("icao") or {}).get(x) or x for x in (_vrs_listed(cs) or "").split("-")]
+    n["rightRefused" if fr in ends and to in ends and ends.index(fr) < ends.index(to) else "wrongCaught"] += 1
+    return True
+
+
+def _vrs_catchup(spot):
+    """Once per profile (the logbook's "vrsFill", its counts): fill the saved days' sightings the same way. One day at a time,
+    each read and written briefly under the lock with the look-ups outside it, through the saver; only sightings without a
+    route, and only their route and mark, so no total, record or point moves. False when the list couldn't be read (a
+    download failed): the marker isn't set, and a later try goes on where the routes aren't yet filled."""
+    with _data_lock:
+        spot.ensure_day()
+        days = sorted({f.stem[len("sightings-"):] for f in spot.dir.glob("sightings-*.json")} | {spot.day}, reverse=True)
+    n = collections.Counter()
+    for day in days:
+        with _data_lock:
+            rows, today = [], day == spot.day
+            for e in spot.day_entries(day):
+                if e.get("routeSrc") == "vrs":
+                    n["filled"] += 1
+                elif e.get("id") and _vrs_wants(e) and (e.get("looked") or not today):
+                    rows.append((e["id"], e["callsign"], e.get("pos")))
+                elif e.get("routeSrc") == "fr24" and e.get("callsign") and isinstance(e.get("from"), dict) and isinstance(e.get("to"), dict):
+                    rows.append((None, e["callsign"], {k: e.get(k) for k in ("pos", "from", "to")}))
+        fills = {}
+        for eid, cs, pos in rows:
+            time.sleep(.01)
+            if eid is None:
+                if not _vrs_truth_check(cs, pos, n):
+                    return False
+                continue
+            route, why = _vrs_route(cs, pos)
+            if why == "failed":
+                return False
+            n[why] += 1
+            if route:
+                fills[eid] = route
+        if fills:
+            with _data_lock:
+                entries, hit = spot.day_entries(day), False
+                for e in entries:
+                    if e.get("id") in fills and _vrs_wants(e):
+                        e.update(fills[e["id"]])
+                        hit = True
+                if hit:
+                    spot.day_changed(day, entries)
+                    _spotted_days.pop((str(spot.dir), day), None)
+            time.sleep(.5)
+    with _data_lock:
+        book = spot.book()
+        book["vrsFill"] = {"v": 1, **n}
+        spot.changed("book")
+    who = (profiles()["profiles"].get(spot.dir.name) or {}).get("name") or spot.dir.name
+    event("info", f"Routes: {n['filled']} filled, {n['refused']} refused by position, {n['nopos']} without a position, "
+                  f"{n['notlisted']} not listed, {n['noairport']} without airports ({who}). Against Flightradar24: "
+                  f"{n['rightKept']} right, {n['wrongPassed']} wrong and passed, {n['wrongCaught']} wrong and caught, "
+                  f"{n['rightRefused']} right but refused")
+    return True
+
+
+def _vrs_catchup_all():
+    """The saved days of every profile, once, well after the start and at the download's pace."""
+    time.sleep(VRS_CATCHUP_WAIT_S)
+    while True:
+        left = 0
+        try:
+            for sp in _all_profile_spots():
+                with _data_lock:
+                    done = sp.book().get("vrsFill")
+                if not done and not _vrs_catchup(sp):
+                    left += 1
+        except Exception as ex:  # never let the extra break the relay
+            event("warn", f"Route list: {ex}", echo=False)
+            left += 1
+        if not left:
+            return
+        time.sleep(3600)
 
 
 # ---------- Flightradar24 (optional, paid): real flight numbers and routes ----------
@@ -3139,6 +3395,8 @@ def fr24_keep(key, info, spots=None, loaded=None):
                 if not new:
                     continue
                 new["routeSrc"] = "fr24"
+                if "from" not in new and e.get("routeSrc") == "vrs":
+                    del new["routeSrc"]                 # relay 106: a flight number alone: the route stays a filled one
                 if all(e.get(k) == v for k, v in new.items()):
                     continue
                 e.update(new)
@@ -3205,6 +3463,8 @@ def fr24_overlay(entries, radius=15.0, over_km=3.0):
                 e["flightIata"] = info["flight"]
             if info.get("from") and info.get("to"):
                 e["from"], e["to"] = info["from"], info["to"]
+                if e.get("routeSrc") == "vrs":
+                    del e["routeSrc"]
             e.update({"fr24": True, "category": info.get("category"), "operator": info.get("operator"),
                       "livery": info.get("livery"), "divertedTo": info.get("divertedTo")})
         elif not info and now - e.get("ts", 0) / 1000 < 3 * 3600:
@@ -6344,6 +6604,11 @@ def now_json(pid, st):
     route = _route_for(cs) if re.fullmatch(r"[A-Z0-9]{3,8}", cs or "") else None
     if route and not _route_fits(route, (ac["lat"], ac["lon"], ac.get("track") or 0)):
         route = None
+    if not route:                             # relay 106: the sighting's filled route
+        with _data_lock:
+            seen = spot.by_hex.get(str(ac.get("hex") or "").lower()) or {}
+            if seen.get("routeSrc") == "vrs" and seen.get("callsign") == cs:
+                route = {"from": seen.get("from"), "to": seen.get("to")}
     alt = ac.get("alt_baro") if isinstance(ac.get("alt_baro"), (int, float)) else ac.get("alt_geom")
     dirs = DIRS["en"].split()
     flight = re.sub(r"^([A-Z0-9]{2})(\d)", r"\1 \2", (route or {}).get("flightIata") or "") or cs or reg or str(ac.get("hex") or "").upper()
@@ -9636,6 +9901,8 @@ def main():
                            "last_call": 0.0, "day": "", "used": 0, "askedDay": "", "asked": 0}   # relay 35: without it, relay 34 failed every request to a --source
     threading.Thread(target=_saver, daemon=True).start()
     threading.Thread(target=_enricher, daemon=True).start()
+    threading.Thread(target=_vrs_worker, daemon=True).start()
+    threading.Thread(target=_vrs_catchup_all, daemon=True).start()
     threading.Thread(target=_fr24_worker, daemon=True).start()
     threading.Thread(target=_fill_worker, daemon=True).start()
     threading.Thread(target=_screen_watch, daemon=True).start()
