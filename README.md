@@ -1110,6 +1110,12 @@ routes show like any other, but about 1 in 9 listed routes is wrong before the c
 pay at a scan or set the farthest record, and any other source's route replaces one. Saved days are caught up once in
 the background, and the log says what came of it per profile ("Routes: N filled, M refused by position, ...").
 
+Late routes (relay 107): once, the relay asks Flightradar24 for the routes still missing from the owner's saved days,
+newest first, each around the sighting's own time and only for the same aircraft, at most 1,500 credits and only while
+today's lookups have credits to spare. These routes show like any other and, like the filled-in ones, pay and stamp
+nothing and set no record. The admin page's credits list them as "Route back-fill". It stops by itself if Flightradar24
+refuses the requests (the plan's history may not reach that far), and the log gives the result.
+
 Airline names (relay 68): the route database names the airline only together with a route, so the relay also keeps
 Virtual Radar Server's airline list (public domain) in `data/airlines.json`, downloaded at start and refreshed weekly
 (the old copy stays if a download fails; without it, flights simply have no name). A flight with no route listed gets

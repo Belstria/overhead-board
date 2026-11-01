@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 106
+RELAY_VERSION = 107
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -101,6 +101,15 @@ FR24_FILE = DATA_DIR / "fr24.json"
 FR24_KEEP_S = 2 * 86400     # only today's flights are needed (Flightradar24 allows keeping its data 30 days at most)
 FR24_GAP_S = 6.5            # the Explorer plan allows 10 requests a minute
 FR24_BUDGET = 27000         # credits a month the relay may spend unless told otherwise (Explorer includes 30,000)
+ROUTE_UNPAID = ("vrs", "fr24late")   # relay 106/107: routes that show but pay, stamp and set records nothing
+FR24_LATE_CAP = 1500        # relay 107: credits the route back-fill may spend, ever
+FR24_LATE_COST = 3          # ... the most one answer costs, so the cap is never passed
+FR24_LATE_GAP_S = 15        # ... between its requests, leaving most of the 10 a minute to the live lookups
+FR24_LATE_WAIT_S = 300      # ... it starts this long after the relay
+FR24_LATE_BACK_S = 16 * 3600  # ... the window it asks in: this long before the sighting (a flight is overhead hours after take-off)
+FR24_LATE_AHEAD_S = 900     # ... and this long after, so the most recent flight in the window is the one in the air
+FR24_LATE_SLACK_S = 1800    # ... the sighting may lie this far outside the flight's own times
+FR24_LATE_BAD = 3           # ... refusals in a row that end it (the plan doesn't reach that far back)
 FR24_REUSE_S = 6 * 3600     # relay 45: an answer serves the same aircraft and callsign all day, or this long past midnight
 FR24_EDGE = 0.75            # relay 45: a sighting that stayed in the outer quarter of the radius isn't looked up
 FILL_AWAY_KM = 30           # relay 66: Flightradar24 fills in what the free sources miss only this far from home,
@@ -515,7 +524,7 @@ def note_records(book, e, center=None):
     gs = e.get("maxSpeed")
     if isinstance(gs, (int, float)) and 0 < gs <= 750:         # faster than that is a bad reading
         hit |= better("fastest", gs, False)
-    if center and e.get("routeSrc") != "vrs":      # relay 106: a filled route may be wrong, so it sets no record
+    if center and e.get("routeSrc") not in ROUTE_UNPAID:      # relay 106: a filled route may be wrong, so it sets no record
         far = None
         for k in ("from", "to"):
             p = e.get(k) or {}
@@ -2118,7 +2127,7 @@ def route_countries(e, db):
     """Relay 90 (to-do #150): the countries of a sighting's known route, [(country, airport code)], origin first, each
     country once; [] without a route (both ends) or an airport the list lacks."""
     out = []
-    if e.get("routeSrc") == "vrs":     # relay 106: a filled route may be wrong (about 1 in 9): it stamps and pays nothing
+    if e.get("routeSrc") in ROUTE_UNPAID:     # relay 106: a filled route may be wrong (about 1 in 9): it stamps and pays nothing
         return out
     if not (isinstance(e.get("from"), dict) and isinstance(e.get("to"), dict)):
         return out
@@ -2623,7 +2632,7 @@ def _enricher():
                 route = None
             if route:
                 e.update(route)
-                if e.get("routeSrc") == "vrs":        # relay 106: a real route replaces a filled one
+                if e.get("routeSrc") in ROUTE_UNPAID:        # relay 106: a real route replaces a filled one
                     del e["routeSrc"]
             elif _vrs_wants(e):
                 _vrs_q.put((spot, eid))               # relay 106: no route from anyone; its own thread, so this never waits
@@ -2977,8 +2986,11 @@ def _fr24_usage():
         if was and start - datetime.timedelta(days=27) < was <= datetime.date.today():
             u["month"] = month
         else:
+            late = u.get("routeBackfill")       # relay 107: the back-fill's result outlives the month's counts
             u.clear()
             u.update({"month": month, "credits": 0, "lookups": 0})
+            if late:
+                u["routeBackfill"] = late
     if u.get("day") != day:
         u.update({"day": day, "creditsToday": 0, "lookupsToday": 0, "savedReuseToday": 0, "savedEdgeToday": 0, "filledToday": 0})
         _fr24_prune()
@@ -3008,17 +3020,18 @@ def _fr24_budget():
     return p[0] if p else _fr24_base_budget()
 
 
-def fr24_paced(priority):
+def fr24_paced(priority, part=1.0):
     """Spread the monthly budget over the month: each day may spend its share of what is left (unspent credits carry
     over). Past the share, only the plane on the board is still looked up; past one and a half shares, nothing until
-    tomorrow. Boards show the free sources' answer meanwhile."""
+    tomorrow. Boards show the free sources' answer meanwhile. `part`: past this part of the share instead (relay 107,
+    the back-fill stops early enough to leave the rest of the day's share to the live lookups)."""
     with _data_lock:
         u = _fr24_usage()
         today = u.get("creditsToday", 0)
         left = _fr24_budget() - (u.get("credits", 0) - today)
     now = datetime.date.today()
     share = max(0, left) / max(1, (fr24_period(now)[1] - now).days)
-    return today >= share * (1.5 if priority == 0 else 1.0)
+    return today >= share * (1.5 if priority == 0 else part)
 
 
 def fr24_info(cs, hx):
@@ -3198,12 +3211,30 @@ def airport_info(code):
             "runways": runways_of(r[3])}
 
 
-def _fr24_lookup(cs, hx):
-    """One flight-summary request: the most recent flight with this callsign. Returns (info or None, http status)."""
+def _fr24_row_time(r, *keys):
+    """The first of these times Flightradar24 gave (seconds), or None."""
+    for k in keys:
+        try:
+            return datetime.datetime.fromisoformat(str(r.get(k)).replace("Z", "+00:00")).replace(tzinfo=datetime.timezone.utc).timestamp()
+        except ValueError:
+            continue
+    return None
+
+
+def _fr24_row_spans(r, at):
+    """Relay 107: was this flight in the air at `at` (by whichever of its times it gave, with FR24_LATE_SLACK_S)?"""
+    start = _fr24_row_time(r, "first_seen", "datetime_takeoff")
+    end = _fr24_row_time(r, "last_seen", "datetime_landed")
+    return not (start and at < start - FR24_LATE_SLACK_S) and not (end and at > end + FR24_LATE_SLACK_S)
+
+
+def _fr24_lookup(cs, hx, around=None):
+    """One flight-summary request: the most recent flight with this callsign. Returns (info or None, http status).
+    `around` (relay 107, the back-fill; seconds): the flight in the air then, not the last 20 hours' latest."""
     now = time.time()
     q = urllib.parse.urlencode({
-        "flight_datetime_from": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(now - 20 * 3600)),
-        "flight_datetime_to": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(now + 120)),
+        "flight_datetime_from": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(around - FR24_LATE_BACK_S if around else now - 20 * 3600)),
+        "flight_datetime_to": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(around + FR24_LATE_AHEAD_S if around else now + 120)),
         "callsigns": cs, "sort": "desc", "limit": 1})
     status, _, body, _ = fetch(f"{FR24_API}/flight-summary/full?{q}", timeout=15, headers={
         "Authorization": f"Bearer {fr24_key()}", "Accept": "application/json", "Accept-Version": "v1"})
@@ -3220,6 +3251,8 @@ def _fr24_lookup(cs, hx):
     credits = 3 if ended else 2
     if str(r.get("hex") or "").lower() not in ("", hx.lower()):
         return {"none": True, "t": now, "note": "different aircraft"}, 200, credits
+    if around and not _fr24_row_spans(r, around):
+        return {"none": True, "t": now, "note": "different flight"}, 200, credits
     dest = r.get("dest_iata") or r.get("destination_iata")
     dest_icao = r.get("dest_icao") or r.get("destination_icao")
     actual = r.get("dest_iata_actual") or ""
@@ -3395,7 +3428,7 @@ def fr24_keep(key, info, spots=None, loaded=None):
                 if not new:
                     continue
                 new["routeSrc"] = "fr24"
-                if "from" not in new and e.get("routeSrc") == "vrs":
+                if "from" not in new and e.get("routeSrc") in ROUTE_UNPAID:
                     del new["routeSrc"]                 # relay 106: a flight number alone: the route stays a filled one
                 if all(e.get(k) == v for k, v in new.items()):
                     continue
@@ -3422,6 +3455,138 @@ def _fr24_keep_cached():
             event("info", f"Flightradar24's routes kept in {n} sightings", echo=False)
     except Exception as e:
         event("warn", f"Keeping Flightradar24's routes failed: {e}")
+
+
+def _fr24_late_wants(e):
+    """A saved sighting the back-fill may ask about: no route from anyone (VRS's counts as one), and a callsign, aircraft and time to ask with."""
+    return _vrs_wants(e) and bool(re.match(r"^[A-Z0-9]{3,8}$", str(e["callsign"]))) and bool(e.get("hex")) and bool(e.get("ts"))
+
+
+def _fr24_late_report(st):
+    """The result, for fr24.json (counts and one date; the place in the list stays in the logbook). Under _data_lock."""
+    _fr24_usage()["routeBackfill"] = {k: v for k, v in st.items() if k not in ("v", "startDay", "at")}
+    _dirty.add("fr24")
+
+
+def _fr24_late_end(spot, st, state, why=""):
+    with _data_lock:
+        st.update(state=state, why=why)
+        spot.changed("book")
+        _fr24_late_report(st)
+    event("info", f"Route back-fill {state}" + (f" ({why})" if why else "") + f": {st['asked']} asked, {st['found']} found, {st['noAnswer']} no answer, "
+                  f"{st['otherAircraft']} another aircraft, {st['otherFlight']} another flight, {st['credits']} credits, oldest answered {st['oldest'] or 'none'}")
+
+
+def _fr24_late_write(spot, day, ts, hx, cs, info):
+    """The route and its mark, nothing else: no flight number (the row's airline follows it) and no book, so no total moves. Under _data_lock."""
+    entries = spot.day_entries(day)
+    for e in entries:
+        if e.get("ts") == ts and e.get("hex") == hx and e.get("callsign") == cs and _vrs_wants(e):
+            e.update({"from": info["from"], "to": info["to"], "routeSrc": "fr24late"})
+            spot.day_changed(day, entries)
+            _spotted_days.pop((str(spot.dir), day), None)
+            return True
+    return False
+
+
+def _fr24_late_run(spot, nap=time.sleep):
+    """To-do #98: ask Flightradar24 for the routes still missing from a logbook, newest first, each around its own time.
+    Answers go only into the sightings, never the "flights" cache (fr24_info and _fr24_keep_cached would treat them as
+    live), marked "fr24late" (ROUTE_UNPAID). The logbook's "fr24Late" holds the state, its "at" the place in the list, so a
+    restart goes on without asking again. No pid for fr24_spent: the job isn't the owner's daily limit. A 401/403 only ends the
+    job: on an old date it may be the plan's limit, not the key, and a live lookup finds out about a bad key by itself."""
+    with _data_lock:
+        spot.ensure_day()
+        st = spot.book().get("fr24Late")
+        if not st:
+            st = spot.book()["fr24Late"] = {"v": 1, "state": "running", "why": "", "asked": 0, "found": 0, "noAnswer": 0, "otherAircraft": 0,
+                                            "otherFlight": 0, "credits": 0, "oldest": "", "startDay": spot.day, "at": None}
+            spot.changed("book")
+            _fr24_late_report(st)
+        if st["state"] != "running":
+            return
+        days = sorted((d for d in (f.stem[len("sightings-"):] for f in spot.dir.glob("sightings-*.json")) if d < st["startDay"]), reverse=True)
+    refused = 0
+    for day in days:
+        with _data_lock:
+            spot.ensure_day()
+            rows = sorted(((e["ts"], e["hex"], e["callsign"]) for e in spot.day_entries(day) if _fr24_late_wants(e)), reverse=True)
+        for ts, hx, cs in rows:
+            if st["at"] and [ts, hx] >= st["at"]:
+                continue
+            while True:
+                if st["credits"] + FR24_LATE_COST > FR24_LATE_CAP:
+                    return _fr24_late_end(spot, st, "stopped", "credit cap")
+                if not fr24_on() or fr24_paced(1, .5):       # the budget, today's share or a refused key: a later try
+                    nap(900)
+                    continue
+                if _fr24_q:                                  # anything live goes first
+                    nap(2)
+                    continue
+                fr24_slot()
+                if _fr24_q:
+                    continue
+                info, status, credits = _fr24_lookup(cs, hx, around=ts / 1000)
+                if status in (401, 403):
+                    return _fr24_late_end(spot, st, "stopped", f"refused (HTTP {status})")
+                if status == 429:
+                    fr24_slot(pause=60)
+                    nap(60)
+                    continue
+                if status >= 500:                            # the network or their side, not an answer about the plan; costs nothing
+                    refused = 0
+                    nap(600)
+                    continue
+                if status != 200:
+                    refused += 1
+                    if refused >= FR24_LATE_BAD:
+                        return _fr24_late_end(spot, st, "stopped", f"date range not allowed (HTTP {status})")
+                    nap(FR24_LATE_GAP_S)
+                    continue
+                break
+            refused = 0
+            with _data_lock:
+                fr24_spent(credits, "Route back-fill", None)
+                st["asked"] += 1
+                st["credits"] += credits
+                note = (info or {}).get("note")
+                f, t = (info or {}).get("from") or {}, (info or {}).get("to") or {}
+                if note == "different aircraft":
+                    st["otherAircraft"] += 1
+                elif note == "different flight":
+                    st["otherFlight"] += 1
+                elif f.get("code") and t.get("code") and _fr24_late_write(spot, day, ts, hx, cs, info):
+                    st["found"] += 1
+                    st["oldest"] = day
+                else:
+                    st["noAnswer"] += 1
+                st["at"] = [ts, hx]
+                spot.changed("book")
+                _fr24_late_report(st)
+            nap(FR24_LATE_GAP_S)
+    _fr24_late_end(spot, st, "done")
+
+
+def _fr24_late_all():
+    """The back-fill, once, for the owner only (the one profile named HOME_OWNER, with Flightradar24 on), after VRS has had its
+    turn (the logbook's "vrsFill") so nothing it can fill is paid for."""
+    if not fr24_key():
+        return
+    time.sleep(FR24_LATE_WAIT_S)
+    while True:
+        try:
+            with _data_lock:
+                hits = [pid for pid, p in profiles()["profiles"].items() if str(p.get("name") or "").strip().lower() == HOME_OWNER.lower()]
+                ok = len(hits) == 1 and profiles()["profiles"][hits[0]].get("fr24") and (DATA_DIR / "profiles" / hits[0]).is_dir()
+            if ok and _airports_ready():
+                spot = guest_spot(hits[0])
+                with _data_lock:
+                    ready = spot.book().get("vrsFill")
+                if ready:
+                    return _fr24_late_run(spot)
+        except Exception as ex:  # never let the paid extra break the relay
+            event("warn", f"Route back-fill: {ex}", echo=False)
+        time.sleep(3600)
 
 
 def fr24_status():
@@ -3463,7 +3628,7 @@ def fr24_overlay(entries, radius=15.0, over_km=3.0):
                 e["flightIata"] = info["flight"]
             if info.get("from") and info.get("to"):
                 e["from"], e["to"] = info["from"], info["to"]
-                if e.get("routeSrc") == "vrs":
+                if e.get("routeSrc") in ROUTE_UNPAID:
                     del e["routeSrc"]
             e.update({"fr24": True, "category": info.get("category"), "operator": info.get("operator"),
                       "livery": info.get("livery"), "divertedTo": info.get("divertedTo")})
@@ -9920,6 +10085,7 @@ def main():
     threading.Thread(target=_airlines_worker, daemon=True).start()
     threading.Thread(target=_scrub_at_all, daemon=True).start()
     threading.Thread(target=_fr24_keep_cached, daemon=True).start()
+    threading.Thread(target=_fr24_late_all, daemon=True).start()
     threading.Thread(target=_facts_worker, daemon=True).start()
 
     server = ThreadingHTTPServer((ARGS.bind, ARGS.port), Handler)
