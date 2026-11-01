@@ -3158,7 +3158,7 @@ function arLabel(s, game, sm){
   // 1.72.1: the game's chip: ★ within reach of points, ✓ once locked on, NO PTS too far (live location only).
   // 1.80 (Dave's to-do 7, his pick A): the ★ in the plane's rarity colour, with what it gives (what it gave, once scored).
   // 1.96: what a scan gives (the relay's rules); 1.97: the plane's full points, on top of what it scored on its way in
-  // 1.98 (relay 82): ★ only for a plane a scan counts for (the relay's list, or within the scan's 10 km now); one within
+  // 1.98 (relay 82): ★ only for a plane a scan counts for (the relay's list, or within the scan's circle now: 10 km, since 1.126.1 15); one within
   // the passive circle (15 km), now or on its way, scored already: CLOSER TO SCAN
   const sp = game && sm.get(ac.hex), gx = sp ? sp.gx : null;
   const near = game && !gx && (gScanSet().has(ac.hex) || d / 1000 <= gScanKm());
@@ -5838,7 +5838,7 @@ const gameOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0
 const gRules = () => (gme && gme.rules) || null;
 const gBase = t => { const r = gRules(); return r ? r.base[t] != null ? r.base[t] : r.base.uncommon : null; };
 const gKm = () => (gme && gme.km) || 10;             // the game's circle, from the relay (10 km since relay 60; 15 since relay 82)
-const gScanKm = () => (gme && gme.scanKm) || gKm();  // 1.98 (relay 82): the scan's circle, 10 km (an older relay: the one circle)
+const gScanKm = () => (gme && gme.scanKm) || gKm();  // 1.98 (relay 82): the scan's circle, 10 km (relay 104, 1.126.1: 15, the same as gKm; an older relay: the one circle)
 // 1.98: the planes a scan counts for now (the relay's list), as a set (made once for each answer)
 const gScanSet = () => gme && Array.isArray(gme.scan) ? (gme.scanSet ||= new Set(gme.scan.map(x => x.hex))) : new Set();
 const gGoldSet = () => gme && Array.isArray(gme.scan) ? (gme.goldSet ||= new Set(gme.scan.filter(x => x.gold).map(x => x.hex))) : new Set();   // 1.100
@@ -6541,7 +6541,7 @@ function gAwFoil(el){
   for (const u of us) u.style.setProperty("--t", (.45 + (u.getBoundingClientRect().left - left) / w * 1.1).toFixed(3) + "s");
   el.classList.add("beam");
 }
-/* 1.98 (to-do #146, Dave's picks): a plane that comes within the scan's circle (10 km; the relay's list, /game/me "scan")
+/* 1.98 (to-do #146, Dave's picks): a plane that comes within the scan's circle (10 km, 15 since 1.126.1; the relay's list, /game/me "scan")
    gets a ticket, once: the boarding pass with what a scan gives now (only what is sure: the plane's full points, a type or
    an airline new to the game), their total on the stub, the daily streak as a line of its own (not in the total) while
    nothing was scanned today, and "Scan in Sky view" (a tap anywhere on it: Sky view with the plane picked out). It folds
@@ -7048,7 +7048,8 @@ function gHowCard(){
     (R ? `<div class="gHowTbl"><span class="th"></span><span class="th">${escH(T("Rarity"))}</span><span class="th r">${escH(T("Within {k} km", {k}))}</span>` +
       `<span class="th r">${escH(T("Scanned"))}</span><span class="th r">${escH(T("Today / max"))}</span>${rows}</div>` +
       p(T("Within {k} km:", {k}), T("the points in the first column, for a number of planes of each rarity a day (from 00:00). Past the limit a plane scores nothing; the other rarities still count.")) +
-      p(T("Sky view scan:"), T("hold a plane that came within {s} km in the ring for a moment. It gives the plane's full points on top, once a pass, with no limit (past the limit too).", {s: gScanKm()})) +
+      p(T("Sky view scan:"), gScanKm() === k ? T("hold a plane in the ring for a moment. It gives the plane's full points on top, once a pass, with no limit (past the limit too).")   // 1.126.1: one circle, so no distance twice
+        : T("hold a plane that came within {s} km in the ring for a moment. It gives the plane's full points on top, once a pass, with no limit (past the limit too).", {s: gScanKm()})) +
       p(T("Only with a scan:"), T("a type new to the game +{t}, a new airline +{a}.", {t: nf.format(R.new.type), a: nf.format(R.new.airline)})) +
       (R.mastery && R.mastery.length > 3 ? p(T("Mastery:"), T("the scan that brings a type to {a}, {b}, {c} or {d} scans adds that many points × its rarity once (×1 common to ×50 special), and its hangar card turns bronze, silver, gold or platinum.",
         {a: R.mastery[0][0], b: R.mastery[1][0], c: R.mastery[2][0], d: R.mastery[3][0]})) : "") +   // 1.105 (relay 88); 1.112 (relay 96): four steps × rarity
@@ -7111,7 +7112,8 @@ async function gRecentCard(){
   }
   rows = rows.map(r => r[1]).join("");
   cardOpen(`<div class="cHead"><div><h3>${escH(T("Recent points"))}</h3><span>${escH(T(j.planes === 1 ? "Today {p} · 1 plane · newest first" : "Today {p} · {n} planes · newest first", {p: nf.format(j.today || 0), n: nf.format(j.planes || 0)}))}</span></div></div>` +
-    (rows ? `<ul class="flights rpList">${rows}</ul>` : `<p class="sum">${escH(T(S.live ? "No points yet today. Planes score the first time they come within {k} km of you; within {s} km you can scan them." : "Points only come with live location (Settings → Location): planes within {k} km of you score, and within {s} km you can scan them.", {k: gKm(), s: gScanKm()}))}</p>`) +
+    (rows ? `<ul class="flights rpList">${rows}</ul>` : `<p class="sum">${escH(gScanKm() === gKm() ? T(S.live ? "No points yet today. Planes score the first time they come within {k} km of you, and you can scan them." : "Points only come with live location (Settings → Location): planes within {k} km of you score, and you can scan them.", {k: gKm()})   // 1.126.1: one circle
+      : T(S.live ? "No points yet today. Planes score the first time they come within {k} km of you; within {s} km you can scan them." : "Points only come with live location (Settings → Location): planes within {k} km of you score, and within {s} km you can scan them.", {k: gKm(), s: gScanKm()}))}</p>`) +
     `<button class="gHow" type="button" data-club>${escH(T("Spotters' Club: level and league"))}<i>›</i></button>`,
     ci => { ci.querySelector("[data-club]").onclick = () => { ctlSound.nav(); cardClose(); showTab("game"); }; });
 }

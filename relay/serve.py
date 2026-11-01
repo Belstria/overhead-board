@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 103
+RELAY_VERSION = 104
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1028,7 +1028,7 @@ def game_json(book, day):
 # ---------- the game since relay 59 (1.72): only planes spotted with live location score ----------
 # A plane scores once a pass, the first time a phone following its owner (place "live") sees it within GAME_KM, the
 # same circle for everyone whatever their radius; relay 82 (1.98, to-do #145): passive points within GAME_KM (15 km), the
-# scan only for a plane that came within SCAN_KM (10 km). Relay 76 (1.96, to-do #127, Dave's rules): passively a tenth of its
+# scan only for a plane that came within SCAN_KM (10 km; relay 104, 1.126.1, to-do #255: 15 km as well). Relay 76 (1.96, to-do #127, Dave's rules): passively a tenth of its
 # rarity's points (TIER_BASE), for up to GAME_LIMIT planes of each rarity a day; Sky view's scan tops the plane up to its
 # full points, without a limit (relay 79, rule 3: the full points on top of the tenth, also past the limit), and only scans earn the extras (a type or an airline new to the game) and the week's
 # daily streak. Relay 80 (1.97.4, to-do #136, rule 4): the passive points are no longer a tenth but GAME_PASSIVE (5, 10, 15,
@@ -1037,7 +1037,7 @@ def game_json(book, day):
 # everyone's game.
 GAME3_V = 1
 GAME_KM = 15                # the passive points' circle (relay 82: 15 km; 10 in relay 60, 8 in relay 59)
-SCAN_KM = 10                # relay 82: the scan's circle (Sky view, the app's tickets; the gap filler's quick refresh)
+SCAN_KM = 15                # relay 82: the scan's circle (Sky view, the app's tickets; the gap filler's quick refresh); 10 km to relay 103, since 104 the same as GAME_KM
 GAME_RULE = 4               # the rule a plane was scored by (e["gr"], each award's "r"); older awards stay as they were:
                             # rule 1 before relay 76, rule 2 (relay 76: a scan topped up to the full points), rule 3 (relay
                             # 78: a scan gives the full points on top), rule 4 (relay 80: the passive points of GAME_PASSIVE)
@@ -1796,7 +1796,7 @@ def game_lockon(spot, hx):
         e = spot.by_hex.get(str(hx or "").lower())
         if not e or "gp" not in e:
             return {"bonus": 0, "why": "far"}
-        if (99 if e.get("liveMin") is None else e["liveMin"]) > SCAN_KM:    # relay 82: it scored passively (10-15 km), too far out to scan
+        if (99 if e.get("liveMin") is None else e["liveMin"]) > SCAN_KM:    # relay 82: it scored passively but too far out to scan (can't happen while SCAN_KM == GAME_KM)
             return {"bonus": 0, "why": "closer", "km": e.get("liveMin"), "scanKm": SCAN_KM}
         if now - e.get("liveSeen", 0) > LOCK_FRESH_S:
             return {"bonus": 0, "why": "gone"}

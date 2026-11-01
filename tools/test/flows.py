@@ -318,7 +318,8 @@ def game_rule_checks(expect):
         expect("the scans counted per type (relay 88: by the scan itself, from the first)", g.get("scanTypes"), {"A320": 2, "A388": 4})
         far = plane("uncommon", "A320", "AUA999", km=12.0)
         note(far)
-        expect("a plane at 12 km scores (relay 82) but can't be scanned", (far["gp"], scan(far)), (10, (0, "closer")))
+        expect("a plane at 12 km scores (relay 82) and, since relay 104 (one 15 km circle), can be scanned for its full points",
+               (far["gp"], scan(far)), (10, (30, [("scan", 30)])))
 
         def next_day(d, scans=True):
             day[0] = d
@@ -645,7 +646,8 @@ def bingo_closer_checks(expect):
 
 def scan_circle_checks(expect):
     """Relay 82 (to-do #145, #146): the two circles through record() on a live place: passive points within 15 km, the
-    scan and the list of scannable planes (/game/me's "scan") within 10 km; a live place looks at least 15 km round; a game
+    scan and the list of scannable planes (/game/me's "scan") within 10 km (relay 104, to-do #255: 15 km, the same circle;
+    a plane past it neither scores nor can be scanned, and the "closer" answer is kept for circles that differ); a live place looks at least 15 km round; a game
     scored with relay 81's single 10 km circle (rules 3 and 4) keeps every total when relay 82 starts on it."""
     import json as _j
     import tempfile
@@ -670,15 +672,25 @@ def scan_circle_checks(expect):
         def listed():
             with serve._data_lock:
                 return [x["hex"] for x in serve.game_scannable(sp)]
-        expect("the circles: passive 15 km, scan 10 km; GAME_RULE, GAME3_V and GAME_V as they were",
-               (serve.GAME_KM, serve.SCAN_KM, serve.GAME_RULE, serve.GAME3_V, serve.GAME_V), (15, 10, 4, 1, 2))
+        expect("the circles: passive 15 km, scan 15 km (relay 104); GAME_RULE, GAME3_V and GAME_V as they were",
+               (serve.GAME_KM, serve.SCAN_KM, serve.GAME_RULE, serve.GAME3_V, serve.GAME_V), (15, 15, 4, 1, 2))
         seen(ac("a00012", 12), ac("a00016", 16.2, cs="AUA16"), ac("a00008", 8, t="B738", cs="RYR8"))
         e12, e8 = sp.by_hex.get("a00012"), sp.by_hex.get("a00008") or {}
         expect("a live place's radius reaches 15 km (a 3 km profile): 12 km logged, 16 km not",
                (bool(e12), "a00016" in sp.by_hex), (True, False))
-        expect("a live plane at 12 km scores its passive points (5), isn't in the scan list",
-               ((e12 or {}).get("gp"), "a00012" in listed()), (5, False))
-        expect("... and its scan answers: come closer", serve.game_lockon(sp, "a00012").get("why"), "closer")
+        expect("a live plane at 12 km scores its passive points (5) and is in the scan list",
+               ((e12 or {}).get("gp"), "a00012" in listed()), (5, True))
+        expect("a plane past 15 km isn't logged, so isn't listed, and its scan answers: far",
+               ("a00016" in listed(), serve.game_lockon(sp, "a00016").get("why")), (False, "far"))
+        # the "closer" answer stays for circles that differ again: a 12 km plane with a 10 km scan circle
+        serve.SCAN_KM = 10
+        try:
+            seen(ac("a00013", 12, cs="AUA13"))
+            expect("with a 10 km scan circle (as before relay 104), a 12 km plane is not listed and says: come closer",
+                   ("a00013" in listed(), serve.game_lockon(sp, "a00013").get("why")), (False, "closer"))
+        finally:
+            serve.SCAN_KM = 15
+        expect("... and with the one circle again it is listed", "a00013" in listed(), True)
         with serve._data_lock:
             sc = {x["hex"]: x for x in serve.game_scannable(sp)}.get("a00008") or {}
         expect("a plane at 8 km scores, is in the list with its rarity, full points, extras and time",
@@ -688,13 +700,13 @@ def scan_circle_checks(expect):
         r = serve.game_lockon(sp, "a00008")
         expect("... its scan works and it leaves the list", (r.get("bonus", 0) > 0, "a00008" in listed()), (True, False))
         seen(ac("a00012", 9.5))
-        expect("the 12 km plane comes within 10 km: in the list, not priced again",       # (at night the night-owl trophy pays too)
+        expect("the 12 km plane comes closer: still in the list, not priced again",       # (at night the night-owl trophy pays too)
                ("a00012" in listed(), e12["gp"], len([a for a in e12["ga"] if a["k"] != "trophy"])), (True, 5, 1))
         e12["liveSeen"] -= serve.LOCK_FRESH_S + 1
         expect("... not seen live for 120 s: out of the list, and the scan says gone", ("a00012" in listed(), serve.game_lockon(sp, "a00012").get("why")),
                (False, "gone"))
         g3 = serve.game3_json(sp.book(), sp.day)
-        expect("the game for the app: both circles, the rules too", (g3["km"], g3["scanKm"], g3["rules"]["km"], g3["rules"]["scanKm"]), (15, 10, 15, 10))
+        expect("the game for the app: both circles, the rules too", (g3["km"], g3["scanKm"], g3["rules"]["km"], g3["rules"]["scanKm"]), (15, 15, 15, 15))
 
         # relay 81's game (one 10 km circle; a rule-3 plane, rule-4 planes, a scan), then relay 82 on it
         folder = Path(tempfile.mkdtemp(prefix="fb-relay81-"))
@@ -733,7 +745,7 @@ def scan_circle_checks(expect):
         with serve._data_lock:
             expect("... the points the same", serve.game_book(new.book())["points"], pts)
             listed_new = sorted(x["hex"] for x in serve.game_scannable(new))
-        expect("... the unscanned planes within 10 km can be scanned, the scanned one not", listed_new, ["b00001", "b00003"])
+        expect("... the unscanned planes scored then can be scanned, the scanned one not (the 12 km one was never scored)", listed_new, ["b00001", "b00003"])
     finally:
         serve.where_name, serve.watch_of = real
 
@@ -2332,10 +2344,10 @@ def checks():
     expect("a scored plane in today's list", any("gp" in e for e in rows), True)
     st, _, b = call("/game/me?since=1", "test-device")
     me0 = json.loads(b) if st == 200 else {}
-    # relay 82: the planes a scan counts for (within 10 km, seen live in the last 2 min), both circles for the app
+    # relay 82: the planes a scan counts for (within 10 km, since relay 104 15 km, seen live in the last 2 min), both circles for the app
     hx = next((x["hex"] for x in me0.get("scan") or []), None)
     expect("/game/me: both circles and the scan list (relay 82)", (me0.get("km"), me0.get("scanKm"), bool(hx),
-           all(x.get("km") is not None and x["km"] <= 10 for x in me0.get("scan") or [])), (15, 10, True, True))
+           all(x.get("km") is not None and x["km"] <= 15 for x in me0.get("scan") or [])), (15, 15, True, True))
     if hx:
         expect("/game/me: the rules, the limits and the awards for the pop-ups (relay 76)",
                ((me0.get("rules") or {}).get("base", {}).get("rare"), (me0.get("limits") or {}).get("common", [0, 0])[1],
