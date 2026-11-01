@@ -2760,7 +2760,13 @@ def browser_checks(browser):
         if ((ans.get("airline") or {}).get("scans")) != 1:
             print(f"  (1.124's first scan: this plane's airline answers {ans.get('airline')}, the pop-up isn't due)")
         else:
+            want = next((x["n"] for x in ans.get("lines", []) if x["k"] == "streak"), None)   # 1.126: the real answer's streak on the real week
             for _ in range(16):
+                if want is not None and e("!!document.querySelector('.stkNew')"):
+                    got = e("[document.querySelector('.stkNew .hd b').textContent, [...document.querySelectorAll('.stkNew .ls span')].indexOf(document.querySelector('.stkNew .ls span:nth-child(' + (gme.standby.today + 1) + ')'))]")
+                    if got != [f"DAY {want}", e("gme.standby.today")]:
+                        bad.append(f"the real scan's streak pop-up: {got}, not day {want}")
+                    want = None
                 if e("!!document.querySelector('.lyNew')"):
                     break
                 e("[...document.querySelectorAll('#gAws .gAw:not(.out):not([data-tix])')].forEach(x => x.out()); 1")
@@ -2778,6 +2784,105 @@ def browser_checks(browser):
                     bad.append(f"a tap on the card's pop-up landed on {got}, not {code}")
             if e("window.__many"):
                 bad.append("two things of one scan on screen at once")
+    # 1.126 (to-do #252): the streak's paper pop-up. The real week and the plane's start, day 7 and not day 6 taking off, the line,
+    # the tap (the Streak panel, over Sky view, and the next pop-up waits for it to close), a ticket design leaves it paper
+    clear = "[...document.querySelectorAll('#gAws .gAw')].forEach(x => x.remove()); gLine.q.length = 0; if (cardOpenNow()) cardClose(); 1"
+    e(clear)
+    pg.wait_for_timeout(800)
+    e("""window.__thud = 0; window.__rips = 0; { const a = fsThud, b = gRip; fsThud = () => { window.__thud++; a(); }; gRip = () => { window.__rips++; b(); }; } 1""")
+    stk = lambda n, t, week: e(f"""(() => {{ const el = stkNew({{n: {n}, p: {25 * n}}}, {{t: {t}, week: {json.dumps(week)}}}), sp = [...el.querySelectorAll('.ls span')];
+        return {{cls: sp.map(s => s.className), txt: sp.map(s => s.textContent), x: new DOMMatrix(el.querySelector('.stkPl.pl').style.transform).e + 11,
+                 mark: sp[Math.max(0, {t} - 1)].offsetLeft + 15, hd: el.querySelector('.hd b').textContent, ft: el.querySelector('.ft b').textContent,
+                 w: el.offsetWidth, paper: !el.querySelector('.pF') && !el.querySelector('.stub'), hatch: el.querySelectorAll('.rw .sby').length,
+                 pe: getComputedStyle(el.querySelector('.stkPl.pl')).pointerEvents}}; }})()""")
+    a = stk(4, 3, ["s", "s", "s", "s", "", "", ""])
+    if a["cls"][:3] != ["on", "on", "on"] or a["cls"][4:] != ["", "", ""] or a["hd"] != "DAY 4" or a["ft"] != "+100" or a["w"] != 255 or not a["paper"] or a["pe"] != "none":
+        bad.append(f"the streak's pop-up on day 4: {a}")
+    if abs(a["x"] - a["mark"]) > 1:
+        bad.append(f"day 4's plane starts at {a['x']}, not at yesterday's mark {a['mark']}")
+    e(clear)
+    a = stk(3, 2, ["s", "b", "s", "", "", "", ""])       # the day after a standby: from the hatched mark
+    if a["txt"][1] != e("T('SBY')") or a["cls"][1] != "sby" or a["hatch"] != 1 or abs(a["x"] - a["mark"]) > 1:
+        bad.append(f"the day after a standby: {a}")
+    e(clear)
+    a = stk(2, 4, ["s", "", "", "s", "s", "", ""])       # missed days earlier in the week, a streak begun mid-week
+    if a["cls"][:4] != ["on", "miss", "miss", "on"] or abs(a["x"] - a["mark"]) > 1:
+        bad.append(f"a week with missed days: {a}")
+    e(clear)
+    a = stk(1, 0, ["s", "", "", "", "", "", ""])         # Monday: day 1, from the threshold
+    if a["x"] > 16:
+        bad.append(f"day 1's plane starts at {a['x']}, not at the threshold")
+    pg.wait_for_timeout(2300)
+    if e("document.querySelector('.stkNew .ls span').className") != "now" or e("window.__thud") != 1:
+        bad.append(f"day 1: the plane landed without today's letter or its one thud ({e('window.__thud')})")
+    e(clear)
+    # the week comes from the relay's answer; from before today's start it isn't used (a Monday's scan on Sunday's data)
+    got = e("""(() => { const was = [gme.standby, gme.resets], out = []; gme.standby = {...was[0], week: ['s', 'b', 's', '', '', '', ''], today: 3}; gme.resets = Date.now() + 36e5; out.push(stkWeek());
+        gme.resets = Date.now() - 1000; out.push(stkWeek()); out.push(stkWeekBack(1)); [gme.standby, gme.resets] = was; return out; })()""")
+    if got[0] != {"t": 3, "week": ["s", "b", "s", "s", "", "", ""]} or got[1] is not None or got[2]["week"].count("s") != 1 or got[2]["week"][got[2]["t"]] != "s":
+        bad.append(f"the streak's week: {got}")
+    e("window.__thud = 0; 1")
+    # Sunday as day 6 stops; day 7 takes off, and the letters go gold once it has left
+    stk(6, 6, ["", "s", "s", "s", "s", "s", "s"])
+    pg.wait_for_timeout(3600)
+    if e("[!!document.querySelector('.stkTr'), document.querySelectorAll('.stkNew em.nw').length, document.querySelector('.stkPl.pl').hidden]") != [False, 0, False]:
+        bad.append("a streak begun on Tuesday took off on Sunday, day 6")
+    e(clear)
+    stk(7, 6, ["s"] * 7)
+    pg.wait_for_timeout(3600)
+    if e("[!!document.querySelector('.stkTr'), document.querySelectorAll('.stkNew em.nw').length, document.querySelector('.stkPl.pl').hidden, document.querySelector('.stkNew').classList.contains('beam')]") != [True, 7, True, True]:
+        bad.append("day 7 didn't take off, leave a trail and turn the letters gold")
+    if e("window.__thud") != 2:
+        bad.append(f"thuds on day 6 and 7: {e('window.__thud')}, not one each")
+    e(clear)
+    # gone mid-roll: no thud after it
+    e("window.__thud = 0; stkNew({n: 4, p: 100}, {t: 3, week: ['s', 's', 's', 's', '', '', '']}).out(); 1")
+    pg.wait_for_timeout(2200)
+    if e("window.__thud"):
+        bad.append("a pop-up sent away mid-roll still thudded")
+    e(clear)
+    pg.wait_for_timeout(500)
+    # a whole scan: the streak, a new country, a new card, one at a time and in that order, no tear for the streak
+    e("""window.__seen = []; window.__manyS = 0; clearInterval(window.__sw); window.__sw = setInterval(() => { const l = [...document.querySelectorAll('#gAws .gAw:not(.out)')]; if (l.length > 1) window.__manyS++;
+           const c = l[0] && ['pF', 'stkNew', 'ppNew', 'lyNew'].find(k => l[0].classList.contains(k) || l[0].querySelector('.' + k)); if (c && window.__seen[window.__seen.length - 1] !== c) window.__seen.push(c); }, 40);
+         S.ticket = ''; window.__rips = 0; gScanPops({hex: 'abc123', callsign: 'XXX1', flight: 'XXX1', airline: {code: 'ZZY', scans: 1}, bonus: 50, tier: 'uncommon', full: 50, km: 3,
+           route: [['VIE', 'AT', 0], ['FJI', 'FJ', 1]], lines: [{k: 'scan', p: 50, tier: 'uncommon', full: 50}, {k: 'streak', n: 2, p: 50}]}, () => {}); 1""")
+    for _ in range(12):
+        if e("!!document.querySelector('.stkNew')"):
+            break
+        e("[...document.querySelectorAll('#gAws .gAw:not(.out)')].forEach(x => x.out()); 1")
+        pg.wait_for_timeout(500)
+    if not e("!!document.querySelector('.stkNew')"):
+        bad.append("a scan with a streak line brought no streak pop-up")
+    else:
+        e("document.querySelector('.stkNew').click(); 1")
+        pg.wait_for_timeout(1500)
+        title = e("(document.querySelector('#cardBox h3') || {}).textContent")
+        if not e("cardOpenNow()") or title != e("T('Streak')"):
+            bad.append(f"a tap on the streak's pop-up opened {title}, not the Streak panel")
+        if e("document.querySelectorAll('#gAws .gAw:not(.out)').length"):
+            bad.append("the next pop-up rose under the Streak panel")
+        e("cardClose(); 1")
+        for _ in range(16):
+            pg.wait_for_timeout(500)
+            if e("!!document.querySelector('.lyNew')"):
+                break
+            e("[...document.querySelectorAll('#gAws .gAw:not(.out)')].forEach(x => x.out()); 1")
+        seen = e("window.__seen")
+        if [x for x in seen if x != "pF"] not in (["stkNew", "ppNew", "lyNew"], ["stkNew", "lyNew"]):   # no map to hand on this run: no passport's pop-up
+            bad.append(f"a scan's line came as {seen}")
+        if e("window.__manyS"):
+            bad.append("two things of one scan on screen at once, with the streak's pop-up among them")
+    e("clearInterval(window.__sw); 1")
+    e(clear)
+    # a ticket design doesn't reach it
+    e("window.__tixEra = tixEra; tixEra = () => 'propage'; 1")
+    a = stk(4, 3, ["s", "s", "s", "s", "", "", ""])
+    e("tixEra = window.__tixEra; 1")
+    if not a["paper"]:
+        bad.append("a ticket design reached the streak's pop-up")
+    e(clear)
+
     # 1.125 (to-do #251): the unlock sound: never stacked, and only a trophy's card has it
     if e("""(() => { const was = [S.chimes, actx, nightOn, unlockEnd], ctx = new OfflineAudioContext(1, 4800, 48000); let n = [];
         const se = soundE; soundE = (c, o, t) => n.push(+t.toFixed(3));

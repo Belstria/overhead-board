@@ -1320,8 +1320,6 @@ window.I18N_ROWS = [
   ["GOLDEN", "GOLDEN", "DORÉ", "DORADO", "GOUDEN"],
   ["GOLDEN ×2", "GOLDEN ×2", "DORÉ ×2", "DORADO ×2", "GOUDEN ×2"],
   ["DAILY STREAK", "TAGESSERIE", "SÉRIE DU JOUR", "RACHA DIARIA", "DAGREEKS"],
-  ["DAY {n} THIS WEEK", "TAG {n} DIESE WOCHE", "JOUR {n} CETTE SEMAINE", "DÍA {n} ESTA SEMANA", "DAG {n} DEZE WEEK"],
-  ["STREAK", "SERIE", "SÉRIE", "RACHA", "REEKS"],
   ["Your first scan today. Scan a plane tomorrow for +{p}.", "Dein erster Scan heute. Scanne morgen ein Flugzeug für +{p}.", "Votre premier scan du jour. Scannez un avion demain pour +{p}.", "Tu primer escaneo de hoy. Escanea un avión mañana para +{p}.", "Je eerste scan vandaag. Scan morgen een vliegtuig voor +{p}."],
   ["It starts again on Monday at 03:00, with the league.", "Sie beginnt am Montag um 03:00 neu, mit der Liga.", "Elle recommence lundi à 03:00, avec la ligue.", "Vuelve a empezar el lunes a las 03:00, con la liga.", "Hij begint maandag om 03:00 opnieuw, met de competitie."],
   ["This week · #{n}", "Diese Woche · #{n}", "Cette semaine · #{n}", "Esta semana · #{n}", "Deze week · #{n}"],

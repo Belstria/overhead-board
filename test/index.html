@@ -734,7 +734,7 @@ body.lite .cPicW .cPic{transition:none}
 </aside>
 
 <script>window.LANG_CHOICE = false;   // 1.119.2 (#226): the Language setting is off, English for everyone; true brings it back (and relay 100's PUSH_LANG_CHOICE)
-if (window.LANG_CHOICE) document.write('<script src="i18n.js?v=f0d70a693b"><\/script>');</script>
+if (window.LANG_CHOICE) document.write('<script src="i18n.js?v=eeb3cd9f33"><\/script>');</script>
 <script>
 (() => {
 "use strict";
@@ -7884,6 +7884,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.126", date: "2026-11-01", notes: [
+    "The daily streak is a small paper pop-up: a plane rolls down a runway to today, and a tap opens the Streak panel.",
+    "On day 7 of a streak the plane takes off, and the week's letters turn gold.",
+  ]},
   {v: "1.125", date: "2026-11-01", notes: [
     "A new medal comes as a small paper pop-up: it swings in on its ribbon, one thing at a time, and a tap opens that trophy.",
     "Trophies show their real medals: won in their metal, dim until you win them.",

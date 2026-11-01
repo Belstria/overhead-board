@@ -118,7 +118,7 @@ in the sheet a tap opens; the engraved plate title on every sheet.
   opens Week · Month · Year, with the CSV under More). The icon opens the segmented filters, this place / All places and Saved
   places in place under the strip. Then the timeline rows (a rarity bubble, time, flight, route, type, marks at the end, no pills).
 - **Club**: sub-tabs Level, League (with Bingo and Trophies under it; League and Bingo with the weekly reset as a
-  footnote, Trophies' counts on its switch), Hangar, Passport, Frequent flyer. The week on the level card opens the Streak panel.
+  footnote, Trophies' counts on its switch), Hangar, Passport, Frequent flyer. The week on the level card and the streak's paper pop-up (1.126) open the Streak panel.
 - **Radar**: title, (i), a cogwheel chip with the range that opens the range-and-map plate, the radar, the Nearest table.
 - **Sky view**: from Now; the align button in the top row (a circle, the camera or the Align button lines the labels up on the
   sun or moon), a mini radar bottom left, edge chips for at most three off-screen planes, the count "4 around".
