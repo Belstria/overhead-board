@@ -590,6 +590,9 @@ The repository is public: no addresses, keys or personal data here either.
 - Push to main (Dave's to-do 12, 23 Oct 2026): the main board goes from 1.37 to the test board's 1.79.2, with `i18n.js` and
   `sounds.js` next to it for the first time; `push_main.py` points the main copy at `fonts/fonts.css` (the test board's
   `../fonts/` works through the relay, but on GitHub Pages' own address it leaves the project).
+- Push to main: the main board is 1.128 (to-do #238, 1 Nov 2026), up from 1.85, with `signature.js` and `world.js` next to it
+  for the first time (the phone app loads them; a TV never asks). Its reason: the board's day is 00:00 like the relay's,
+  no longer 03:00 (1.121.1).
 - 1.79.2 (Dave's picks: medals without coloured dots, and the switch): `trophiesHtml` has a `.seg.trSeg` switch
   (`gTrTab`: near, won, todo; kept across redraws, wired by `trWire` on the club page and the Logbook's Records) in
   place of the `trFold` folds and `gTrOpen`. Closest is the three ladders nearest their next rank; Still to win is
