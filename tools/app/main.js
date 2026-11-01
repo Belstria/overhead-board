@@ -317,6 +317,7 @@ function drawPanelStatic(P){
   const g = P.bgx;
   g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, P.bg.width, P.bg.height);
   g.setTransform(P.px, 0, 0, P.px, 0, 0);
+  if (P.deco) P.deco(g, P);                       // 1.130: a panel's own metal and marks under its flap channels (the Styles cell)
   for (const id of P.ids) {
     const f = fields[id];
     if (f.hidden || f.cw == null) continue;
@@ -420,7 +421,7 @@ function applyTheme(){
   const tc = document.querySelector('meta[name="theme-color"]');
   if (tc) tc.content = T.metal[1];
   metalTile();
-  const redraw = () => { clearTiles(); refreshPanels(true); drawMark(); if (tab === "radar") radarSize(); };
+  const redraw = () => { clearTiles(); stripSet(); refreshPanels(true); drawMark(); if (tab === "radar") radarSize(); };
   try {
     Promise.race([Promise.all(["700 40px", "600 20px", "400 40px"].map(w => document.fonts.load(`${w} ${T.font}`))), new Promise(r => setTimeout(r, 2500))])
       .then(redraw, redraw);
@@ -4944,16 +4945,77 @@ function plateHtml(p){
 function cockpitOpen(){
   draft = cockpitDraft();
   const box = $("cockpit");
+  stripDrop();
   box.innerHTML = PLATES.map(plateHtml).join("");
   for (const p of box.children) p.classList.toggle("on", p.dataset.pid === setPid);   // 1.116: the open panel's plate
   $("aboutX").onclick = () => { ctlSound.click(); aboutHide(); };
   $("t-about").querySelector(".tabHead h2").onclick = () => aboutTap();       // 1.49: seven taps on About
   $("aboutX").setAttribute("aria-label", T("Close"));
   wireCockpit(box);
+  stripMount(box);
   cockpitShow();
   renderAbout();
   syncShow();
   setListRender();
+}
+/* 1.130 (to-do #266, Dave's pick B): the Styles cell of the Display panel. The look's name stands on 15 real flaps beside
+   the logo square (with the badge in use), on a metal strip with screws, in the look's own theme; a tap on the strip or
+   the Styles key opens the gallery on its Board tab. One panel at a time: a re-rendered cockpit drops the old one first
+   (stripDrop), so `panels` and `allCells` stay flat. The name is put on the flaps at once (no turning, no sound). */
+const STRIP_N = 15, STRIP_ID = "stlook";
+let stripP = null, stripRO = null;
+// The look's board name on the flaps' drum: capitals, no accents, only letters the drum has, 15 at most.
+function stripText(){
+  const k = lookKind(), it = (STYLES.find(x => x[0] === k) || [])[2], row = it && (it.find(x => x[0] === styleVal(k)) || it[0]);
+  let t = T(row ? row[1] : "Classic").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "SS").toUpperCase();
+  t = [...t].filter(ch => DRUM_ALPHA.includes(ch)).join("").replace(/\s+/g, " ").trim();
+  return t.slice(0, STRIP_N).trim();
+}
+function stripPaint(g, P){                      // the metal, its four screws, the logo square and the accent line, in panel units
+  const m = METAL, bg = g.createLinearGradient(0, 0, 0, P.h);
+  bg.addColorStop(0, m[0]); bg.addColorStop(.5, m[1]); bg.addColorStop(1, m[2]);
+  g.fillStyle = bg; g.fillRect(0, 0, P.w, P.h);
+  for (const [x, y] of [[6, 6], [P.w - 6, 6], [6, P.h - 6], [P.w - 6, P.h - 6]]) screw(g, x, y, 2.6);
+  const f = fields[STRIP_ID], lg = 28;
+  pictogram(g, 14, f.y - 1, lg, S.badge || "");
+  g.fillStyle = COL.amber; rr(g, f.x, f.y + f.ch + 4, P.w - 14 - f.x, 2, 1); g.fill();
+}
+function stripSet(){
+  const f = fields[STRIP_ID];
+  if (!f) return;
+  const t = stripText().padEnd(STRIP_N, " ");
+  f.cells.forEach((c, i) => { c.queue = []; c.anim = null; c.cur = c.target = t[i]; });
+  if (stripP) stripP.el.closest(".stStrip").setAttribute("aria-label", T("Styles") + ": " + stripText());
+}
+function stripDrop(){
+  if (stripRO) stripRO.disconnect();
+  stripRO = null;
+  if (!stripP) return;
+  const i = panels.indexOf(stripP);
+  if (i >= 0) panels.splice(i, 1);
+  for (const c of fields[STRIP_ID].cells) { const j = allCells.indexOf(c); if (j >= 0) allCells.splice(j, 1); }
+  delete fields[STRIP_ID];
+  stripP = null;
+}
+function stripMount(box){
+  const bar = box.querySelector("[data-stbar]");
+  if (!bar) return;
+  const open = () => { ctlSound.nav(); stylesCard(lookKind()); };
+  bar.onclick = open;
+  bar.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } };
+  box.querySelector("[data-stkey]").onclick = open;
+  const el = document.createElement("div");
+  el.className = "panel stPanel"; el.setAttribute("aria-hidden", "true");
+  bar.append(el);
+  const P = stripP = makePanel(el, 314, 46, 0);
+  P.deco = stripPaint;
+  def(P, STRIP_ID, {kind: "chars", n: STRIP_N, dur: 62, loud: 0});
+  const step = (P.w - 14 - 28 - 7 - 14) / STRIP_N;
+  placeRow([STRIP_ID], [], 7, step, 1.7, 14 + 28 + 7);
+  fields[STRIP_ID].cw = step - 1.4; fields[STRIP_ID].ch = (step - 1.4) * 1.7;
+  stripSet();
+  if (window.ResizeObserver) { stripRO = new ResizeObserver(() => showPanel(P)); stripRO.observe(el); }   // drawn once its plate is on screen
+  showPanel(P);
 }
 // The phone: Save stays in the panel, with the controls back as saved; Save says Saved for a moment (1.116: the
 // panel's own Save; "Not saved yet" beside it while there is something to save).
@@ -6532,7 +6594,7 @@ function stOpen(k, id){
       ctlSound.click();
       if (typeof draft !== "undefined" && draft) draft[k] = id;          // an open Settings keeps it on Save
       applySettings({...S, [k]: id});
-      cardClose(); stylesRender(); stylesCellRefresh();
+      cardClose(); stylesRender(); stylesCellRefresh(); stripSet();
     };
   });
 }
