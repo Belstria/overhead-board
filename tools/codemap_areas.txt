@@ -181,7 +181,7 @@ changelog: view|rail|button|tab\b|tabs
 
 [spotted] Spotted today: the day's sightings from the relay, the board's table, filter and legend, the app's Today tab and lists
 test/index.html: SV_ROWS DAY_START_H boardDay todayKey loadLog saveLog SAME_PASS_MS entryTime dedupe spotted logDay
-    rollDay sightRev sightBusy relayStats sightDay fromRelay sightDone syncSightings fullDay loadFullDay dayList
+    rollDay sightRev sightBusy relayStats sightDay fromRelay borrowFilledRoutes sightDone syncSightings fullDay loadFullDay dayList
     todayList fillEntry svFilter svPageNo svLegend svSig spottedSummary TIER_ORDER reviewTime dayHighlights svQuery spotMatch svFindHtml svFindWire lampOf
     altNum svPart svSignature renderSpottedBoard fitText SV_X drawSpottedTable svStep setLegend legendGroups
     legendChip drawLegend SV_TOOLS .svFind +renderSpotted +recentShown
@@ -682,6 +682,9 @@ relay/serve.py: LOGBOOK_FILE SAME_PASS_S DAY_STARTS_H LEARN_S _data_lock _dirty 
     _load board_day Spot Spot.__init__ Spot.day_entries Spot.day_changed Spot.ensure_day Spot.book Spot.changed
     Spot.files Spot.take _guest_spots all_spots _saver _dist_km _emergency _note_first _record _route_for AT_CS no_cs
     _at_cs _scrub_at _scrub_at_spot _scrub_at_all _all_profile_spots _route_fits _routeset_for _aircraft_for _enricher
+    VRS_ROUTES VRS_DIR VRS_EVERY_S VRS_GAP_S VRS_FAIL_S VRS_KEEP VRS_CATCHUP_WAIT_S _vrs_q _vrs_lock _vrs_mem _vrs_next
+    _vrs_down_until _vrs_piece _vrs_listed _vrs_place _vrs_route _vrs_wants _vrs_worker _vrs_truth_check _vrs_catchup
+    _vrs_catchup_all
     +_guest_center +_guest_radius +guest_spot +main +aircraft +now_json +window_planes /flightinfo
 README.md: "**Shared history (relay version 5).**"
 docs/history.md: '**"@" callsigns**'

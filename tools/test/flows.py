@@ -1917,6 +1917,233 @@ def showcase_checks(expect):
     expect("the pins survive a restart", (codes(serve.showcase_json(g2)), serve.showcase_json(g2)["pins"][2]["route"]), (["A359", None, "B789"], ["DXB", "VIE"]))
 
 
+def vrs_route_checks(expect):
+    """Relay 106 (to-do #262): a flight with no route gets Virtual Radar Server's, only when the position check really ran
+    and accepts it, marked routeSrc "vrs": a stopover picks its leg, a real source arriving later wins, a failed download
+    changes nothing, and the saved days' catch-up runs once and moves no total."""
+    import json as _j
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    ap = {"VIE": ("LOWW", 48.11, 16.57), "FCO": ("LIRF", 41.80, 12.24), "WAW": ("EPWA", 52.17, 20.97), "FRA": ("EDDF", 50.03, 8.57),
+          "LIS": ("LPPT", 38.77, -9.13), "MAD": ("LEMD", 40.47, -3.56), "BEG": ("LYBE", 44.82, 20.31), "BER": ("EDDB", 52.36, 13.5),
+          "HAM": ("EDDH", 53.63, 9.99)}
+    table = {"v": 4, "fetched": serve.time.time(), "iata": {k: [k + " city", la, lo, ic, "", 1, 0, "XX", "EU"] for k, (ic, la, lo) in ap.items()},
+             "icao": {v[0]: k for k, v in ap.items()}}
+    head = "\ufeffCallsign,Code,Number,AirlineCode,AirportCodes\r\n"
+    files = {"AAA-all.csv": head + "AAA1,AAA,1,AAA,LIRF-EPWA\r\nAAA2,AAA,2,AAA,LPPT-LEMD\r\nAAA3,AAA,3,AAA,LIRF-XXXX\r\n"
+                                   "AAA4,AAA,4,AAA,LPPT-LIRF-EPWA\r\nAAA5,AAA,5,AAA,LPPT-LEMD-EPWA\r\nAAA6,AAA,6,AAA,LOWW-EDDB-EDDH-LOWW\r\n"
+                                   "AAA0,AAA,0,AAA,LIRF-EPWA\r\nAAA7AB,AAA,7AB,AAA,LIRF-EPWA\r\n",
+             "BBB-1.csv": head + "BBB12,BBB,12,BBB,LIRF-EPWA\r\n"}
+    asked, status = [], [None]
+
+    def fake_fetch(url, **k):
+        name = url.rsplit("/", 1)[1]
+        asked.append(name)
+        if status[0]:
+            return status[0], "text/plain", b"nope", {}
+        if name in files:
+            return 200, "text/plain", files[name].encode("utf-8"), {}
+        return 404, "text/plain", b"404", {}
+
+    real = serve.fetch, serve._airports, serve.VRS_DIR, serve.VRS_GAP_S, serve._all_profile_spots, serve.board_day
+    day = "2026-10-29"
+    serve.fetch, serve._airports, serve.VRS_DIR, serve.VRS_GAP_S = fake_fetch, table, Path(tempfile.mkdtemp(prefix="fb-vrs-")), 0
+    serve.board_day = lambda t=None: day
+    serve._vrs_mem.clear()
+    serve._vrs_down_until = serve._vrs_next = 0.0
+    AT = (48.2085, 16.3731)        # central Vienna: on the way from Rome to Warsaw, flying north-east
+
+    def ends(r):
+        return (r["from"]["code"], r["to"]["code"], r["routeSrc"]) if r else None
+    try:
+        got = serve._vrs_route("AAA1", (*AT, 30))
+        expect("no route, listed, fits: VRS's, marked, with its cities and places", (ends(got[0]), got[1], got[0]["from"]["city"], got[0]["to"]["lat"]),
+               (("FCO", "WAW", "vrs"), "filled", "FCO city", 52.17))
+        expect("the wrong way along it: none", serve._vrs_route("AAA1", (*AT, 210)), (None, "refused"))
+        expect("nowhere near it (the callsign is reused): none", serve._vrs_route("AAA2", (*AT, 30)), (None, "refused"))
+        expect("no position: none, and nothing asked for it", (serve._vrs_route("ZZZ1", None), serve._vrs_route("ZZZ1", [48.2, 16.3, None]), "ZZZ-all.csv" in asked),
+               ((None, "nopos"), (None, "nopos"), False))
+        expect("an airport without coordinates: none", serve._vrs_route("AAA3", (*AT, 30)), (None, "noairport"))
+        expect("not listed: none", serve._vrs_route("AAA99", (*AT, 30)), (None, "notlisted"))
+        expect("a stopover picks the leg it fits", ends(serve._vrs_route("AAA4", (*AT, 30))[0]), ("FCO", "WAW", "vrs"))
+        expect("a stopover none of whose legs fits: none", serve._vrs_route("AAA5", (40.0, 40.0, 90))[1], "refused")
+        expect("a round trip, leaving Vienna northwards: the way out", ends(serve._vrs_route("AAA6", (48.3, 16.6, 0))[0]), ("VIE", "BER", "vrs"))
+        expect("... coming back from the north: the way home", ends(serve._vrs_route("AAA6", (48.3, 16.6, 170))[0]), ("HAM", "VIE", "vrs"))
+        expect("the number's leading zeros go; all zeros keep one; with letters too",
+               [ends(serve._vrs_route(cs, (*AT, 30))[0]) for cs in ("AAA0001", "AAA000", "AAA007AB")], [("FCO", "WAW", "vrs")] * 3)
+        asked.clear()
+        expect("over 10,000 routes: the file of the number's first digit", (ends(serve._vrs_route("BBB12", (*AT, 30))[0]), asked), (("FCO", "WAW", "vrs"), ["BBB-all.csv", "BBB-1.csv"]))
+        asked.clear()
+        serve._vrs_route("BBB12", (*AT, 30)), serve._vrs_route("CCC1", (*AT, 30)), serve._vrs_route("CCC1", (*AT, 30))
+        expect("kept: a known file and a missing one aren't asked again", asked, ["CCC-all.csv", "CCC-1.csv"])
+        serve._vrs_mem.clear()
+        asked.clear()
+        expect("... also after a restart (the copy in data/)", (ends(serve._vrs_route("AAA1", (*AT, 30))[0]), asked), (("FCO", "WAW", "vrs"), []))
+        expect("not an airline's callsign: nothing asked", (serve._vrs_route("OEXEN", (*AT, 30)), asked), ((None, "notlisted"), []))
+        # a failed download: nothing changes, nothing more is asked for a while; the old copy serves on
+        status[0] = 503
+        got = serve._vrs_route("DDD1", (*AT, 30))
+        n = len(asked)
+        expect("a failed download: no route, can't tell", got, (None, "failed"))
+        expect("... and no other is tried for a while", (serve._vrs_route("EEE1", (*AT, 30)), len(asked)), ((None, "failed"), n))
+        expect("... nor is it remembered as missing", (serve.VRS_DIR / "DDD-all.json").exists(), False)
+        old = _j.loads((serve.VRS_DIR / "AAA-all.json").read_text())
+        old["fetched"] -= 8 * 86400
+        (serve.VRS_DIR / "AAA-all.json").write_text(_j.dumps(old))
+        serve._vrs_mem.clear()
+        expect("... an older copy serves on", ends(serve._vrs_route("AAA1", (*AT, 30))[0]), ("FCO", "WAW", "vrs"))
+        status[0] = None
+        serve._vrs_down_until = 0.0
+        asked.clear()
+        serve._vrs_route("AAA1", (*AT, 30))
+        expect("a week on it's fetched again", asked, ["AAA-all.csv"])
+        files["FFF-all.csv"] = "<html>a broken page</html>"
+        expect("a page that isn't the list counts as failed", serve._vrs_route("FFF1", (*AT, 30)), (None, "failed"))
+        serve._vrs_down_until = 0.0
+
+        # the game, the records: a filled route reads as none
+        expect("a filled route has no countries", serve.route_countries({"from": {"code": "FCO"}, "to": {"code": "WAW"}, "routeSrc": "vrs"}, table), [])
+        book = {}
+        serve.note_records(book, {"minDist": 3, "from": {"lat": 1.0, "lon": 1.0, "code": "X"}, "to": {"lat": 2.0, "lon": 2.0, "code": "Y"}, "routeSrc": "vrs"}, AT)
+        expect("a filled route sets no farthest record", "farthest" in book["records"], False)
+
+        # sightings: the live worker's rules, and what comes later
+        folder = Path(tempfile.mkdtemp(prefix="fb-vrs-spot-"))
+        sp = serve.Spot(folder, None, 15)
+        with serve._data_lock:
+            sp.ensure_day()
+
+        def sighting(i, cs, pos=(*AT, 30), **k):
+            return {"id": f"s{i}", "hex": f"{i + 41000:06x}", "ts": 1000 + i, "callsign": cs, "pos": list(pos) if pos else None, "looked": True, **k}
+        route = {"from": {"code": "FRA"}, "to": {"code": "VIE"}}
+        e1, e2 = sighting(1, "AAA1"), sighting(2, "AAA1", **route)
+        expect("wants a route: none yet; not with one, not without a callsign, not diverted",
+               [serve._vrs_wants(x) for x in (e1, e2, sighting(3, ""), sighting(4, "AAA1", divertedTo={"code": "BEG"}))], [True, False, False, False])
+        # Flightradar24 after the filler: it wins; a flight number alone leaves the mark
+        real_prof, real_same = serve.profiles, serve._fr24_same_flight
+        serve.profiles = lambda: {"profiles": {folder.name: {"fr24": True, "name": "Test"}}}
+        serve._fr24_same_flight = lambda i, e: True
+        try:
+            with serve._data_lock:
+                sp.entries[:] = [{**sighting(5, "AAA1"), **serve._vrs_route("AAA1", (*AT, 30))[0]}]
+                e = sp.entries[0]
+                serve.fr24_keep(f"{e['hex']}|AAA1", {"t": serve.time.time(), "flight": "XX1"}, spots=[sp])
+                expect("Flightradar24's flight number alone: the filled route stays marked", (e["routeSrc"], e["flightIata"], e["from"]["code"]), ("vrs", "XX1", "FCO"))
+                serve.fr24_keep(f"{e['hex']}|AAA1", {"t": serve.time.time(), "flight": "XX1", "from": {"code": "FRA"}, "to": {"code": "VIE"}}, spots=[sp])
+                expect("Flightradar24's route arrives later: it wins, marked as its own", (e["from"]["code"], e["to"]["code"], e["routeSrc"]), ("FRA", "VIE", "fr24"))
+                expect("... and now the route counts", serve.route_countries(e, table), [("XX", "FRA")])
+                e.pop("routeSrc"), e.update(serve._vrs_route("AAA1", (*AT, 30))[0])
+
+            # adsbdb's route through the enricher replaces a filled one; a sighting with none is queued for the filler
+            real_for, real_ac, real_q = serve._route_for, serve._aircraft_for, serve.time.sleep
+            serve._aircraft_for = lambda hx: None
+            for q in (serve._enrich_q, serve._vrs_q):     # what the checks before left: no worker runs here
+                while not q.empty():
+                    q.get_nowait()
+
+            def enrich_once(s, eid):
+                class Stop(Exception):
+                    pass
+
+                def stop(t):
+                    raise Stop
+                serve.time.sleep = stop
+                serve._enrich_q.put((s, eid))
+                try:
+                    serve._enricher()
+                except Stop:
+                    pass
+                finally:
+                    serve.time.sleep = real_q
+            serve._route_for = lambda cs: {"from": {"code": "FRA"}, "to": {"code": "VIE"}}
+            enrich_once(sp, e["id"])
+            expect("a real source arriving later wins: the route and no mark", (e["from"]["code"], e.get("routeSrc")), ("FRA", None))
+            serve._route_for = lambda cs: None
+            with serve._data_lock:
+                sp.entries[:] = [sighting(6, "AAA1", looked=False)]
+            enrich_once(sp, "s6")
+            expect("no route from anyone: looked at, and queued for the filler, not filled in the enricher's way",
+                   (sp.entries[0]["looked"], sp.entries[0].get("from"), serve._vrs_q.get_nowait()[1]), (True, None, "s6"))
+            serve._route_for, serve._aircraft_for = real_for, real_ac
+        finally:
+            serve.profiles, serve._fr24_same_flight = real_prof, real_same
+
+        # the catch-up: saved days, once, nothing overwritten, no total moved
+        folder = Path(tempfile.mkdtemp(prefix="fb-vrs-days-"))
+        sp = serve.Spot(folder, None, 15)
+        with serve._data_lock:
+            sp.ensure_day()
+            sp.book()["sightings"] = 7
+            serve.game_book(sp.book())["points"] = 123
+            sp.entries[:] = [sighting(10, "AAA1"), sighting(11, "AAA1", looked=False)]
+        old_day = [sighting(20, "AAA1"), sighting(21, "AAA2"), sighting(22, "AAA99"), sighting(23, "AAA1", pos=None), sighting(24, "AAA1", **route),
+                   sighting(25, "AAA1", routeSrc="fr24", **{"from": {"code": "FCO"}, "to": {"code": "WAW"}}),
+                   sighting(26, "AAA2", routeSrc="fr24", **{"from": {"code": "FRA"}, "to": {"code": "BEG"}}),
+                   sighting(27, "AAA1", routeSrc="fr24", **{"from": {"code": "FRA"}, "to": {"code": "BEG"}})]
+        (folder / "sightings-2026-10-20.json").write_text(_j.dumps(old_day))
+        real_prof = serve.profiles
+        serve.profiles = lambda: {"profiles": {}}
+        logged = []
+        real_event = serve.event
+        serve.event = lambda lvl, msg, **k: logged.append(msg)
+
+        def saved(d):
+            with serve._data_lock:
+                for path, text in sp.files():
+                    path.write_text(text)
+            return _j.loads((folder / f"sightings-{d}.json").read_text())
+
+        def totals():
+            with serve._data_lock:
+                return _j.dumps([sp.book().get("sightings"), sp.book().get("records"), serve.game_book(sp.book())], sort_keys=True)
+        try:
+            before = totals()
+            expect("the catch-up finishes", serve._vrs_catchup(sp), True)
+            rows = {e["id"]: e for e in saved("2026-10-20")}
+            expect("a saved day: filled where it fits, not where it doesn't, not listed or no position; a real route kept",
+                   [(rows[k].get("routeSrc"), (rows[k].get("from") or {}).get("code")) for k in ("s20", "s21", "s22", "s23", "s24", "s25")],
+                   [("vrs", "FCO"), (None, None), (None, None), (None, None), (None, "FRA"), ("fr24", "FCO")])
+            expect("... today's: one the live lookup has finished with, not one it hasn't", [e.get("routeSrc") for e in sp.entries], ["vrs", None])
+            expect("... the counts in the logbook (the marker), one line in the log",
+                   ({k: v for k, v in sp.book()["vrsFill"].items()}, len(logged)),
+                   ({"v": 1, "filled": 2, "refused": 1, "notlisted": 1, "nopos": 1, "rightKept": 1, "wrongCaught": 1, "wrongPassed": 1}, 1))
+            expect("... the line", logged[0].split(" (")[0], "Routes: 2 filled, 1 refused by position, 1 without a position, 1 not listed, 0 without airports")
+            expect("... no total, record or point moved", totals(), before)
+
+            # a download failing midway: no marker, and a later run ends the job
+            folder2 = Path(tempfile.mkdtemp(prefix="fb-vrs-fail-"))
+            sp2 = serve.Spot(folder2, None, 15)
+            (folder2 / "sightings-2026-10-20.json").write_text(_j.dumps([sighting(30, "GGG1")]))
+            with serve._data_lock:
+                sp2.ensure_day()
+            serve._vrs_down_until = 0.0
+            status[0] = 503
+            expect("a failed download stops the catch-up, without the marker", (serve._vrs_catchup(sp2), "vrsFill" in sp2.book()), (False, False))
+            expect("... the day's file unchanged", _j.loads((folder2 / "sightings-2026-10-20.json").read_text())[0].get("routeSrc"), None)
+            status[0] = None
+            serve._vrs_down_until = 0.0
+            expect("... the next try ends it", (serve._vrs_catchup(sp2), "vrsFill" in sp2.book()), (True, True))
+
+            # _vrs_catchup_all: once per profile
+            serve._all_profile_spots = lambda: [sp]
+            real_wait, serve.VRS_CATCHUP_WAIT_S = serve.VRS_CATCHUP_WAIT_S, 0
+            calls = []
+            real_cu, serve._vrs_catchup = serve._vrs_catchup, lambda s: calls.append(s) or True
+            serve._vrs_catchup_all()
+            serve._vrs_catchup, serve.VRS_CATCHUP_WAIT_S = real_cu, real_wait
+            expect("with the marker it doesn't run again", calls, [])
+        finally:
+            serve.profiles, serve.event = real_prof, real_event
+    finally:
+        serve.fetch, serve._airports, serve.VRS_DIR, serve.VRS_GAP_S, serve._all_profile_spots, serve.board_day = real
+        serve._vrs_mem.clear()
+        serve._vrs_down_until = serve._vrs_next = 0.0
+
+
 def passport_checks(expect):
     """Relay 90 (to-do #150): the passport. A scan of a flight with a known route stamps the countries of its two
     airports (from the airport list's countries); one new to the passport pays +25 once, with the scan. Countries of
@@ -1954,12 +2181,12 @@ def passport_checks(expect):
         for path, text in files:
             path.write_text(text)
 
-    def scan(sp, fr=None, to=None):
+    def scan(sp, fr=None, to=None, src=None):
         """A plane flying fr to to (codes; None: no route) comes within 4 km and is scanned: the scan's answer."""
         n[0] += 1
         now = serve.time.time()
         e = {"id": f"p{n[0]}", "hex": f"{n[0] + 31000:06x}", "ts": int(now * 1000) + n[0], "typeCode": "A320", "callsign": f"AUA{n[0]}",
-             "tier": "common", "liveMin": 4.0, "liveSeen": now, **({"from": {"code": fr}, "to": {"code": to}} if fr else {})}
+             "tier": "common", "liveMin": 4.0, "liveSeen": now, **({"from": {"code": fr}, "to": {"code": to}} if fr else {}), **({"routeSrc": src} if src else {})}
         with serve._data_lock:
             sp.entries.insert(0, e)
             sp.by_hex[e["hex"]] = e
@@ -2004,6 +2231,8 @@ def passport_checks(expect):
         expect("... and not again", cc(scan(sp, "LHR", "SZG")), [])
         r = scan(sp)
         expect("a flight without a route stamps nothing", (cc(r), r["route"], len(g["passport"])), ([], [], 3))
+        r = scan(sp, "DXB", "FRA", src="vrs")     # relay 106: two countries new to the passport, on a route that may be wrong
+        expect("a filled route (relay 106) stamps and pays nothing", (cc(r), r["route"], len(g["passport"]), [a["k"] for a in r["lines"] if a["k"] == "country"]), ([], [], 3, []))
         expect("an airport the list lacks: only the other end", cc(scan(sp, "XXX", "DXB")), [("AE", "DXB", 25)])
         with serve._data_lock:
             pj = serve.game3_json(sp.book(), day)["passport"]
@@ -2300,6 +2529,7 @@ def checks():
     late_codes_checks(expect)
     mastery_checks(expect)
     loyalty_checks(expect)
+    vrs_route_checks(expect)
     import serve                    # relay 85: no flight school in the other checks (its +50s would change their totals)
     serve.school_pass = lambda *a, **k: None
     golden_checks(expect)

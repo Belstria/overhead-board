@@ -448,6 +448,7 @@ async function syncSightings(){
     if (j.fr24 === false) apiOff();
     const first = sightRev === null;
     spotted = (j.entries || []).map(fromRelay);
+    borrowFilledRoutes();
     relayStats = j.stats || null;
     sightRev = String(j.rev); sightDay = j.date || null;
     if (first) dlog("info", `Spotted today comes from the relay (${spotted.length} so far)`);

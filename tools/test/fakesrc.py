@@ -331,6 +331,19 @@ def away(lat, lon):
 
 # The airline list (Virtual Radar Server's standing data: a BOM, then Code,Name,ICAO,IATA,...), with enough made-up
 # rows that the relay takes it for a whole list.
+# Relay 106: a few of Virtual Radar Server's routes, for the flights ROUTES lacks (EIN6AB flies north past Vienna), and the
+# airports the fake flights name, as OurAirports lists them.
+VRS_HEAD = "\ufeffCallsign,Code,Number,AirlineCode,AirportCodes\r\n"
+VRS_ROUTES = {"EIN-all.csv": VRS_HEAD + "EIN6AB,EIN,6AB,EIN,LIRF-EPWA\r\nEIN2AB,EIN,2AB,EIN,EIDW-EGLL\r\n"}
+AIRPORTS_CSV = "ident,type,name,latitude_deg,longitude_deg,elevation_ft,continent,iso_country,municipality,scheduled_service,icao_code,iata_code,gps_code\r\n" + "".join(
+    f"{ic},large_airport,{c} Airport,{la},{lo},500,{ct},{cc},{c},yes,{ic},{ia},{ic}\r\n" for ia, ic, c, la, lo, ct, cc in [
+        ("VIE", "LOWW", "Vienna", 48.1103, 16.5697, "EU", "AT"), ("FRA", "EDDF", "Frankfurt am Main", 50.0333, 8.5706, "EU", "DE"),
+        ("DXB", "OMDB", "Dubai", 25.2528, 55.3644, "AS", "AE"), ("STN", "EGSS", "London", 51.885, 0.235, "EU", "GB"),
+        ("TLV", "LLBG", "Tel Aviv", 32.0114, 34.8867, "AS", "IL"), ("ATH", "LGAV", "Athens", 37.9364, 23.9445, "EU", "GR"),
+        ("PMI", "LEPA", "Palma", 39.5517, 2.7388, "EU", "ES"), ("ZRH", "LSZH", "Zurich", 47.4647, 8.5492, "EU", "CH"),
+        ("FCO", "LIRF", "Rome", 41.8003, 12.2389, "EU", "IT"), ("WAW", "EPWA", "Warsaw", 52.1657, 20.9671, "EU", "PL"),
+        ("DUB", "EIDW", "Dublin", 53.4213, -6.2701, "EU", "IE"), ("LHR", "EGLL", "London", 51.47, -0.4543, "EU", "GB"),
+        ("NCL", "EGNT", "Newcastle", 55.0375, -1.6917, "EU", "GB")])
 AIRLINES_CSV = "\ufeffCode,Name,ICAO,IATA,PositioningFlightPattern,CharterFlightPattern\r\n" + "".join(
     f"{c},{n},{c},{i},,\r\n" for c, n, i in [("AUA", "Austrian Airlines", "OS"), ("EIN", "Aer Lingus", "EI"),
                                              ("RYR", "Ryanair", "FR"), ("TST", "Testair", "TS"), ("LDM", "Lauda Europe", "OE"),
@@ -419,6 +432,15 @@ class H(BaseHTTPRequestHandler):
             if not a:
                 return self.send(404, "application/json", b'{"response":"unknown aircraft"}')
             return self.send(200, "application/json", json.dumps({"response": {"aircraft": a}}).encode())
+        if path == "/airports.csv":
+            return self.send(200, "text/csv", AIRPORTS_CSV.encode("utf-8"))
+        if path.startswith("/vrs-routes/"):     # relay 106: one airline's routes; any other file isn't there
+            body = VRS_ROUTES.get(path.rsplit("/", 1)[1])
+            if os.environ.get("VRS_DOWN"):
+                return self.send(503, "text/plain", b"down")
+            if body is None:
+                return self.send(404, "text/plain", b"404: Not Found")
+            return self.send(200, "text/plain", body.encode("utf-8"))
         if path == "/airlines.csv":
             return self.send(200, "text/csv", AIRLINES_CSV.encode("utf-8"))
         if path == "/nominatim/reverse":   # relay 63 names where sightings on the go were made: Vienna, else a made-up village
