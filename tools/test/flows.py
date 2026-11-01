@@ -3070,8 +3070,45 @@ def logbook_list_checks(browser, bad):
     pg.wait_for_timeout(1200)
     if e('[...$("lbStrip").children].map(c => c.id).join()') != "tdPlate,lbYear,lbPlate":
         bad.append("the strip isn't Today, 2026, All time")
-    if e('lbPlateOn') != "today" or e('document.querySelectorAll("#svList .lbDayH").length'):
-        bad.append("the Logbook's key doesn't open on Today, without headlines")
+    if e('lbPlateOn') != "today":
+        bad.append("the Logbook's key doesn't open on Today")
+    # 1.129.1 (to-do #264): Today's plate has the day's amber headline over its flights ("Today", 28 px, sticking), and none over an empty day;
+    # a first flight brings it; a filter that leaves nothing has none; the open card stays in its row
+    e('window.__keep = todayList; todayList = () => []; svSig = ""; renderToday()')
+    pg.wait_for_timeout(200)
+    if e('document.querySelectorAll("#svList .lbDayH").length') or not e('!!$("svList").querySelector(".st")'):
+        bad.append("an empty day on Today has a headline over nothing")
+    e('window.__two = [fromRelay({id: "td-1", hex: "bb0001", ts: Date.now() - 60000, time: "11:59", callsign: "AUA1", typeCode: "A320", looked: true}), '
+      'fromRelay({id: "td-2", hex: "bb0002", ts: Date.now() - 120000, time: "11:58", callsign: "AUA2", typeCode: "A320", looked: true})]; todayList = () => window.__two; svSig = ""; renderToday()')
+    pg.wait_for_timeout(500)
+    hd = e('[...document.querySelectorAll("#svList .lbDayH")].map(h => [h.textContent, Math.round(h.getBoundingClientRect().height), getComputedStyle(h).position, h.parentNode.parentNode === $("svList")])')
+    if hd != [["Today", 28, "sticky", True]] or e('document.querySelectorAll("#svList li.fl").length') != 2:
+        bad.append(f"Today's plate with flights: the headline is {hd}, not one sticky 28 px Today over two rows")
+    e('svFilter = "special"; svSig = ""; renderToday()')
+    pg.wait_for_timeout(200)
+    if e('document.querySelectorAll("#svList .lbDayH").length'):
+        bad.append("a filter that leaves nothing keeps the headline")
+    e('svFilter = "all"; todayList = window.__keep; svSig = ""; renderToday()')
+    pg.wait_for_timeout(300)
+    e('$("svList").querySelector("li.fl").click()')
+    pg.wait_for_timeout(700)
+    if not e('!!$("svList").querySelector("li.fl.open .tlCard")') or e('document.querySelectorAll("#svList .lbDayH").length') != 1:
+        bad.append("an open card on Today loses its place or the headline")
+    e('tlOpenId.svList = ""; svSig = ""; renderToday()')
+    pg.wait_for_timeout(300)
+    # swiping to 2026 and All time and back: the headline is in place and the row in view doesn't move
+    tp = 'k => { const li = $("svList").querySelector(`li.fl[data-more="${k}"]`); return li ? Math.round(li.getBoundingClientRect().top) : null; }'
+    kk = e('$("svList").querySelector("li.fl").dataset.more')
+    t0 = e(f'({tp})("{kk}")')
+    e('lbPlateGo("period")')
+    pg.wait_for_timeout(300)
+    t1 = e(f'({tp})("{kk}")')
+    grew = e('!!document.querySelector("#svList .lbDayH.lbGrow")')
+    e('lbPlateGo("today")')
+    pg.wait_for_timeout(300)
+    t2 = e(f'({tp})("{kk}")')
+    if t1 is not None and (t0 != t1 or t0 != t2 or grew):
+        bad.append(f"swiping Today, 2026 and back moved the row in view: {t0}, {t1}, {t2}, grew: {grew}")
     e('lbPlateGo("all")')
     pg.wait_for_timeout(800)
     # the page replaced the live rows it found only in part: wait for it and look at what's there
@@ -3129,12 +3166,94 @@ def logbook_list_checks(browser, bad):
     pg.unroute("**/logbook/flights*")
     e('lbPlateGo("today")')
     pg.wait_for_timeout(200)
-    if e('document.querySelectorAll("#svList .lbDayH").length') or e('$("svList").querySelector(".lbMore")'):
-        bad.append("back on Today the headlines or Show more stayed")
+    if e('document.querySelectorAll("#svList .lbDayH").length') > 1 or e('$("svList").querySelector(".lbMore")'):
+        bad.append("back on Today Show more or the other days stayed")
     e('window.OVERHEAD_RELAY_VERSION = 104; lbPlateGo("all")')
     pg.wait_for_timeout(200)
-    if e('document.querySelectorAll("#svList .lbDayH").length') or e('$("svList").querySelector(".lbMore")'):
-        bad.append("an older relay should keep today's list")
+    if e('document.querySelectorAll("#svList .lbDayH").length') > 1 or e('$("svList").querySelector(".lbMore")'):
+        bad.append("an older relay should keep today's list, with only its own headline")
+    ctx.close()
+
+
+def sky_sizes_checks(browser, bad):
+    """1.129.1 (to-do #263, #265): the passport's and the card's pop-ups are the full width in Sky view (340 px, or the
+    screen less 14) and 255 px outside it; the medal's and the streak's 255 px everywhere; a torn ticket with any extra is
+    in two columns (one extra takes the row), a plane's ticket from three extras on; a footnote's parts share a line when
+    they fit and take a line each when they don't."""
+    ctx = browser.new_context(viewport={"width": 360, "height": 740})
+    ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+
+    def hooked(route):
+        r = route.fetch()
+        t = r.text()
+        i = t.rindex("})();")
+        route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+    ctx.route("**/app/", hooked)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: bad.append(f"sky sizes: page error: {e}"))
+    pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
+    pg.goto(BASE + "/app/")
+    pg.wait_for_function("window.__e && __e('!!gme')", timeout=20000)
+    e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
+    clear = 'document.querySelectorAll("#gAws .gAw").forEach(x => x.remove()); gLine.on = false; 1'
+    width = 'k => { const x = document.querySelector("#gAws .gAw." + k); return x ? Math.round(x.getBoundingClientRect().width) : null; }'
+    card = 'lyNew({airline: {code: "ZZY", scans: 1}, lines: [{k: "new", w: "airline", p: 50}]}, 3)'
+
+    # a plane's ticket with two extras keeps its rule (from three extras on), before anything else has been through the line
+    e(clear)
+    e("gTixShow({hex: 'cd1', callsign: 'XXX1', flight: 'XXX1', tier: 'uncommon', full: 50, km: 3, can: {type: 40, airline: 50}}); 1")
+    pg.wait_for_timeout(1200)
+    two = e('(() => { const x = document.querySelector("#gAws .gAw.tix .lns") || [...gTixOut].map(y => y.querySelector(".lns")).find(Boolean); return x ? x.classList.contains("two") : null; })()')
+    if two is not False:
+        bad.append(f"a plane's ticket with two extras: compact is {two}, should be False")
+    def sizes(where):
+        out = {}
+        e(clear); e(card); pg.wait_for_timeout(700)
+        out["card"] = e(f'({width})("lyNew")')
+        e(clear); e('ppNew({route: [["VIE", "AT", 1]], countries: 5}); 1'); pg.wait_for_timeout(3600)
+        out["passport"] = e(f'({width})("ppNew")')
+        e('stkNew({n: 4, p: 100}, {t: 3, week: ["s", "s", "s", "s", "", "", ""]}); 1'); pg.wait_for_timeout(700)
+        out["streak"] = e(f'({width})("stkNew")')
+        e(clear)
+        return out
+    out = sizes("now")
+    if out["card"] != 255 or out["streak"] != 255 or out["passport"] not in (255, None):
+        bad.append(f"outside Sky view the pop-ups are 255 px wide: {out}")
+    e('$("arView").hidden = false; document.body.classList.add("arOpen"); gAwsBox(); 1')
+    out = sizes("sky")
+    if out["card"] != 340 or out["streak"] != 255 or out["passport"] not in (340, None):
+        bad.append(f"in Sky view the card's and the passport's pop-ups are 340 px wide, the streak's 255: {out}")
+    pg.set_viewport_size({"width": 320, "height": 640})
+    out = sizes("sky320")
+    if out["card"] != 306 or out["passport"] not in (306, None):
+        bad.append(f"at 320 px the pop-ups are the screen less 14: {out}")
+    e(clear)
+    e(card); pg.wait_for_timeout(700)
+    e('$("arView").hidden = true; document.body.classList.remove("arOpen"); gAwsBox(); 1')
+    pg.wait_for_timeout(200)
+    if e(f'({width})("lyNew")') != 306:
+        bad.append("a card pop-up that rose in Sky view changed size as Sky view closed")
+    pg.set_viewport_size({"width": 360, "height": 740})
+    # a torn ticket with any extra is compact; a plane's ticket from three extras on
+    lines = lambda n: "[{k: 'scan', p: 50, tier: 'uncommon', full: 50}" + "".join(["," + x for x in ["{k: 'new', w: 'airline', p: 50, n: 'ZZY'}", "{k: 'new', w: 'type', p: 40, n: 'B77W'}", "{k: 'country', p: 25, n: 'FJ'}", "{k: 'bingo', p: 30}", "{k: 'card', p: 100}"][:n]]) + "]"
+    got = {}
+    for n in (0, 1, 2, 3, 5):
+        e(clear)
+        e(f"S.ticket = ''; gScanPops({{hex: 'ab{n}', callsign: 'XXX1', flight: 'XXX1', airline: {{code: 'ZZY', scans: 3}}, bonus: 50, tier: 'uncommon', full: 50, km: 3, lines: {lines(n)}}}, () => {{}}); 1")
+        pg.wait_for_timeout(900)
+        got[n] = e('(() => { const x = document.querySelector("#gAws .gAw.rip .lns"); return x ? x.classList.contains("two") : null; })()')
+    if got != {0: False, 1: True, 2: True, 3: True, 5: True}:
+        bad.append(f"a torn ticket's lines are compact with any extra, and only then: {got}")
+    e(clear)
+    # the footnote
+    foot = 'document.body.insertAdjacentHTML("beforeend", `<div class="plate" id="__pf" style="position:fixed;left:0;top:0;width:%dpx;z-index:99">${plFoot("Resets Mon 00:00", %s)}${plFoot("Counting since 1 November 2026 and a long second part")}</div>`); 1'
+    for width_px, name, want in ((332, "David", [False, True]), (332, "Maximilian-Alexander von Habsburg-Lothringen", [True, True]), (640, "Maximilian-Alexander von Habsburg-Lothringen", [False, True])):
+        e(foot % (width_px, repr("Last week's winner: " + name)))
+        pg.wait_for_timeout(100)
+        r = e('[...document.querySelectorAll("#__pf .plFoot")].map(p => [p.classList.contains("wrap"), Math.round(p.getBoundingClientRect().height), p.scrollWidth > p.clientWidth + 1])')
+        e('document.getElementById("__pf").remove(); 1')
+        if [r[0][0], r[1][0] is False] != want or any(x[2] for x in r):
+            bad.append(f"a footnote at {width_px} px with {name}: {r}")
     ctx.close()
 
 
@@ -3615,6 +3734,7 @@ def browser_checks(browser):
     ctx.close()
     logbook_list_checks(browser, bad)
     demo_rows_checks(browser, bad)
+    sky_sizes_checks(browser, bad)
     sky_row_checks(browser, bad)
     for b_ in bad:
         print("flow:", b_)

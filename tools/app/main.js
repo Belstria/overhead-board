@@ -906,8 +906,12 @@ function renderToday(){
   svSig = sig;
   L.classList.remove("wait");
   if (!waiting) L.style.minHeight = "";
-  tlFill(L, waiting ? tlState(T("Today"), "", T("Loading …")) : d.rows.length ? tlHtml(d.rows, tlOpenId.svList)
+  // 1.129.1 (to-do #264): the day's amber headline over Today's rows too, as under 2026; none over an empty day, a first flight brings it
+  const head = !waiting && d.rows.length > 0, grow = head && !!L.querySelector(":scope > .st");
+  if (head) lblSegH();
+  tlFill(L, waiting ? tlState(T("Today"), "", T("Loading …")) : d.rows.length ? lblDayLi(lblToday(), tlHtml(d.rows, tlOpenId.svList), grow)
     : liveWaiting() && !allPlaces ? tlFinding() : svFilter === "all" && !svQuery ? `<li class="st">${escH(T("No planes yet today"))}</li>` : tlState(T("Today"), "", T("None of today's planes match this filter yet.")), open);
+  if (head) lblStickyMark(L);
 }
 /* 1.127 (to-do #254, relay 105, Dave's pick B, amber, with the day sticking as in C): under 2026 and All time the list
    goes back across days. They share one list and its pages; 2026 draws what lies after 1 Jan, a week or month after its
@@ -1008,13 +1012,14 @@ function lblEmpty(){
   if (st && !none) st.remove();
   else if (none && !st) L.insertAdjacentHTML("afterbegin", `<li class="st">${escH(T(svFilter === "all" ? "No planes yet" : "No planes match this filter"))}</li>`);
 }
+const lblSegH = () => { const h = document.querySelector(".lbSeg").offsetHeight; if (h) document.documentElement.style.setProperty("--lbSegH", h + "px"); };   // where the sticky headline holds
 function lblDraw(grow){
   const L = $("svList"), rows = lblShown(), open = rows.find(e => tlKey(e) === tlOpenId.svList);
   if (!open) tlOpenId.svList = "";
   L.classList.remove("wait");
   L.style.minHeight = "";
   L.classList.add("lbBack");
-  document.documentElement.style.setProperty("--lbSegH", document.querySelector(".lbSeg").offsetHeight + "px");
+  lblSegH();
   tlFill(L, lblHtml(rows, tlOpenId.svList, grow), open);
   lbl.drawn = true; lbl.shown = rows.length;
   lblMoreSync();
@@ -1167,7 +1172,8 @@ function lblSync(d){
   const ago = L.querySelector("li.open [data-ago]"), open = lbl.map.get(tlOpenId.svList);
   if (ago && open) { const t = tlAgo(open); if (ago.textContent !== t) ago.textContent = t; }
   if (!L.classList.contains("lbBack") || !lbl.drawn || lblShown().length !== lbl.shown) {
-    lblDraw(lbl.grow || !L.classList.contains("lbBack"));
+    const fromToday = !L.classList.contains("lbBack") && !!L.querySelector(":scope > .lbDay");   // 1.129.1: Today's own headline is there already: the row in view stays where it is
+    lblDraw(!fromToday && (lbl.grow || !L.classList.contains("lbBack")));
     lbl.grow = false;
   } else {
     if (open && L.dataset.card && L.dataset.card !== tlCardSig(open)) {     // a photo found late
@@ -1223,13 +1229,9 @@ function lblTopRest(gone){
   if (gone) { k.hidden = true; k.classList.remove("rest"); }
   else k.classList.add("rest");
 }
-function lblScrolled(){
-  lblRaf = 0;
-  const L = $("svList");
-  if (tab !== "logbook" || !L.classList.contains("lbBack") || !lbl.drawn) return lblTopRest(true);
-  lblFlush();
-  const line = lblLine(), box = $("t-logbook"), days = L.querySelectorAll(":scope > .lbDay");
-  // The day you're in: the sticky headlines say the same
+// The day you're in: its sticky headline gets the shadow once the rows slide under it (lblScrolled and Today's redraw share it)
+function lblStickyMark(L){
+  const line = lblLine(), days = L.querySelectorAll(":scope > .lbDay");
   let cur = null, lo = 0, hi = days.length - 1;
   while (lo <= hi) {
     const m = (lo + hi) >> 1;
@@ -1238,6 +1240,15 @@ function lblScrolled(){
   const stuck = cur && cur.getBoundingClientRect().top < line - 1;
   for (const h of L.querySelectorAll(".lbDayH.stuck")) if (!cur || h.parentNode !== cur || !stuck) h.classList.remove("stuck");
   if (stuck) cur.firstElementChild.classList.add("stuck");
+  return cur;
+}
+function lblScrolled(){
+  lblRaf = 0;
+  const L = $("svList");
+  if (tab !== "logbook") return lblTopRest(true);
+  if (!L.classList.contains("lbBack") || !lbl.drawn) { lblStickyMark(L); return lblTopRest(true); }     // Today's headline sticks too, but has no Top key
+  lblFlush();
+  const box = $("t-logbook"), cur = lblStickyMark(L);
   const k = $("lbTop");
   if (lbl.rows.length <= LBL_PAGE || scrollY < 700 || !cur || box.classList.contains("finding") || SIDEWAYS.matches) return lblTopRest(true);
   k.hidden = false;
@@ -1252,7 +1263,7 @@ function lblScrolled(){
   clearTimeout(lblRestT);
   lblRestT = setTimeout(() => lblTopRest(), 2500);
 }
-addEventListener("scroll", () => { if (!lblRaf && tab === "logbook" && $("svList").classList.contains("lbBack")) lblRaf = requestAnimationFrame(lblScrolled); }, {passive: true});
+addEventListener("scroll", () => { if (!lblRaf && tab === "logbook" && $("svList").firstElementChild && $("svList").firstElementChild.classList.contains("lbDay")) lblRaf = requestAnimationFrame(lblScrolled); }, {passive: true});
 $("lbTop").onclick = () => {
   ctlSound.nav();
   lblFlush(true);
@@ -1714,7 +1725,7 @@ function lyLogo(s){
    counted at the scan. Reduced motion: nothing moves. */
 function lyNew(r, n){
   const icao = r.airline.code, pts = (r.lines || []).find(a => a.k === "new" && a.w === "airline"), el = document.createElement("div"), still = lyStill();
-  el.className = "gAw lyNew"; el.setAttribute("role", "status");
+  el.className = "gAw lyNew" + (gAwBig() ? " big" : ""); el.setAttribute("role", "status");
   el.innerHTML = `<div class="hd"><span>${escH(T("FREQUENT FLYER · NEW CARD"))}</span>${pts ? `<b>+${nf.format(pts.p)}</b>` : ""}</div>` +
     `<div class="mid"><div class="lyNewBox"><div class="lyNewS"><div class="lyNewC${still ? "" : " deal"}">${lyCardHtml([icao, r.airline.scans], {}, 0)}</div></div></div></div>` +
     `<div class="ft">${escH(T("{a}: frequent flyer card {n}", {a: lyWritten(icao), n: nf.format(n)}))}</div>`;
@@ -2210,16 +2221,17 @@ function ppNew(r){
     const xs = ring.filter((_, i) => i % 2 === 0).map(x => x / 10), ys = ring.filter((_, i) => i % 2).map(y => ppMerc(y / 10));
     if (!xs.length && W[c0]) { xs.push(W[c0][1] / 10 - 2, W[c0][1] / 10 + 2); ys.push(ppMerc(W[c0][2] / 10 - 1.5), ppMerc(W[c0][2] / 10 + 1.5)); }
     const lon = xs.length ? (Math.min(...xs) + Math.max(...xs)) / 2 : 16, mid = ys.length ? (Math.min(...ys) + Math.max(...ys)) / 2 : ppMerc(46);
-    const k = Math.max(1, Math.min(16, 255 / (Math.max(...xs, lon + 1) - Math.min(...xs, lon - 1)) / 1.5, 128 / (Math.max(...ys, mid + 1) - Math.min(...ys, mid - 1)) / 1.5));
-    const v = ppView(255, 128, [lon, ppLat(mid), k]), sx = W[c0] ? v.x(W[c0][1] / 10) : v.w / 2, sy = W[c0] ? v.y(W[c0][2] / 10) : v.h / 2;
+    const big = gAwBig(), mw = big ? Math.min(340, document.documentElement.clientWidth - 14) : 255, mh = Math.round(mw * (big ? 170 / 340 : 128 / 255));   // the map is drawn for the size it will have
+    const k = Math.max(1, Math.min(16, mw / (Math.max(...xs, lon + 1) - Math.min(...xs, lon - 1)) / 1.5, mh / (Math.max(...ys, mid + 1) - Math.min(...ys, mid - 1)) / 1.5));
+    const v = ppView(mw, mh, [lon, ppLat(mid), k]), sx = W[c0] ? v.x(W[c0][1] / 10) : v.w / 2, sy = W[c0] ? v.y(W[c0][2] / 10) : v.h / 2;
     // the country's box on the card: the soak reaches its far corner
     const bx = xs.length ? [v.x(Math.min(...xs)), v.x(Math.max(...xs))] : [sx - 12, sx + 12];
     const by = ys.length ? [v.h / 2 - (Math.max(...ys) - mid) * k, v.h / 2 - (Math.min(...ys) - mid) * k] : [sy - 12, sy + 12];
     const name = ccs.map(ppName).join(" · "), count = r.countries || Object.keys(pp).length;
     const el = document.createElement("div");
-    el.className = "gAw ppNew"; el.setAttribute("role", "status");
+    el.className = "gAw ppNew" + (big ? " big" : ""); el.setAttribute("role", "status");
     el.innerHTML = `<div class="hd"><span>${escH(T("PASSPORT · NEW STAMP"))}</span><b>+${nf.format(nw.length * ((gRules() || {}).country || 25))}</b></div>` +
-      `<div class="ppMap"><div class="sv">${ppMapSvg(pp, v, {fresh: ccs})}</div>` +
+      `<div class="ppMap"${big ? ` style="aspect-ratio:${mw}/${mh}"` : ""}><div class="sv">${ppMapSvg(pp, v, {fresh: ccs})}</div>` +
       `<span class="ppDrop" style="left:${sx.toFixed(0)}px;top:${sy.toFixed(0)}px">${ppStamp(c0, pp[c0])}</span></div>` +
       `<div class="ft">${escH(ccs.length > 1 ? T("{c}: new to your passport. {n} countries now.", {c: name, n: nf.format(count)})
         : T("{c}: country {n} in your passport.", {c: name, n: nf.format(count)}))}</div>`;
@@ -2650,7 +2662,16 @@ function trWire(box, redraw){
 // 1.83 (Dave): a section of the Logbook, the Spotters' Club or the radar on a plate of its own, as Settings' and the
 // radar's controls: screws in the corners, its name engraved between two lines.
 // 1.122 (to-do #231, Dave): a plate's small footnote, engraved like its title, between the bottom screws. One line a part.
-const plFoot = (...parts) => { parts = parts.filter(Boolean); return parts.length ? `<p class="plFoot">${parts.map(s => `<span>${escH(s)}</span>`).join("")}</p>` : ""; };
+const plFoot = (...parts) => { parts = parts.filter(Boolean); return parts.length ? `<p class="plFoot${parts.length > 1 ? "" : " one"}">${parts.map(s => `<span>${escH(s)}</span>`).join("")}</p>` : ""; };
+// 1.129.1 (to-do #265): a footnote's parts share a line when they fit (a dot between them); when they don't, each takes its own line, none cut
+function plFootFit(all){
+  for (const p of document.querySelectorAll(all ? ".plFoot" : ".plFoot:not([data-fit])")) {
+    p.dataset.fit = "1"; p.classList.remove("wrap");
+    if (p.children.length > 1 && p.lastElementChild.getBoundingClientRect().top - p.firstElementChild.getBoundingClientRect().top > 2) p.classList.add("wrap");
+  }
+}
+new MutationObserver(() => plFootFit()).observe(document.body, {childList: true, subtree: true});
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => plFootFit(true));
 const secPlate = (title, body, cls = "") => `<section class="plate secPlate${cls ? " " + cls : ""}" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${escH(title)}</h3>${body}</section>`;
 // A trophy cup for the trophies list (gold when won, by CSS).
 const CUP = '<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10c0 5-1.5 8-5 8.5C8.5 11 7 8 7 3zM11 11.5h2l.5 4h-3zM8 16h8v2.2H8z"/><path d="M7 4.5C4.5 4.5 4 8 7.5 9M17 4.5c2.5 0 3 3.5-.5 4.5" fill="none" stroke-width="1.6"/></svg>';
@@ -6096,7 +6117,7 @@ document.addEventListener("visibilitychange", () => {
 let resizeQ = 0;
 addEventListener("resize", () => {
   cancelAnimationFrame(resizeQ);
-  resizeQ = requestAnimationFrame(() => { fitSideways(); clearTiles(); refreshPanels(true); drawMark(); if (tab === "radar") radarSize(); });
+  resizeQ = requestAnimationFrame(() => { plFootFit(true); fitSideways(); clearTiles(); refreshPanels(true); drawMark(); if (tab === "radar") radarSize(); });
 });
 
 // A newer version published: a banner above the tabs, tap to update.
@@ -6718,6 +6739,8 @@ function gAwShort(a){
   if (a.k === "mastery") return T(MST_NAME[a.m] || "Bronze");
   return T({country: "New country", bingo: "Bingo line", card: "Full card", school: "School", trophy: "Trophy", streak: "Daily streak"}[a.k] || "Points");
 }
+// 1.129.1 (to-do #263): the passport's and the card's pop-ups rise at full size in Sky view, 255 px elsewhere
+function gAwBig(){ return !!$("arView") && !$("arView").hidden; }
 // The passes' box, at the bottom of the screen, or of Sky view while it is open (1.98: moved there when it opens).
 function gAwsBox(){
   const host = $("arView") && !$("arView").hidden ? $("arView") : document.body;
@@ -6815,7 +6838,7 @@ function tixEraHtml(era, o){
 function gPassFill(el, o){
   el.className = "gAw" + (o.tix ? " tix" : "") + (o.rip ? " rip" : "");
   if (o.tix) el.dataset.tix = o.tix; else delete el.dataset.tix;
-  const two = !!o.lines && o.lines.length > 3;    // 1.124: from three extras on, under the first line in two short columns
+  const two = !!o.lines && o.lines.length > (o.rip ? 1 : 3);    // 1.124: from three extras on, under the first line in two short columns; 1.129.1: a torn ticket with any extra
   const nx = o.gold ? ` data-nx="${escH(T("(no ×2)"))}"` : "", era = o.gold ? "" : o.era != null ? o.era : tixEra();
   el.innerHTML = `<div class="pF ${o.kind || "uncommon"}${o.gold ? " gold" : ""}${era ? " e-" + era : ""}"><div class="main"><div class="band"><span>${escH(o.band)}</span><span>${escH(o.bandR || "")}</span></div>` +
     tixEraHtml(era, o) + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b>${o.who[2] ? `<span class="fw">${o.who[2]}</span>` : `<span>${escH(o.who[1] || "")}</span>`}</div>` : "") + (o.route || "") +

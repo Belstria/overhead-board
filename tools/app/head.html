@@ -1376,8 +1376,14 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .secPlate .ranks,.secPlate .flights,.secPlate .bingo{margin-top:0}
 .secPlate .seg{margin:0 0 4px}
 /* 1.122 (to-do #231): a plate's footnote: its title's engraving, smaller, between the bottom screws */
-.plFoot{grid-column:1/-1;margin:2px 12px -12px;font:600 var(--fs-tag)/1.35 var(--f-board);letter-spacing:.1em;text-transform:uppercase;text-align:center;color:rgba(214,208,194,.55);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
-.plFoot span{display:block;color:inherit;margin:0}
+/* 1.129.1 (to-do #265): `.plate p` (14 px, margin 0) beat `.plFoot` so far, so the footnote read as big as a label: .plate .plFoot has it at --fs-tag, the scale's smallest, as meant.
+   Its parts sit on one line with a dot between them; plFootFit() sets .wrap when they don't fit, and then each is on a line of its own (no dot) */
+.plate .plFoot{grid-column:1/-1;margin:2px 0 -4px;font:600 var(--fs-tag)/1.35 var(--f-board);letter-spacing:.1em;text-transform:uppercase;text-align:center;color:rgba(214,208,194,.55);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+.plFoot span{display:inline-block;white-space:nowrap;color:inherit;margin:0}
+.plFoot span+span::before{content:"·";margin:0 .5em}
+.plFoot.wrap span{display:block;white-space:normal}
+.plFoot.wrap span+span::before{content:none}
+.plFoot.one span{display:inline;white-space:normal}      /* one part (Counting since …, its own dots inside): it wraps like text */
 .perCard .perHead{gap:10px}
 .perCard .perHead .seg{flex:1;margin:0}
 .perCard .perHead .perArr{margin-left:auto}
@@ -1468,6 +1474,12 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .lyNewBox{width:196.5px;height:124px}
 .lyNewS{--cw:262px;width:262px;height:165.2px;transform:scale(.75);transform-origin:0 0;perspective:900px}
 .lyNewC{position:relative;width:100%;height:100%;transform-origin:50% 100%}
+/* 1.129.1 (to-do #263): in Sky view the passport's and the card's pop-ups are full size again (.big, set where they rise; they keep it until they go, also if Sky view closes under them) */
+.gAw.ppNew.big,.gAw.lyNew.big{width:min(340px,calc(100vw - 14px))}
+.lyNew.big .lyNewBox{width:262px;height:165.2px}
+.lyNew.big .lyNewS{transform:none}
+.ppNew.big .ppDrop .pS{transform:rotate(-12deg) scale(.66);animation-name:ppLandBig}
+@keyframes ppLandBig{0%{transform:rotate(-26deg) scale(1.9);opacity:0}55%{transform:rotate(-10deg) scale(.62);opacity:.95}100%{transform:rotate(-12deg) scale(.66);opacity:.9}}
 .lyNewC.deal{animation:lyDeal .62s .18s cubic-bezier(.2,1.25,.4,1) both}
 @keyframes lyDeal{0%{transform:translateY(-14px) rotateX(38deg) scale(.86);opacity:0}60%{opacity:1}100%{transform:none;opacity:1}}
 .lyNew .lyC{left:0;top:0;margin:0;width:100%;height:100%;cursor:inherit}
@@ -1841,6 +1853,7 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
 /* 1.124 (to-do #247): from three extras on: the first line whole, the extras in two short columns */
 .gAw .lns.two{grid-template-columns:1fr 1fr;column-gap:14px}
 .gAw .lns.two div:first-child{grid-column:1/-1}
+.gAw .lns.two div:nth-child(2):last-child{grid-column:1/-1}      /* 1.129.1: one extra alone takes the whole row, not half of it */
 .gAw .lns.two div:not(:first-child){font-size:var(--fs-xs);white-space:nowrap}
 .gAw .lns.two div.mst{margin:0;padding:0;background:none}
 .gAw .pF.no{--t1:#8b8f99;--t2:#b9bcc4;--ti:#17140e}
