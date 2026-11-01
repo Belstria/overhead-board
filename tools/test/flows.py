@@ -3047,5 +3047,171 @@ def browser_checks(browser):
     return bad
 
 
+def levelup_checks(browser):
+    """1.126.1.1 (to-do #256): a level-up shows where it can be seen, once. The app's /game/me answers are patched to a level
+    the checks choose; the card is looked for with elementFromPoint (a card behind Sky view is "shown" but not on top)."""
+    bad = []
+    lv = [5]
+    ctx = browser.new_context(viewport={"width": 390, "height": 844})
+    ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+
+    def hooked(route):
+        r = route.fetch()
+        t = r.text()
+        i = t.rindex("})();")
+        route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+
+    def patched(route):
+        r = route.fetch()
+        try:
+            d = r.json()
+            d["level"] = lv[0]
+            body = json.dumps(d)
+            route.fulfill(response=r, body=body, headers={**r.headers, "content-encoding": "identity", "content-length": str(len(body.encode()))})
+        except Exception:
+            route.fulfill(response=r)
+    ctx.route("**/app/", hooked)
+    ctx.route("**/game/me*", patched)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: bad.append(f"page error: {e}"))
+    e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
+    TOP = ("(() => { const b = document.getElementById('gLvUp'); if (!b || b.hidden) return ''; let x = document.elementFromPoint(195, 420);"
+           " for (; x; x = x.parentElement) if (x === b) return b.textContent; return 'BEHIND'; })()")
+    UP = "(() => { const b = document.getElementById('gLvUp'); return !!b && !b.hidden; })()"
+
+    def load():
+        pg.goto(BASE + "/app/")
+        pg.wait_for_function("window.__e && __e('!!gme')", timeout=20000)
+        e("S.live = true; 1")
+
+    def tips():                                                 # the first-run tips are not what is looked at here
+        e("(() => { const b = document.querySelector('.tipOk'); if (b) b.click(); return 1; })()")
+
+    def refresh():
+        for _ in range(6):
+            e("gmeAt = 0; gRefresh(true).then(() => 1)")
+            pg.wait_for_timeout(500)
+            if e("gme.level") == lv[0]:
+                return
+        bad.append(f"the patched level {lv[0]} never reached the game")
+
+    def card(secs):                                             # the card's text once it is on top, else ''
+        for _ in range(int(secs * 2)):
+            tips()
+            t = e(TOP)
+            if t:
+                return t
+            pg.wait_for_timeout(500)
+        return ""
+
+    def stored():
+        return e("localStorage.getItem(ACH_KEY + '.lv')")
+
+    def shut():
+        e("(() => { const b = document.querySelector('#gLvUp [data-later]'); if (b) b.click(); return 1; })()")
+
+    # a first look stores the level and shows nothing
+    load()
+    pg.wait_for_timeout(3000)
+    if stored() != "5" or e(UP):
+        bad.append(f"a first look should store the level and show nothing (stored {stored()})")
+    # two levels at once, from the stored one: one card, listing from 5
+    lv[0] = 7
+    refresh()
+    t = card(12)
+    if "Arrived at" not in t or e("document.querySelector('#gLvUp .cuD.done').textContent") != "5":
+        bad.append(f"two levels at once: {t[:40]!r}, not one card from level 5")
+    if stored() != "7":
+        bad.append(f"the level should be stored once the card is open (stored {stored()})")
+    shut()
+    pg.wait_for_timeout(1500)
+    refresh()
+    pg.wait_for_timeout(3000)
+    if e(TOP):
+        bad.append("a level-up already shown came up again")
+    # a lower level from the relay is stored without a card
+    lv[0] = 6
+    refresh()
+    pg.wait_for_timeout(2500)
+    if stored() != "6" or e(TOP):
+        bad.append(f"a lower level should be stored silently (stored {stored()})")
+    # while a scan's line runs it waits, and comes after
+    e("gLineAdd(() => { const d = document.createElement('div'); d.id = 'tstPop'; d.className = 'gAw'; document.body.appendChild(d); return d; }, true); 1")
+    pg.wait_for_timeout(800)
+    lv[0] = 7
+    refresh()
+    pg.wait_for_timeout(4000)
+    if e(TOP) or not e("!!document.getElementById('tstPop')"):
+        bad.append("a level-up opened while the scan's line had a pop-up up")
+    e("document.getElementById('tstPop').remove(); 1")
+    if "Arrived at" not in card(12):
+        bad.append("the level-up didn't come after the scan's line")
+    shut()
+    pg.wait_for_timeout(1500)
+    # a pop-up in the line waits for the card: it doesn't rise beneath it
+    lv[0] = 8
+    refresh()
+    if "Arrived at" not in card(12):
+        bad.append("the card (line check) never opened")
+    else:
+        e("window.__r = 0; gLineAdd(() => { window.__r = 1; const d = document.createElement('div'); d.id = 'tstPop2'; document.body.appendChild(d); return d; }, true); 1")
+        pg.wait_for_timeout(2500)
+        if e("window.__r"):
+            bad.append("a scan's pop-up rose beneath the level-up card")
+        shut()
+        pg.wait_for_timeout(3000)
+        if not e("window.__r"):
+            bad.append("the scan's pop-up never came after the card")
+        e("(() => { const d = document.getElementById('tstPop2'); if (d) d.remove(); return 1; })()")
+    pg.wait_for_timeout(1500)
+    # Sky view open: nothing opens; when it closes the card is on top, once
+    e("$('arView').hidden = false; document.body.classList.add('arOpen'); arOn = true; 1")
+    lv[0] = 9
+    refresh()
+    pg.wait_for_timeout(6000)
+    if e(UP):
+        bad.append("a level-up opened behind Sky view")
+    if stored() != "8":
+        bad.append(f"the level was stored while Sky view hid the card (stored {stored()})")
+    e("arClose(); 1")
+    t = card(12)
+    if "Arrived at" not in t or t == "BEHIND":
+        bad.append(f"after Sky view closed the card wasn't on top: {t[:40]!r}")
+    if stored() != "9":
+        bad.append(f"the level should be stored once the card is open (stored {stored()})")
+    shut()
+    pg.wait_for_timeout(1500)
+    # a page hidden: it waits
+    lv[0] = 10
+    refresh()
+    e("Object.defineProperty(document, 'hidden', {get: () => true, configurable: true}); 1")
+    pg.wait_for_timeout(5000)
+    if e(UP):
+        bad.append("a level-up opened on a hidden page")
+    e("delete document.hidden; 1")
+    if "Arrived at" not in card(12):
+        bad.append("the level-up didn't come when the page was shown again")
+    shut()
+    # closing the app with one pending: the next start shows it, once
+    lv[0] = 11
+    pg.wait_for_timeout(500)
+    pg.reload()
+    pg.wait_for_function("window.__e && __e('!!gme')", timeout=20000)
+    if "Arrived at" not in card(14):
+        bad.append("a level-up missed while the app was shut wasn't shown on the next start")
+    pg.wait_for_timeout(500)
+    shut()
+    pg.reload()
+    pg.wait_for_function("window.__e && __e('!!gme')", timeout=20000)
+    pg.wait_for_timeout(5000)
+    if e(TOP):
+        bad.append("a level-up shown came up again after a restart")
+    ctx.close()
+    for b_ in bad:
+        print("flow:", b_)
+    print("the level-up shows once, where it is seen" if not bad else f"{len(bad)} level-up check(s) failed")
+    return bad
+
+
 if __name__ == "__main__":
     sys.exit(0 if checks() else 1)

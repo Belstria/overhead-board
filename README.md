@@ -578,7 +578,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   with your rank insignia beside it inside a **ring** that fills towards the next level (the same numbers as the Club's level
   card; empty for a level kept above your points), dimmed while paused. When points come in it turns over to +N, then the
   total counts up while the ring grows and glows; a level-up fills the ring and flashes it, then the ring starts again
-  under the new insignia and the level-up card follows. A tap opens the **Spotters' Club** (while points are paused its level card says
+  under the new insignia and the level-up card follows. The card never opens over Sky view, a scan's pop-up, a sheet, the welcome or a tip: it waits until you
+  leave Sky view (1.126.1.1) and shows then; a level-up you missed while the app was shut shows the next time you open it (this phone remembers the last level it showed). A tap opens the **Spotters' Club** (while points are paused its level card says
   "Points need live location · Go live"). News of the game (a place won in the league, a medal nearly there) shows in a small bubble under the
   chip, never in the notices' bar. Your **rank insignia** (1.102: levels 1–4 a sky-blue shoulder board with 1–4 silver pips, 5–8
   navy with silver chevrons, 9–11 black with 2–4 gold stripes, 12–14 gold piping, four stripes and 1–3 stars, 15–20 a

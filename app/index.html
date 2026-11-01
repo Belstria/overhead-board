@@ -4344,7 +4344,7 @@ function achCheck(g0){
 function achNext(){
   clearTimeout(achTimer);
   if (!achQueue.length) return;
-  if (cardOpenNow()) { achTimer = setTimeout(achNext, 5000); return; }
+  if (cardOpenNow() || (typeof gLvUpOn === "function" && gLvUpOn())) { achTimer = setTimeout(achNext, 5000); return; }   // 1.126.1.1: nor beneath the level-up card
   if (typeof achSpecial === "function") {                 // 1.125: the app's medals, first: into the scan's line, one at a time
     const medals = achQueue.filter(a => achSpecial(a, true)), rest = achQueue.filter(a => !achSpecial(a, true));
     achQueue.length = 0; achQueue.push(...rest);
@@ -4516,7 +4516,7 @@ function tipBand(){
 }
 function tipNext(){
   if (tipCur || !tipQueue.length) return;
-  if (cardOpenNow() || document.hidden) { setTimeout(tipNext, 2000); return; }
+  if (cardOpenNow() || document.hidden || (typeof gLvUpOn === "function" && gLvUpOn())) { setTimeout(tipNext, 2000); return; }   // 1.126.1.1: not beneath the level-up card
   const t = tipQueue.shift();
   const el = typeof t.target === "function" ? t.target() : t.target;
   if (t.target && (!el || !el.getClientRects().length)) return tipNext();     // not on screen now: another time
@@ -10167,6 +10167,7 @@ function arClose(){
   $("arView").hidden = true; document.body.classList.remove("arOpen"); if ($("gAws")) gAwsBox();
   flapsHold(false);                                  // 1.114.6: the board catches up, at once and without a sound
   lookSoon();
+  gLvArEnd = Date.now(); gLvKick();                  // 1.126.1.1: a level-up won in Sky view opens now
 }
 /* 1.97 (to-do #133): Sky view opened at a plane (a tap on its pass): it is picked out (its card, its ring) and the
    arrow at the edge points to it rather than to the plane on top, until it is scanned or Sky view closes. */
@@ -12755,6 +12756,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.126.1.1", date: "2026-11-01", notes: [
+    "A level-up won in Sky view shows when you leave it, and one you missed shows the next time you open the app.",
+  ]},
   {v: "1.126.1", date: "2026-11-01", notes: [
     "Planes can now be scanned from up to 15 km.",
   ]},
@@ -15552,16 +15556,17 @@ function gSay(text, ms = 5000, tap = null){
 function gGain(prev, g){
   const box = $("gHead"), n = g.points - prev.points;
   gAnimT.forEach(clearTimeout); gAnimT = [];           // 1.114.5: a level-up this cancels stays pending (gLvFrom)
-  if (g.level > prev.level) gLvFrom = gLvFrom ? Math.min(gLvFrom, prev.level) : prev.level;
+  clearTimeout(gLvChipT); gLvBusy = false;             // 1.126.1.1: and so does a replay of the chip's flash
+  gGainUntil = Date.now() + 4400; gLvChipOk = g.level > prev.level && gSeen();  // the card waits for the count-up; seen only if Sky view stayed shut
   $("gPlus").textContent = "+" + nf.format(n);
   gTotSet(prev.points);
   box.classList.remove("flip", "gain", "lvl"); void box.offsetWidth; box.classList.add("flip");
   gAnimT.push(setTimeout(() => { box.classList.add("gain"); gTotSet(g.points, true); gCoins(); }, 1900));
   // 1.116.1: a level-up fills the ring and the chip flashes; then the ring empties under the new insignia before the card
-  if (g.level > (+box.dataset.lv || 1)) gAnimT.push(setTimeout(() => box.classList.add("lvl"), 2600));
+  if (g.level > (+box.dataset.lv || 1)) gAnimT.push(setTimeout(() => { gLvChipOk = gLvChipOk && gSeen(); box.classList.add("lvl"); }, 2600));
   gAnimT.push(setTimeout(() => {
-    box.classList.remove("flip", "gain", "lvl"); gStripRender(g);
-    if (gLvFrom) gAnimT.push(setTimeout(() => { if (!gLvFrom) return; const f = gLvFrom; gLvFrom = 0; gLevelUp(g, f); }, 800));
+    gLvChipOk = gLvChipOk && gSeen();
+    box.classList.remove("flip", "gain", "lvl"); gStripRender(g); gLvKick();
   }, 3500));
 }
 async function gRefresh(force){
@@ -15579,8 +15584,7 @@ async function gRefresh(force){
     if (viaGain) gGain(prev, g);
     else gStripRender(g);
     if (prev && g.rank && prev.rank && g.rank < prev.rank && g.below) gSay(T("You passed {n} in the league ▲", {n: g.below}));
-    if (prev && g.level > prev.level && !viaGain) gLvFrom = gLvFrom ? Math.min(gLvFrom, prev.level) : prev.level;
-    if (gLvFrom && !viaGain) { const f = gLvFrom; gLvFrom = 0; gLevelUp(g, f); }   // 1.114.5: also one a second gain cut off
+    gLvCheck(g);                                              // 1.126.1.1: a level-up, new or missed, goes through one place
     if (tab === "game") renderGame();
   } catch {} finally { gBusy = false; }
 }
@@ -15686,6 +15690,7 @@ function gLineRun(){
     gLine.el = null; gLine.pop = false; gLine.gapTo = now + GL_GAP;
   }
   if (!gLine.q.length) { gTixBack(); return; }
+  if (gLvUpOn()) { gLine.t = setTimeout(gLineRun, 500); return; }   // 1.126.1.1: not beneath a level-up's (or the wings') card
   if (now < gLine.gapTo) { gLine.t = setTimeout(gLineRun, gLine.gapTo - now); return; }
   const it = gLine.q.shift();
   gLine.busy = true; gLine.pop = it.pop;
@@ -15998,10 +16003,48 @@ function gCoins(){
 // 1.109 (to-do #152, Dave's pick B): the level-up is an arrival on the route: the plane flies from the last stop to the
 // new one, a luggage tag for each thing it opened (from CAREER; the levels passed at once too), the next stop, and Try
 // it (a style: the Styles card at its row; anything else: the club). Reduced motion: all of it standing still.
-let gLvT = 0;
+/* 1.126.1.1 (to-do #256, Dave's pick B, "After Sky view"): a level-up won in Sky view opened behind it and went unseen, and
+   one pending when the app closed was lost. The last level this phone showed is kept per profile (ACH_KEY + ".lv", as
+   achCheck keeps achievements); a higher level from the relay is pending (gLvFrom, the level to show it from) until
+   gLvStep finds the screen free and opens the card, the only way in. A first look stores the level and shows nothing. */
+let gLvT = 0, gLvPoll = 0, gLvChipOk = false, gLvBusy = false, gLvChipT = 0, gLvMem = 0, gGainUntil = 0, gLvArEnd = 0;
+const gSeen = () => !arOn && !document.hidden;
+const gLvUpOn = () => { const b = $("gLvUp"); return !!b && !b.hidden; };           // also the wings' record (fsW)
+function gLvGet(){ let v = null; try { v = localStorage.getItem(ACH_KEY + ".lv"); } catch {} return v == null ? gLvMem : +v || 0; }
+function gLvSave(n){ gLvMem = n; try { localStorage.setItem(ACH_KEY + ".lv", String(n)); } catch {} }
+function gLvCheck(g){
+  if (!g || S.demo || !(g.level > 0)) return;
+  const st = gLvGet();
+  if (!st || g.level < st) { gLvSave(g.level); gLvFrom = 0; return; }
+  gLvFrom = g.level > st ? st : 0;
+  gLvKick();
+}
+const gLvBlocked = () => arOn || Date.now() - gLvArEnd < 900 || document.hidden || gLineOn() || cardOpenNow() || Date.now() < gGainUntil || gLvBusy ||
+  gLvUpOn() || fsBusy || fsQ.length > 0 || !!tipCur || tipQueue.length > 0 || !!$("tipLayer") || !!$("splash") || !!($("welcome") && !$("welcome").hidden);
+function gLvKick(){ if (gLvFrom && !gLvPoll) gLvPoll = setTimeout(gLvStep, 400); }
+function gLvStep(){
+  gLvPoll = 0;
+  if (!gLvFrom || !gme || S.demo) return;
+  if (gLvBlocked()) { gLvKick(); return; }
+  const g = gme, from = gLvFrom, box = $("gHead");
+  if (!gLvChipOk && box && !box.hidden) { gLvChip(g, from); return; }   // the chip's flash went by unseen: once more, then the card
+  gLvFrom = 0; gLvChipOk = false;
+  gLevelUp(g, from);
+}
+// The chip's ring fills under the old insignia and flashes (as in gGain), then shows the new level; the card follows 0.8 s later.
+function gLvChip(g, from){
+  const box = $("gHead"), was = Math.max(1, Math.min(g.level - 1, from));
+  gLvBusy = true;
+  gLapSet(was); gRingSet(careerPts(was + 1));
+  box.classList.add("lvl");
+  clearTimeout(gLvChipT);
+  gLvChipT = setTimeout(() => {
+    box.classList.remove("lvl"); gStripRender(g);
+    gLvChipT = setTimeout(() => { gLvBusy = false; gLvChipOk = true; gLvKick(); }, 800);
+  }, 1100);
+}
 function gLevelUp(g, from){
   let box = $("gLvUp");
-  if (box && !box.hidden && box.classList.contains("fsW")) { setTimeout(() => gLevelUp(g, from), 2000); return; }   // 1.103: after the wings
   if (!box) { box = document.createElement("div"); box.id = "gLvUp"; box.setAttribute("role", "dialog"); document.body.appendChild(box); }
   const lv = g.level, was = Math.max(1, Math.min(lv - 1, from || lv - 1)), got = [];
   for (let n = was + 1; n <= lv; n++) got.push(...careerAt(n));
@@ -16013,6 +16056,7 @@ function gLevelUp(g, from){
     `<p>${escH(T("Next stop: {t} · {n}", {t: rankTitle(lv + 1), n: nf.format(careerPts(lv + 1))}))}</p>` +
     `<div class="cuTry">${got.length ? `<button class="cBtn" type="button" data-try>${escH(T("Try it"))}</button>` : ""}<button type="button" class="cuLater" data-later>${escH(T("Later"))}</button></div></div>`;
   box.hidden = false;
+  gLvSave(g.level);                                        // written here, where it is seen, not when it was scheduled
   gJingle();
   clearTimeout(gLvT);
   const close = () => { clearTimeout(gLvT); box.hidden = true; };
@@ -16025,7 +16069,9 @@ function gLevelUp(g, from){
     if (style) stylesCard(r[1]);
     else { showTab("game"); window.scrollTo(0, 0); }
   };
-  gLvT = setTimeout(close, 20000);
+  let left = 20000;                                        // 20 s of being seen: Sky view over it or a hidden page stops the clock
+  const tick = () => { if (box.hidden) return; if (gSeen()) left -= 500; if (left <= 0) close(); else gLvT = setTimeout(tick, 500); };
+  gLvT = setTimeout(tick, 500);
 }
 // The fairground prize jingle (a lock-on, a level up): four rising chime notes and a bright chord.
 function gJingle(){

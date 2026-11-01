@@ -948,6 +948,14 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.126.1.1 (to-do #256, Dave's pick B "After Sky view"; relay unchanged): **A level-up is never missed.** It opened behind Sky view (z 60 under `#arView`
+  70) and closed itself 20 s later, and `gLvFrom` lived in memory only. Now one way in: `gLvCheck(g)` (every `gRefresh`) compares the relay's level with the last one
+  this phone showed (`ACH_KEY + ".lv"`, `gLvGet`/`gLvSave`; nothing stored: store and show nothing; lower: store silently; demo: nothing) and sets `gLvFrom` to the stored
+  level; `gLvStep` (a 400 ms poll while `gLvFrom` is set, `gLvKick`) opens `gLevelUp` when `gLvBlocked()` is false: not Sky view (nor 0.9 s after `arClose`, which kicks it),
+  hidden page, `gLineOn`, `cardOpenNow`, the chip's count-up (`gGainUntil`), a replay, `fsBusy`/`fsQ`, any visible `#gLvUp` (`gLvUpOn`, the wings too), a tip, the splash or the
+  welcome. The level is saved when the card opens. A chip flash that went by unseen (`gLvChipOk` false: Sky view or a hidden page during `gGain`, or a level missed while shut) is
+  played again by `gLvChip` just before the card. `gLineRun` waits while `#gLvUp` is up, `tipNext` and `achNext` too. The card's 20 s counts only seen time (`gSeen`).
+  Flows: `levelup_checks` (flows.py, run by smoke.py).
 - 1.126.1 (to-do #255, Dave: "make it so planes can be scanned from 15km as well"; relay 104): **One circle for scoring and scanning.** `SCAN_KM`
   10 → 15 in `relay/serve.py`, so a plane that scores passively (`GAME_KM`, 15 km) can be scanned, has its ticket
   (`game_scannable`, `/game/me` "scan") and its ★ in Sky view. The app follows the relay (`gScanKm()`); the How points
