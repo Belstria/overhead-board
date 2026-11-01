@@ -60,7 +60,8 @@ or passed on, so never in the share picture), adsbdb's, the model's from Wikiped
 style, More info, fun facts) get Wikipedia's and Wikidata's facts cleaned by the relay (`/facts`, relay 74: a model by
 its page, an airline by ICAO code, an airport by IATA code; relay 78: kept in `data/facts.db`, SQLite read per card,
 every airline still flying, airport and model refreshed in batches once a month at night, `facts_refresh`) and what you spotted
-from `/logbook/spotted` and the logbook search. Unknown details show "/" (`NA`/`orNA`). Features check
+from `/logbook/spotted` and the logbook search. The Logbook's list under the period and All time pages through `/logbook/flights` (relay 105: `before`, the
+last answer's `cursor`, day~id~ts; `stop` and `until`, the first and last day; `place`, `filter` over, special or fav, with `over`, `deg`, `favs`, `api`; answers 50 rows as `/sightings?all=1` plus each row's `day`, and `more`), reading only the days a page needs and at most `FLIGHTS_DAYS` per answer. Unknown details show "/" (`NA`/`orNA`). Features check
 `window.OVERHEAD_RELAY_VERSION` before using newer relay endpoints. Shared blocks (cards, places, tips, achievements,
 account, game/records) live in the board and are copied by the app build.
 

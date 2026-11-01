@@ -2174,6 +2174,98 @@ def golden_checks(expect):
         serve.where_name, serve.watch_of, serve.GOLD_FILE, serve._gold_salt = real
 
 
+def flights_page_checks(expect):
+    """Relay 105 (1.127, to-do #254): /logbook/flights' pages: the cursor, the end, a filter, a place, a stop date, hidden
+    planes, days it needn't read, and a day boundary with two sightings in the same second."""
+    import json
+    import re
+    import tempfile
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    folder = Path(tempfile.mkdtemp(prefix="fb-flights-"))
+    spot = serve.Spot(folder, lambda: (48.2085, 16.3731), lambda: 15)
+    spot.ensure_day()
+    today = spot.day
+    day = lambda n: (serve.datetime.date.fromisoformat(today) - serve.datetime.timedelta(days=n)).isoformat()
+    t0 = int(serve.time.time()) * 1000
+
+    def row(i, d, ms, **k):
+        return {"id": f"{i:06x}-{ms // 1000}", "hex": f"{i:06x}", "ts": ms, "time": "12:00", "callsign": f"AUA{i}", "typeCode": "A320", "minDist": 12.0, "altAtMin": 30000, **k}
+    # today 30 rows, the day before 120, the day before that nothing saved, 3 days back 2 rows in the same second
+    # as each other and the next day's last row
+    spot.entries[:] = [row(1000 + i, today, t0 - i * 1000) for i in range(30)]
+    same = t0 - 86400000 * 3
+    days = {day(1): [row(2000 + i, day(1), t0 - 86400000 - i * 1000, **({"place": "Rome"} if i % 10 == 0 else {})) for i in range(120)],
+            day(3): [row(3000, day(3), same), row(3001, day(3), same, typeCode="A388"), row(3002, day(3), same, emergency=True)],
+            day(4): [row(4000, day(4), same, callsign="OEXYZ", reg="OE-XYZ", minDist=.5), row(4001, day(4), same - 1000)]}
+    for d, rows in days.items():
+        (folder / f"sightings-{d}.json").write_text(json.dumps(rows), encoding="utf-8")
+    (folder / "sightings-2001-01-01.json").write_text("not json", encoding="utf-8")   # a file it must not reach for a short page
+
+    def walk(**k):
+        out, cur, n = [], "", 0
+        while True:
+            j = serve.flights_json(spot, cur, **k)
+            out.append(j)
+            cur, n = j["cursor"], n + 1
+            if not j["more"] or n > 20:
+                return out
+    pages = walk(stop=day(4))
+    ids = [e["id"] for p in pages for e in p["entries"]]
+    expect("flights: pages of 50, newest first", [len(p["entries"]) for p in pages], [50, 50, 50, 5])
+    expect("flights: no row twice and none missing across pages and day boundaries", (len(ids), len(set(ids))), (155, 155))
+    expect("flights: the days in order, each row knowing its day", [e["day"] for p in pages for e in p["entries"]], sorted([today] * 30 + [day(1)] * 120 + [day(3)] * 3 + [day(4)] * 2, reverse=True))
+    expect("flights: same second across a boundary keeps the files' order", ids[-5:], [days[day(3)][0]["id"], days[day(3)][1]["id"], days[day(3)][2]["id"], days[day(4)][0]["id"], days[day(4)][1]["id"]])
+    expect("flights: the row shape is /sightings' plus its day", set(pages[0]["entries"][0]) - {"day"}, set(serve.sightings_json(spot, False, 3.0, True)["entries"][0]))
+    expect("flights: a new row meanwhile doesn't shift a page", ([e["id"] for e in (spot.entries.insert(0, row(1999, today, t0 + 5000)), serve.flights_json(spot, pages[0]["cursor"]))[1]["entries"]][:1]), [pages[1]["entries"][0]["id"]])
+    spot.entries.pop(0)
+    gone = f"{day(1)}~nothere~{t0 - 86400000 - 5500}"
+    expect("flights: a cursor whose row has gone goes on from its time", serve.flights_json(spot, gone)["entries"][0]["id"], days[day(1)][6]["id"])
+    expect("flights: junk as a cursor is the first page", serve.flights_json(spot, "../../x")["entries"][0]["id"], pages[0]["entries"][0]["id"])
+    # a stop date, an until date, the end
+    j = serve.flights_json(spot, stop=today)
+    expect("flights: a stop date stops there with more false", (len(j["entries"]), j["more"]), (30, False))
+    j = serve.flights_json(spot, stop=day(1), until=day(1), n=500)
+    expect("flights: a past period starts at its last day", (len(j["entries"]), {e["day"] for e in j["entries"]}, j["more"]), (120, {day(1)}, False))
+    # the same days, a filter: a page isn't shrunk by it
+    k = serve._flight_test("special")
+    expect("flights: the Special filter fills a page from older days", [e["id"] for e in serve.flights_json(spot, keep=k, stop=day(4))["entries"]], [days[day(3)][1]["id"], days[day(3)][2]["id"]])
+    k = serve._flight_test("over", over_km=1.0, over_deg=45.0)
+    expect("flights: the Overhead filter, 1 km or 45 degrees", [e["id"] for e in serve.flights_json(spot, keep=k, stop=day(4))["entries"]], [days[day(4)][0]["id"]])
+    k = serve._flight_test("fav", [{"k": "reg", "v": "OE-XYZ"}], [""])
+    expect("flights: favourites, the lists", [e["id"] for e in serve.flights_json(spot, keep=k, stop=day(4))["entries"]], [days[day(4)][0]["id"]])
+    k = serve._flight_test("fav", [], ["A388"])
+    expect("flights: favourites, the settings' words", [e["id"] for e in serve.flights_json(spot, keep=k, stop=day(4))["entries"]], [days[day(3)][1]["id"]])
+    h = serve._flight_hidden([{"k": "type", "v": "A388"}, {"k": "reg", "v": "OEXYZ"}])
+    expect("flights: hidden planes are left out", [e["id"] for e in serve.flights_json(spot, hidden=h, stop=day(4))["entries"]].count(days[day(3)][1]["id"]), 0)
+    # a place
+    j = walk(place={"Rome"}, stop=day(4))
+    expect("flights: only that place's, across pages", ([e["id"] for p in j for e in p["entries"]], j[-1]["more"]), ([days[day(1)][i]["id"] for i in range(0, 120, 10)], False))
+    expect("flights: every place without one", sum(len(p["entries"]) for p in walk(stop=day(4), place=None)), 155)
+    # only the days it needs
+    load, read = serve._load, []
+    serve._load = lambda path, d: (read.append(Path(path).stem[10:]), load(path, d))[1]
+    try:
+        serve.flights_json(spot, n=10)
+        expect("flights: a page out of today reads no saved day", read, [])
+        serve.flights_json(spot, n=31)
+        expect("flights: one older day read when the page reaches it", read, [day(1)])
+    finally:
+        serve._load = load
+    # many empty days: the answer stops reading and says go on
+    for i in range(serve.FLIGHTS_DAYS + 5):
+        (folder / f"sightings-{day(10 + i)}.json").write_text("[]", encoding="utf-8")
+    j = serve.flights_json(spot, keep=lambda e: False, stop=day(100))
+    expect("flights: a rare filter stops after FLIGHTS_DAYS, with more", (j["more"], re.fullmatch(r"\d{4}-\d\d-\d\d~~", j["cursor"]) is not None, j["entries"]), (True, True, []))
+    j2 = serve.flights_json(spot, j["cursor"], keep=lambda e: False, stop=day(100))
+    expect("flights: ... and the next answer ends it", (j2["more"], j2["entries"]), (False, []))
+    src = (Path(__file__).resolve().parents[2] / "test" / "index.html").read_text(encoding="utf-8")
+    table = src[src.index("const SPECIAL_TYPES = {"):]
+    table = table[:table.index("};")]
+    expect("flights: the relay's special types are the boards'", set(re.findall(r"(\w+):\"", table)), set(serve.SPECIAL_TYPE_CODES))
+
+
 def live_hidden_checks(expect):
     """Relay 81 (to-do #140): live_stale() on its own. A live request from a hidden page (bg=1) is stale, though its fix is
     fresh; a saved place and home never are; a page that sends no flag counts as visible."""
@@ -2218,6 +2310,10 @@ def checks():
     scan_circle_checks(expect)
     screens_checks(expect)
     live_hidden_checks(expect)
+    flights_page_checks(expect)
+
+    code, _, body = call("/logbook/flights", "test-device")
+    expect("/logbook/flights for a profile: a page", (code, sorted(json.loads(body)) if code == 200 else None), (200, ["cursor", "date", "entries", "more", "rev", "version"]))
 
     # C1: the admin pages
     expect("/admin at home, no profile", call("/admin", headers=AT_HOME)[0], 403)
@@ -2704,6 +2800,113 @@ def checks():
     return not bad
 
 
+def logbook_list_checks(browser, bad):
+    """1.127 (to-do #254): the Logbook's list across days in the app, on made-up pages: the strip's order; Show more
+    appends and the row in view doesn't move; a day over two pages has one headline; the Top key appears after a page,
+    one width for every day; a new live flight doesn't move the list; no answer keeps the rows; an old relay: today's list."""
+    import datetime
+    ctx = browser.new_context(viewport={"width": 360, "height": 740})
+    ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+
+    def hooked(route):
+        r = route.fetch()
+        t = r.text()
+        i = t.rindex("})();")
+        route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+    ctx.route("**/app/", hooked)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: bad.append(f"logbook list page error: {e}"))
+    pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
+    now = datetime.datetime.now()
+    rows = []
+    for i in range(140):
+        d = now - datetime.timedelta(days=0 if i < 3 else 1 if i < 90 else 2 + (i - 90) // 10)
+        rows.append({"id": f"rw{i}", "hex": f"{i:06x}", "ts": int(d.timestamp() * 1000) - i * 1000, "time": "12:00", "callsign": f"AUA{i}", "typeCode": "A320", "reg": "OE-LBN",
+                     "minDist": 5.0, "altAtMin": 30000, "looked": True, "day": d.strftime("%Y-%m-%d")})
+
+    def flights(route):
+        q = urllib.parse.parse_qs(urllib.parse.urlparse(route.request.url).query)
+        start = int((q.get("before") or ["0~~"])[0].split("~")[1] or 0) if q.get("before") else 0
+        page = rows[start:start + 50]
+        more = start + 50 < len(rows)
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(
+            {"version": 105, "date": now.strftime("%Y-%m-%d"), "rev": 1, "entries": page, "cursor": f"x~{start + 50}~0", "more": more}))
+    pg.route("**/logbook/flights*", flights)
+    pg.goto(BASE + "/app/")
+    pg.wait_for_timeout(3500)
+    e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
+    pg.evaluate("document.querySelector('[data-tab=logbook]').click()")
+    pg.wait_for_timeout(1200)
+    if e('[...$("lbStrip").children].map(c => c.id).join()') != "tdPlate,lbYear,lbPlate":
+        bad.append("the strip isn't Today, 2026, All time")
+    if e('lbPlateOn') != "today" or e('document.querySelectorAll("#svList .lbDayH").length'):
+        bad.append("the Logbook's key doesn't open on Today, without headlines")
+    e('lbPlateGo("all")')
+    pg.wait_for_timeout(800)
+    # the page replaced the live rows it found only in part: wait for it and look at what's there
+    heads = e('[...document.querySelectorAll("#svList .lbDayH span")].map(x => x.textContent)')
+    if not heads or heads[0] != "Today" or len(heads) != len(set(heads)):
+        bad.append(f"the headlines on All time: {heads}")
+    top_of = 'k => { const li = $("svList").querySelector(`li.fl[data-more="${k}"]`); return li ? li.getBoundingClientRect().top : null; }'
+    e('scrollTo(0, document.documentElement.scrollHeight)')
+    pg.wait_for_timeout(300)
+    k = e('[...$("svList").querySelectorAll("li.fl")].at(-2).dataset.more')
+    t0 = e(f'({top_of})("{k}")')
+    n0 = e('document.querySelectorAll("#svList li.fl").length')
+    pg.click(".lbMore button")
+    pg.wait_for_timeout(600)
+    if e(f'({top_of})("{k}")') != t0:
+        bad.append("Show more moved the row in view")
+    if e('document.querySelectorAll("#svList li.fl").length') != n0 + 50:
+        bad.append("Show more didn't add 50 rows")
+    heads = e('[...document.querySelectorAll("#svList .lbDayH span")].map(x => x.textContent)')
+    if len(heads) != len(set(heads)):
+        bad.append(f"a headline repeats where a day runs over two pages: {heads}")
+    e('scrollTo(0, 1500)')
+    pg.wait_for_timeout(300)
+    if e('$("lbTop").hidden || $("lbTop").classList.contains("rest")'):
+        bad.append("no Top key after a page, past 700 px")
+    w = e("""(() => { const k = $("lbTop"), s = k.querySelector("small"), out = new Set(); let cut = 0;
+      for (let i = 0; i < 800; i++) { s.textContent = lblWord(lblIso(new Date(Date.now() - i * 864e5)), true); out.add(k.getBoundingClientRect().width); if (s.scrollWidth > s.clientWidth) cut++; }
+      return [out.size, cut, k.getBoundingClientRect().width]; })()""")
+    if w[0] != 1 or w[1]:
+        bad.append(f"the Top key's width changes or cuts a day off: {w}")
+    k = e('[...$("svList").querySelectorAll("li.fl")].find(x => x.getBoundingClientRect().top > 200).dataset.more')
+    t0, h0 = e(f'({top_of})("{k}")'), e('document.documentElement.scrollHeight')
+    e('spotted.unshift(fromRelay({id: "zz-new", hex: "aa0001", ts: Date.now() + 5000, time: "12:01", callsign: "AUA7", typeCode: "A320", looked: true})); renderToday()')
+    pg.wait_for_timeout(200)
+    if (e(f'({top_of})("{k}")'), e('document.documentElement.scrollHeight')) != (t0, h0):
+        bad.append("a new live flight moved the list")
+    if e('!!$("svList").querySelector(`li.fl[data-more="zz-new"]`)') or e('lbl.held.length') != 1:
+        bad.append("a new live flight wasn't held back while deep in the list")
+    e(f'$("svList").querySelector(`li.fl[data-more="{k}"]`).click()')
+    pg.wait_for_timeout(700)
+    if not e('!!$("svList").querySelector("li.fl.open .tlCard")'):
+        bad.append("a row deep in the list doesn't open its card")
+    e('tlFold($("svList").querySelector("li.fl.open"), false)')
+    e('scrollTo(0, 0)')
+    pg.wait_for_timeout(300)
+    if not e('!!$("svList").querySelector(`li.fl[data-more="zz-new"]`)') or e('lbl.held.length'):
+        bad.append("the held flight didn't come in with the top of the list in view")
+    pg.unroute("**/logbook/flights*")
+    pg.route("**/logbook/flights*", lambda r: r.abort())
+    n0 = e('document.querySelectorAll("#svList li.fl").length')
+    e('lblLoad()')
+    pg.wait_for_timeout(300)
+    if e('$("svList").querySelector(".lbMore").dataset.s') != "err" or e('document.querySelectorAll("#svList li.fl").length') != n0:
+        bad.append("no answer: the plate doesn't say so, or the rows went")
+    pg.unroute("**/logbook/flights*")
+    e('lbPlateGo("today")')
+    pg.wait_for_timeout(200)
+    if e('document.querySelectorAll("#svList .lbDayH").length') or e('$("svList").querySelector(".lbMore")'):
+        bad.append("back on Today the headlines or Show more stayed")
+    e('window.OVERHEAD_RELAY_VERSION = 104; lbPlateGo("all")')
+    pg.wait_for_timeout(200)
+    if e('document.querySelectorAll("#svList .lbDayH").length') or e('$("svList").querySelector(".lbMore")'):
+        bad.append("an older relay should keep today's list")
+    ctx.close()
+
+
 def browser_checks(browser):
     """The app's saves, in a browser. The app's code runs inside one function; a copy of the page with an eval inside
     it (window.__e) lets the checks call it."""
@@ -3041,6 +3244,7 @@ def browser_checks(browser):
     if pg.url != f"{BASE}/join/{tok}":
         bad.append(f"the invite field didn't open this site's link: {pg.url[:60]}")
     ctx.close()
+    logbook_list_checks(browser, bad)
     for b_ in bad:
         print("flow:", b_)
     print("the app's saves hold" if not bad else f"{len(bad)} app save check(s) failed")

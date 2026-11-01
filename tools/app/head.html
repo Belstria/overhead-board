@@ -1010,6 +1010,40 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 }
 /*CAPS_AND_COCKPIT*/
 #svList.wait{opacity:.55;transition:opacity .2s}
+/* 1.127 (to-do #254): the list across days. A day is its own li, so its sticky headline holds only within that day and
+   the next one pushes it away. The band is the search's own metal across the full width, with the rail drawn on it. */
+.flights.tline li.lbDay{padding:0;margin:0;position:static}
+.lbDayL{list-style:none;margin:0;padding:0}
+.lbDayH{position:sticky;top:calc(var(--topH,0px) + var(--lbSegH,58px));z-index:3;display:flex;align-items:center;gap:10px;box-sizing:border-box;height:28px;margin:0 calc(-1 * var(--gut)) 6px;padding:0 var(--gut) 0 calc(var(--gut) + 22px);
+  background:linear-gradient(rgba(240,180,41,.4),rgba(240,180,41,.4)) calc(var(--gut) + 6px) 0/2px 100% no-repeat,var(--metal-img,none) 0 0/600px 600px,var(--metal);font:600 var(--fs-s)/1 var(--f-board);letter-spacing:.22em;text-transform:uppercase;color:var(--amber);text-shadow:0 -1px 0 rgba(0,0,0,.8);white-space:nowrap}
+.lbDayH::before,.lbDayH::after{content:"";flex:1;min-width:8px;height:1px;background:rgba(240,180,41,.3)}
+.lbDayH.stuck{box-shadow:0 5px 8px -5px rgba(0,0,0,.8)}
+.lbDayH.lbGrow{animation:lbGrow .28s ease-out both;overflow:hidden}
+@keyframes lbGrow{from{height:0;margin-bottom:0;opacity:0}to{height:28px;margin-bottom:6px;opacity:1}}
+.lbIn{animation:lbIn .3s ease-out both}
+@keyframes lbIn{from{opacity:0}to{opacity:1}}
+.flights.tline.lbHasMore::before{bottom:64px}
+.flights.tline li.lbMore{padding:0;margin:10px 0 8px 22px}
+.lbMore.lbFold{overflow:hidden;margin-top:0;margin-bottom:0}
+.lbMore button{all:unset;box-sizing:border-box;position:relative;display:block;width:100%;padding:17px 0 15px;text-align:center;cursor:pointer;border-radius:8px;
+  background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.016) 0 1px,rgba(0,0,0,.022) 1px 2px,rgba(255,255,255,0) 2px 4px),linear-gradient(#2e2f33,#1a1b1e);box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 2px 0 #000,0 3px 6px rgba(0,0,0,.5)}
+.lbMore button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.lbMore b{font:600 var(--fs-s)/1 var(--f-board);letter-spacing:.22em;text-transform:uppercase;color:var(--amber);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+.lbMore[data-s=load] b,.lbMore[data-s=err] b{color:rgba(214,208,194,.72)}
+.lbMore i{position:absolute;width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8c8d90,#3c3d40 70%);box-shadow:0 1px 1px rgba(0,0,0,.8)}
+.lbMore i::after{content:"";position:absolute;left:1px;right:1px;top:4px;height:1px;background:rgba(0,0,0,.75)}
+.lbMore i:nth-of-type(1){left:8px;top:8px}.lbMore i:nth-of-type(2){right:8px;top:8px}.lbMore i:nth-of-type(3){left:8px;bottom:8px}.lbMore i:nth-of-type(4){right:8px;bottom:8px}
+.lbMore[data-s=load] i{animation:lbScrew 1s linear infinite}
+@keyframes lbScrew{to{transform:rotate(360deg)}}
+.cap.lbTop{position:fixed;right:var(--gut);z-index:4;width:auto;height:44px;margin:0;padding:0 10px;display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);letter-spacing:.06em;transition:opacity .25s,transform .25s;box-shadow:0 2px 0 #000,0 0 0 2px #050505,0 8px 14px rgba(0,0,0,.55)}
+.cap.lbTop[hidden]{display:none}
+.cap.lbTop.rest{opacity:0;pointer-events:none;transform:translateY(8px)}
+.lbTop svg{flex:none}
+.lbTopT{position:relative;display:grid;gap:3px;text-align:left}
+.lbTopT small,.lbTopProbe{font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
+.lbTopT small{color:rgba(0,0,0,.62)}
+.lbTopProbe{position:absolute;visibility:hidden;display:grid;width:max-content;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.lbDayH.lbGrow,.lbIn,.lbMore[data-s=load] i{animation:none}.cap.lbTop{transition:none}.cap.lbTop.rest{transform:none}}
 /* ---------- the game (1.72): the score strip under the header, the Game page, Sky view's boarding pass ---------- */
 /* 1.115 (to-do #206, Dave's pick B): the header chip in the clock's place: the points over the level, "paused" in amber
    while live location is off; points coming in turn it over to +N (r2), then the total counts up while it glows.
@@ -2049,8 +2083,8 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
       <p class="sum" id="lbSum"></p>
       <div class="lbStrip" id="lbStrip">
         <button type="button" class="lbPlate" id="tdPlate"></button>
-        <div class="lbPlate lbOpens" id="lbPlate" hidden></div>
         <button type="button" class="lbPlate" id="lbYear" hidden></button>
+        <div class="lbPlate lbOpens" id="lbPlate" hidden></div>
       </div>
       <div class="lbFilter" id="lbFilter">
         <div class="tools" id="svTools"></div>
@@ -2067,6 +2101,7 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
       <ol class="flights tline" id="svList"></ol>
       <p class="status statusText"></p>
     </div>
+    <button type="button" class="cap lbTop" id="lbTop" hidden><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V5M5.5 11.5 12 5l6.5 6.5"/></svg><span class="lbTopT"><span></span><small></small></span></button>
   </section>
   <section class="wrap tab cols" id="t-radar" hidden>
     <div class="lcol">

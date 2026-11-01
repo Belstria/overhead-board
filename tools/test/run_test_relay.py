@@ -61,6 +61,8 @@ def main():
     p.add_argument("--ring", action="store_true", help="a plane coming within 15, then 10 km, and one passing 12 km out (both can be scanned)")
     p.add_argument("--fr24", action="store_true", help="pretend the relay has a Flightradar24 key")
     p.add_argument("--gold", nargs="?", const="all", default="", help="golden tickets: all planes in the scan list, or HEX,HEX")
+    p.add_argument("--logbook", choices=("dense", "quiet"), default="", help="saved days for the Logbook's list: dense, three weeks of 200 "
+                   "flights a day (with a few from last December); quiet, a few flights a day")
     p.add_argument("--hue", action="store_true", help="a fake Hue Bridge for the admin page's Hue lights")
     p.add_argument("--club", action="store_true", help="the Test profile has a game from the old rules (relay 96's move: a kept "
                                                        "level, styles, showcase spots, mastery steps up to platinum) and 36 Frequent flyer cards (4 more airlines with no scan)")
@@ -166,6 +168,29 @@ def run(a, tmp, procs):
             "time": "11:58", "typeCode": "C130", "minDist": 5.0, "altAtMin": 5000, "looked": True}]
     (tmp / "data" / "profiles" / "test0001").mkdir(parents=True)
     (tmp / "data" / "profiles" / "test0001" / f"sightings-{day}.json").write_text(json.dumps(old), encoding="utf-8")
+    if a.logbook:
+        # relay 105 (1.127): days to page back through, with routes and aircraft as saved days have them
+        al = [("AUA", "OS", "Austrian", "VIE"), ("RYR", "FR", "Ryanair", "BGY"), ("WZZ", "W6", "Wizz Air", "SOF"), ("DLH", "LH", "Lufthansa", "FRA"),
+              ("SWR", "LX", "Swiss", "ZRH"), ("BAW", "BA", "British Airways", "LHR"), ("KLM", "KL", "KLM", "AMS"), ("THY", "TK", "Turkish Airlines", "IST")]
+        ty = [("A20N", "A320neo"), ("A320", "A320"), ("B738", "737-800"), ("E195", "E195"), ("A321", "A321"), ("B772", "777-200")]
+        city = {"VIE": "Vienna", "BGY": "Milan", "SOF": "Sofia", "FRA": "Frankfurt", "ZRH": "Zurich", "LHR": "London", "AMS": "Amsterdam", "IST": "Istanbul"}
+        ap = lambda c: {"code": c, "city": city[c], "name": city[c], "lat": 48.2, "lon": 16.4}
+        per_day, n = (200 if a.logbook == "dense" else 3), 0
+        back = list(range(1, 22)) + [320, 321, 322]
+        for b in back:
+            t0 = time.localtime(now - 86400 * b)
+            midnight = time.mktime((t0.tm_year, t0.tm_mon, t0.tm_mday, 0, 0, 0, 0, 0, -1))
+            rows = []
+            for i in range(per_day):
+                n += 1
+                sec = 86399 - i * (86000 // per_day) - n % 7
+                c = al[n % len(al)]
+                t = ty[n % len(ty)]
+                rows.append({"id": f"{n:06x}-{int(midnight) + sec}", "hex": f"{n:06x}", "callsign": f"{c[0]}{100 + n % 800}", "ts": (int(midnight) + sec) * 1000,
+                             "time": time.strftime("%H:%M", time.localtime(midnight + sec)), "typeCode": t[0], "aircraftType": t[1], "reg": f"OE-{n % 26 + 65:c}{n % 17 + 65:c}{n % 23 + 65:c}",
+                             "airlineName": c[2], "airlineIata": c[1], "flightIata": f"{c[1]}{100 + n % 800}", "minDist": round(.5 + n % 140 / 10, 2), "altAtMin": 3000 + n % 30 * 1000,
+                             "maxSpeed": 400, "lastSeen": midnight + sec, "looked": True, "tier": "common", "from": ap(c[3]), "to": ap("VIE")})
+            (tmp / "data" / "profiles" / "test0001" / f"sightings-{time.strftime('%Y-%m-%d', t0)}.json").write_text(json.dumps(rows), encoding="utf-8")
     if a.club:
         # relay 96 (1.112): a game from before the move: 9,950 points (level 9 by the old totals, 8 by the new), mastery
         # steps by the old numbers (A320 gold at 120 scans, DH8D bronze at 7), no showcase pins; the relay moves it at start

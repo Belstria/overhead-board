@@ -806,7 +806,7 @@ function tdOpen(){
 $("tdPlate").onclick = tdOpen;
 // 1.123 (to-do #241, Dave's pick C): the plates, sideways. Each: a gold name and four named numbers, nothing else (rule 16).
 // Where the strip stands isn't kept: the routes pick a plate (lbPlateGo), and lbPlateOn keeps it there when a plate comes or folds.
-const LB_PLATES = {today: "tdPlate", all: "lbPlate", period: "lbYear"};
+const LB_PLATES = {today: "tdPlate", period: "lbYear", all: "lbPlate"};      // 1.127 (to-do #254): Today, 2026, All time
 let lbPlateOn = "today", lbStripSig = "";
 const lbPlateNum = (v, k) => `<span><b>${v == null ? "–" : nf.format(v)}</b><small>${escH(T(k))}</small></span>`;
 const lbPlateHtml = (title, nums, chev) => `<span class="lbPlH"><small>${escH(title)}</small>${chev ? '<i aria-hidden="true">›</i>' : ""}</span><span class="lbPlN">${nums.map(([v, k]) => lbPlateNum(v, k)).join("")}</span>`;
@@ -819,12 +819,14 @@ function lbStripSync(force){
   const el = $(LB_PLATES[lbPlateOn]);
   strip.scrollLeft = (el.hidden ? on[0] : el).offsetLeft - on[0].offsetLeft;
 }
-function lbPlateGo(k){ lbPlateOn = k; lbStripSync(true); }
+function lbPlateGo(k){ lbPlateOn = k; lbStripSync(true); renderToday(); }
 $("lbStrip").addEventListener("scroll", () => {
   const strip = $("lbStrip"), on = Object.entries(LB_PLATES).filter(([, id]) => !$(id).hidden);
   if (tab !== "logbook" || !on.length) return;
   const x = strip.scrollLeft, at = ([, id]) => Math.abs($(id).offsetLeft - $(on[0][1]).offsetLeft - x);
+  const was = lbPlateOn;
   lbPlateOn = on.reduce((a, c) => at(c) < at(a) ? c : a)[0];
+  if (lbPlateOn !== was) renderToday();                // 1.127: the list under the plates follows them
 }, {passive: true});
 // 1.120 (to-do #225), 1.123: the filters, the places switch and the saved places open in place under the plates, from the icon at
 // the end of the search. A dot on the icon: a filter or a saved place is on behind it.
@@ -842,6 +844,7 @@ $("tdFil").onclick = () => {
 // A's tap: the plane's row in the timeline below, scrolled to and lit gold for a moment (1.115: the row is one line, so
 // without the words of what it was named for). A filter that hides it is cleared first.
 function todayJump(k){
+  if (lblPlate() !== "today") lbPlateGo("today");     // 1.127: from a peeking Today plate, with 2026 or All time on show
   const row = () => $("svList").querySelector(`li.fl[data-more="${CSS.escape(k)}"]`);
   if (!row() && (svFilter !== "all" || svQuery)) {
     svFilter = "all"; svQuery = "";
@@ -870,7 +873,7 @@ function renderToday(){
   tdFilDot();
   const d = svData();
   for (const b of $("svTools").querySelectorAll("[data-t]")) {
-    const k = b.dataset.t, n = d.counts[k];
+    const k = b.dataset.t, n = lblOn() ? null : d.counts[k];      // 1.127: the counts are today's, the list then isn't
     const text = `${T(SV_TOOLS.find(t => t[0] === k)[1])}${n != null ? " " + nf.format(n) : ""}`;
     if (b.textContent !== text) b.textContent = text;
     b.setAttribute("aria-pressed", String(k === svFilter));
@@ -886,6 +889,8 @@ function renderToday(){
     one.textContent = placeLabel(); all.textContent = T("All places");
     one.setAttribute("aria-pressed", String(!allPlaces)); all.setAttribute("aria-pressed", String(allPlaces));
   }
+  if (lblOn()) return lblSync(d);
+  lblLeave();
   // 1.95: the same timeline as Now, by the hour (a whole day reads better so), and the same card in place
   const L = $("svList"), open = d.rows.find(e => tlKey(e) === tlOpenId.svList);
   if (!open) tlOpenId.svList = "";
@@ -902,6 +907,360 @@ function renderToday(){
   if (!waiting) L.style.minHeight = "";
   tlFill(L, waiting ? tlState(T("Today"), "", T("Loading …")) : d.rows.length ? tlHtml(d.rows, tlOpenId.svList)
     : liveWaiting() && !allPlaces ? tlFinding() : svFilter === "all" && !svQuery ? `<li class="st">${escH(T("No planes yet today"))}</li>` : tlState(T("Today"), "", T("None of today's planes match this filter yet.")), open);
+}
+/* 1.127 (to-do #254, relay 105, Dave's pick B, amber, with the day sticking as in C): under 2026 and All time the list
+   goes back across days. They share one list and its pages; 2026 draws what lies after 1 Jan, a week or month after its
+   own start. Unlike Today's it is never redrawn for news: a page is appended, a row that changes is patched where it
+   stands, and a new flight waits (lbl.held) until the top of the list is in view, so nothing you're reading moves.
+   Each day is its own <li> because a sticky headline only holds within its parent: the next day's pushes it away. */
+const LBL_PAGE = 50;
+const lbl = {key: "", rows: [], map: new Map(), sigs: new Map(), held: [], cursor: "", endAt: null, busy: false, err: false, tok: 0, drawn: false,
+  today: "", liveSig: "", span: ["", ""], spanKey: "", shown: -1, at: 0, grow: false};
+function lblPlate(){ return $(LB_PLATES[lbPlateOn]).hidden ? "today" : lbPlateOn; }
+const lblOn = () => tab === "logbook" && relayV5() && (window.OVERHEAD_RELAY_VERSION || 0) >= 105 && !S.demo && !liveWaiting() && lblPlate() !== "today";
+const lblIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+// [first day, last day ("": up to today, the shared list)] of the plate on show. Fixed once worked out: midnight doesn't
+// take a week's rows away from under you.
+function lblSpan(today){
+  const plate = lblPlate(), per = reviewOk() ? lbPeriod : "year", back = per === "year" ? yearBack : review.back, k = [plate, per, back].join();
+  if (k === lbl.spanKey) return lbl.span;
+  lbl.spanKey = k;
+  if (plate === "all") return lbl.span = ["", ""];
+  const d = new Date(today + "T12:00:00");
+  if (per === "year") { const y = d.getFullYear() - back; return lbl.span = [`${y}-01-01`, back ? `${y}-12-31` : ""]; }
+  const s = per === "week" ? new Date(d.getTime() - ((d.getDay() + 6) % 7 + 7 * back) * 864e5) : new Date(d.getFullYear(), d.getMonth() - back, 1, 12);
+  const e = per === "week" ? new Date(s.getTime() + 6 * 864e5) : new Date(s.getFullYear(), s.getMonth() + 1, 0, 12);
+  return lbl.span = [lblIso(s), back ? lblIso(e) : ""];
+}
+const lblToday = () => sightDay || fullDay.date || lbl.today || lblIso(new Date());
+const lblPlaces = () => lbPlace ? lbPlace.split("\n").map(k => "&place=" + encodeURIComponent(k)).join("") : sightPlaceQ(allPlaces);
+// What decides the list's rows; the same for 2026 and All time, so they share it
+function lblKey(){
+  const today = lblToday(), [, until] = lblSpan(today), val = l => l.map(i => i.k + i.v).join();
+  return [lblPlaces(), svFilter, until, val(userLists.hide), svFilter === "fav" ? S.favs + val(userLists.fav) : "", svFilter === "over" ? overKm() : ""].join("|");
+}
+const lblLive = () => !lblSpan(lblToday())[1] && (!lbPlace || !allPlaces && lbPlace.split("\n").includes(placeKeyNow()));
+const lblPass = e => !isHidden(e) && (svFilter === "over" ? overEntry(e) : svFilter === "special" ? isSpecialPlane(e) : svFilter === "fav" ? isFav(e) : true);
+function lblUrl(stop){
+  const until = lblSpan(lblToday())[1], arg = (k, v) => v ? `&${k}=${encodeURIComponent(v)}` : "";
+  return `${relay()}/logbook/flights?over=${overKm()}&deg=${OVER_DEG}${apiWanted() ? "&api=1" : ""}${lblPlaces()}` + arg("filter", svFilter === "all" ? "" : svFilter) +
+    arg("favs", svFilter === "fav" ? S.favs : "") + arg("before", lbl.cursor) + arg("stop", stop) + arg("until", until);
+}
+// A day's name: Today, Yesterday, then a plain date, with the year once it isn't this year's. On the Top key (`tight`) a
+// date with a year drops its weekday, which keeps the key narrow.
+const lblWords = new Map();
+function lblWord(d, tight, today = lblToday()){
+  const x = new Date(d + "T12:00:00"), t = new Date(today + "T12:00:00");
+  if (d === today) return T("Today");
+  if (d === lblIso(new Date(t.getTime() - 864e5))) return T("Yesterday");
+  const k = [LANG, d, tight, t.getFullYear()].join();
+  if (lblWords.has(k)) return lblWords.get(k);
+  const f = o => x.toLocaleDateString(LOC(), o).replace(/[.,]/g, ""), year = x.getFullYear() !== t.getFullYear();
+  const w = [tight && year ? "" : f({weekday: "short"}), x.getDate(), f({month: "short"}), year ? x.getFullYear() : ""].filter(Boolean).join(" ");
+  lblWords.set(k, w);
+  return w;
+}
+const lblHead = (d, grow) => `<div class="lbDayH${grow ? " lbGrow" : ""}" role="heading" aria-level="3"><span>${escH(lblWord(d))}</span></div>`;
+const lblDayLi = (d, inner, grow) => `<li class="lbDay" data-d="${escH(d)}">${lblHead(d, grow)}<ol class="lbDayL">${inner}</ol></li>`;
+function lblHtml(rows, open, grow){
+  let out = "", day = null, inner = "";
+  for (const e of rows) {
+    if (e.day !== day) { if (day !== null) out += lblDayLi(day, inner, grow && !out); day = e.day; inner = ""; }
+    inner += tlKey(e) === open ? cardLi(e) : rowHtml(e);
+  }
+  return day === null ? "" : out + lblDayLi(day, inner, grow && !out);
+}
+const lblStop = () => lblSpan(lblToday())[0];
+const lblShown = () => { const stop = lblStop(); return stop ? lbl.rows.filter(e => e.day >= stop) : lbl.rows; };
+function lblEnded(){
+  const stop = lblStop(), last = lbl.rows[lbl.rows.length - 1];
+  return lbl.endAt !== null && lbl.endAt <= stop || !!(stop && last && last.day < stop);
+}
+const lblLine = () => document.querySelector(".lbSeg").getBoundingClientRect().bottom;
+// The plate at the list's end, in place: Show more, Loading …, No answer · Try again; at the end it folds away
+function lblMoreSync(){
+  const L = $("svList"), s = lbl.busy ? "load" : lbl.err ? "err" : "more", end = lblEnded() && !lbl.busy;
+  let li = L.querySelector(":scope > .lbMore");
+  L.classList.toggle("lbHasMore", !end);
+  if (end) {
+    if (li && !li.classList.contains("lbFold")) {
+      if (REDUCED || typeof li.animate !== "function") li.remove();
+      else { li.classList.add("lbFold"); li.animate([{height: li.offsetHeight + "px", opacity: 1}, {height: "0px", opacity: 0}], {duration: 220, easing: "ease-out"}).finished.then(() => li.remove(), () => li.remove()); }
+    }
+    lblEmpty();
+    return;
+  }
+  if (!li || li.classList.contains("lbFold")) {
+    if (li) li.remove();
+    L.insertAdjacentHTML("beforeend", `<li class="lbMore"><button type="button"><i></i><i></i><i></i><i></i><b></b></button></li>`);
+    li = L.lastElementChild;
+    li.firstElementChild.onclick = () => { ctlSound.click(); lblLoad(); };
+  }
+  li.dataset.s = s;
+  li.firstElementChild.disabled = lbl.busy;
+  const text = T(s === "load" ? "Loading …" : s === "err" ? "No answer · Try again" : "Show more"), b = li.querySelector("b");
+  if (b.textContent !== text) b.textContent = text;
+  lblEmpty();
+}
+function lblEmpty(){
+  const L = $("svList"), st = L.querySelector(":scope > .st"), none = !lbl.busy && !lbl.err && lblEnded() && !lblShown().length;
+  if (st && !none) st.remove();
+  else if (none && !st) L.insertAdjacentHTML("afterbegin", `<li class="st">${escH(T(svFilter === "all" ? "No planes yet" : "No planes match this filter"))}</li>`);
+}
+function lblDraw(grow){
+  const L = $("svList"), rows = lblShown(), open = rows.find(e => tlKey(e) === tlOpenId.svList);
+  if (!open) tlOpenId.svList = "";
+  L.classList.remove("wait");
+  L.style.minHeight = "";
+  L.classList.add("lbBack");
+  document.documentElement.style.setProperty("--lbSegH", document.querySelector(".lbSeg").offsetHeight + "px");
+  tlFill(L, lblHtml(rows, tlOpenId.svList, grow), open);
+  lbl.drawn = true; lbl.shown = rows.length;
+  lblMoreSync();
+}
+// Rows that came in from the relay, added to the end of the list as it stands
+function lblAppend(rows, fade){
+  const L = $("svList"), more = L.querySelector(":scope > .lbMore"), stop = lblStop();
+  const on = stop ? rows.filter(e => e.day >= stop) : rows;
+  if (!on.length) return;
+  const days = L.querySelectorAll(":scope > .lbDay"), last = days[days.length - 1];
+  let i = 0;
+  if (last && on[0].day === last.dataset.d) {          // the day carries on: no second headline
+    while (i < on.length && on[i].day === last.dataset.d) i++;
+    last.lastElementChild.insertAdjacentHTML("beforeend", on.slice(0, i).map(e => rowHtml(e)).join(""));
+    if (fade) for (const li of [...last.lastElementChild.children].slice(-i)) li.classList.add("lbIn");
+  }
+  if (i < on.length) {
+    const html = lblHtml(on.slice(i));
+    if (more) more.insertAdjacentHTML("beforebegin", html); else L.insertAdjacentHTML("beforeend", html);
+    if (fade) { const was = new Set(days); for (const g of L.querySelectorAll(":scope > .lbDay")) if (!was.has(g)) g.classList.add("lbIn"); }
+  }
+  lbl.shown += on.length;
+}
+function lblAdd(e){ lbl.map.set(tlKey(e), e); lbl.sigs.set(tlKey(e), rowSig(e)); }
+async function lblLoad(tries = 0){
+  if (lbl.busy) return;
+  const tok = lbl.tok, stop = lblStop(), first = !lbl.at;
+  lbl.busy = true; lbl.err = false;
+  if (lbl.drawn) lblMoreSync();
+  let j;
+  try { j = await fetchJSON(lblUrl(stop), {}, 15000); }
+  catch (e) {
+    dlog("warn", `Couldn't read the logbook's flights from the relay: ${netError(e, "relay")}`);
+    if (tok === lbl.tok) { lbl.busy = false; lbl.err = true; if (lbl.drawn && lblOn()) lblMoreSync(); }
+    return;
+  }
+  if (tok !== lbl.tok) return;
+  lbl.busy = false; lbl.at = Date.now(); lbl.cursor = j.cursor || lbl.cursor;
+  if (!j.more) lbl.endAt = lbl.endAt === null ? stop : stop < lbl.endAt ? stop : lbl.endAt;
+  const page = (j.entries || []).map(r => ({...fromRelay(r), day: r.day})).filter(lblPass);
+  if (first) lblFirst(page); else {
+    const add = page.filter(e => !lbl.map.has(tlKey(e)));
+    add.forEach(lblAdd);
+    lbl.rows.push(...add);
+    if (lbl.drawn && lblOn()) lblAppend(add);
+  }
+  if (!lblOn()) return;
+  // A rare filter on a long logbook: a whole answer's days can hold nothing (the relay stops reading after a while)
+  if (j.more && !page.length && tries < 4) return lblLoad(tries + 1);
+  lblMoreSync();
+  lblScrolled();
+}
+// The first page and the rows already on show (Today's): the same rows stay where they are and the older come in below.
+function lblFirst(page){
+  const had = lbl.rows, ids = new Set(page.map(tlKey)), newest = page[0] ? page[0].ts : 0;
+  const rows = had.filter(e => !ids.has(tlKey(e)) && e.ts > newest).concat(page);
+  const same = had.every((e, i) => rows[i] && tlKey(rows[i]) === tlKey(e));
+  lbl.rows = rows; lbl.map = new Map(); lbl.sigs = new Map();
+  rows.forEach(lblAdd);
+  if (!lbl.drawn || !lblOn()) return;
+  if (same) {
+    const add = rows.slice(had.length);
+    lblPatch(rows.slice(0, had.length));
+    lblAppend(add, true);
+  } else {                                             // they differ (the relay knows better): the row in view stays put
+    const L = $("svList"), line = lblLine(), at = [...L.querySelectorAll("li.fl")].find(li => li.getBoundingClientRect().bottom > line);
+    const k = at && at.dataset.more, y = at && at.getBoundingClientRect().top;
+    lblDraw();
+    const now = k && L.querySelector(`li.fl[data-more="${CSS.escape(k)}"]`);
+    if (now) scrollBy(0, now.getBoundingClientRect().top - y);
+  }
+}
+// A row that changed (its route found, a mark added) changes where it stands; it's one line either way
+function lblPatch(rows){
+  const L = $("svList");
+  for (const e of rows) {
+    const li = L.querySelector(`li.fl[data-more="${CSS.escape(tlKey(e))}"]`);
+    if (!li || li.classList.contains("open") || li.classList.contains("tlAnim")) continue;
+    const html = rowInner(e);
+    if (li.innerHTML !== html) li.innerHTML = html;
+    const node = tlNode(e);
+    if (li.style.getPropertyValue("--node") !== node) li.style.setProperty("--node", node);
+  }
+}
+function lblReset(key, d, today){
+  Object.assign(lbl, {key, rows: [], map: new Map(), sigs: new Map(), held: [], cursor: "", endAt: null, busy: false, err: false, tok: lbl.tok + 1, drawn: false, liveSig: "", at: 0, today, grow: true});
+  if (lblLive()) {                                     // what Today shows, at once: the relay's page follows
+    lbl.rows = d.rows.slice(0, LBL_PAGE).map(e => ({...e, day: today}));
+    lbl.rows.forEach(lblAdd);
+  }
+}
+// The day's news. A row we have changes where it stands; a new one waits at the top until the top is in view.
+function lblNews(d, today){
+  const liveSig = d.rows.map(rowSig).join("~");
+  if (liveSig === lbl.liveSig) return;
+  lbl.liveSig = liveSig;
+  const changed = [], fresh = [], top = lbl.held.length ? lbl.held[0].ts : lbl.rows.length ? lbl.rows[0].ts : 0;
+  for (const e of d.rows) {
+    const k = tlKey(e), sig = rowSig(e), old = lbl.map.get(k);
+    if (old) {
+      if (lbl.sigs.get(k) === sig) continue;
+      const n = {...e, day: old.day}, i = lbl.rows.indexOf(old), h = i < 0 ? lbl.held.indexOf(old) : -1;
+      if (i >= 0) lbl.rows[i] = n; else if (h >= 0) lbl.held[h] = n;
+      lblAdd(n);
+      if (i >= 0) changed.push(n);
+    } else if (e.ts > top && (lbl.at || lbl.rows.length)) {
+      const n = {...e, day: today};
+      lblAdd(n);
+      fresh.push(n);
+    }
+  }
+  if (fresh.length) lbl.held.unshift(...fresh);
+  if (changed.length && lbl.drawn) lblPatch(changed);
+}
+function lblFlush(force){
+  if (!lbl.held.length || !lbl.drawn || tlBusy()) return;
+  const L = $("svList");
+  if (!force && L.getBoundingClientRect().top < lblLine() - 1) return;
+  const held = lbl.held;
+  lbl.held = [];
+  lbl.rows.unshift(...held);
+  lbl.shown += held.length;
+  for (const day of [...new Set(held.map(e => e.day))].reverse()) {
+    const html = held.filter(e => e.day === day).map(e => rowHtml(e)).join("");
+    const first = L.querySelector(":scope > .lbDay");
+    if (first && first.dataset.d === day) first.lastElementChild.insertAdjacentHTML("afterbegin", html);
+    else L.insertAdjacentHTML("afterbegin", lblDayLi(day, html));
+  }
+  lblMoreSync();
+}
+function lblSync(d){
+  const today = lblToday(), rolled = lbl.today && lbl.today !== today, L = $("svList");
+  // The days' names at midnight, where they stand. Away for long or more than a day: the list starts again, as rows are missing.
+  const stale = rolled && (Date.now() - (lbl.seen || 0) > 15 * 60000 || today !== lblIso(new Date(new Date(lbl.today + "T12:00:00").getTime() + 864e5)));
+  if (stale) lbl.spanKey = "";
+  const key = lblKey(), fresh = key !== lbl.key || stale;
+  lbl.seen = Date.now();
+  if (fresh) lblReset(key, d, today);
+  else {
+    lblNews(d, today);
+    if (rolled) {
+      lbl.today = today;
+      for (const g of L.querySelectorAll(":scope > .lbDay > .lbDayH > span")) {
+        const w = lblWord(g.parentNode.parentNode.dataset.d);
+        if (g.textContent !== w) g.textContent = w;
+      }
+    }
+  }
+  if (tlBusy()) { tlAgain = true; return; }
+  const ago = L.querySelector("li.open [data-ago]"), open = lbl.map.get(tlOpenId.svList);
+  if (ago && open) { const t = tlAgo(open); if (ago.textContent !== t) ago.textContent = t; }
+  if (!L.classList.contains("lbBack") || !lbl.drawn || lblShown().length !== lbl.shown) {
+    lblDraw(lbl.grow || !L.classList.contains("lbBack"));
+    lbl.grow = false;
+  } else {
+    if (open && L.dataset.card && L.dataset.card !== tlCardSig(open)) {     // a photo found late
+      const li = L.querySelector("li.fl.open");
+      if (li) { li.innerHTML = tlCardHtml(open); L.dataset.card = tlCardSig(open); tlWire(li); }
+    }
+    lblMoreSync();
+  }
+  // The first page; or All time after 2026 stopped short at 1 Jan: fill up to a page, or it says Show more for nothing
+  if (!lbl.busy && !lbl.err && (!lbl.at || !lblEnded() && lblShown().length < LBL_PAGE)) lblLoad();
+  else lblFlush();
+}
+// Back on Today: its own list again. The pages stay, for the next swipe.
+function lblLeave(){
+  const L = $("svList");
+  if (!L.classList.contains("lbBack")) return;
+  L.classList.remove("lbBack", "lbHasMore");
+  lbl.drawn = false; lbl.spanKey = "";
+  svSig = "";
+  lblTopRest(true);
+}
+/* The Top key: the metal key with an arrow, TOP and under it the day you're in, while you scroll. It's the same width
+   whatever day it says: the text's column is as wide as the longest day this language can name, measured once. */
+let lblTopLang = "", lblRaf = 0, lblRestT = 0;
+function lblTopFit(){
+  const k = $("lbTop"), col = k.querySelector(".lbTopT"), s = col.querySelector("small");
+  if (lblTopLang === LANG) return;
+  lblTopLang = LANG;
+  const y = new Date().getFullYear(), day = (m, n, yr = y) => `${yr}-${String(m).padStart(2, "0")}-${String(n).padStart(2, "0")}`;
+  const words = [T("Top"), T("Today"), T("Yesterday")];
+  col.firstElementChild.textContent = T("Top");
+  for (let m = 1; m <= 12; m++) for (let n = 22; n <= 28; n++) words.push(lblWord(day(m, n), true, day(12, 31)), lblWord(day(m, n, y - 1), true, day(12, 31)));   // every weekday in every month
+  const probe = document.createElement("small");
+  probe.className = "lbTopProbe";
+  probe.innerHTML = [...new Set(words)].map(w => `<span>${escH(w)}</span>`).join("");
+  s.after(probe);
+  col.style.width = "";
+  col.style.width = Math.ceil(probe.getBoundingClientRect().width) + "px";
+  probe.remove();
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { lblTopLang = ""; });
+function lblTopPlace(){
+  const k = $("lbTop"), tabs = $("tabs"), tops = [tabs.getClientRects().length ? tabs.getBoundingClientRect().top : innerHeight];
+  for (const id of ["toasts", "gAws"]) {                // above the notices bar and the game's pop-ups
+    const el = $(id);
+    if (el && el.children.length) tops.push(el.getBoundingClientRect().top);
+  }
+  k.style.bottom = Math.round(innerHeight - Math.min(...tops) + 12) + "px";
+}
+function lblTopRest(gone){
+  clearTimeout(lblRestT);
+  const k = $("lbTop");
+  if (gone) { k.hidden = true; k.classList.remove("rest"); }
+  else k.classList.add("rest");
+}
+function lblScrolled(){
+  lblRaf = 0;
+  const L = $("svList");
+  if (tab !== "logbook" || !L.classList.contains("lbBack") || !lbl.drawn) return lblTopRest(true);
+  lblFlush();
+  const line = lblLine(), box = $("t-logbook"), days = L.querySelectorAll(":scope > .lbDay");
+  // The day you're in: the sticky headlines say the same
+  let cur = null, lo = 0, hi = days.length - 1;
+  while (lo <= hi) {
+    const m = (lo + hi) >> 1;
+    if (days[m].getBoundingClientRect().top <= line + 2) { cur = days[m]; lo = m + 1; } else hi = m - 1;
+  }
+  const stuck = cur && cur.getBoundingClientRect().top < line - 1;
+  for (const h of L.querySelectorAll(".lbDayH.stuck")) if (!cur || h.parentNode !== cur || !stuck) h.classList.remove("stuck");
+  if (stuck) cur.firstElementChild.classList.add("stuck");
+  const k = $("lbTop");
+  if (lbl.rows.length <= LBL_PAGE || scrollY < 700 || !cur || box.classList.contains("finding") || SIDEWAYS.matches) return lblTopRest(true);
+  k.hidden = false;
+  lblTopFit();
+  lblTopPlace();
+  const small = k.querySelector("small"), w = lblWord(cur.dataset.d, true);
+  if (small.textContent !== w) small.textContent = w;
+  // Never over Show more: it steps aside while the plate goes by
+  const more = L.querySelector(":scope > .lbMore"), kr = k.getBoundingClientRect(), mr = more && more.getBoundingClientRect();
+  if (mr && mr.top < kr.bottom + 6 && mr.bottom > kr.top - 6) return lblTopRest();
+  k.classList.remove("rest");
+  clearTimeout(lblRestT);
+  lblRestT = setTimeout(() => lblTopRest(), 2500);
+}
+addEventListener("scroll", () => { if (!lblRaf && tab === "logbook" && $("svList").classList.contains("lbBack")) lblRaf = requestAnimationFrame(lblScrolled); }, {passive: true});
+$("lbTop").onclick = () => {
+  ctlSound.nav();
+  lblFlush(true);
+  lblTopRest(true);
+  scrollTo({top: 0, behavior: REDUCED ? "auto" : "smooth"});
+};
+if (typeof ResizeObserver === "function") {
+  const ro = new ResizeObserver(() => { if (!$("lbTop").hidden) lblTopPlace(); });
+  for (const id of ["toasts", "gAws"]) if ($(id)) ro.observe($(id));
 }
 function renderLists(){
   renderRecent();
@@ -1088,6 +1447,7 @@ function renderLogbook(){
   if (v === "logbook") { if (lbPeriod === "year") fetchYear(); else fetchReview(() => { lbSig = ""; renderLogbook(); }); }
   const all = lbData() || {}, pl = v === "logbook" && lbPlaceOk() ? lbChips() : [];
   if (v === "logbook" && lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
+  if (lblOn() && lblKey() !== lbl.key) renderToday();   // 1.127: another period or place under the plates
   const place = v === "logbook" ? lbPlace : "";
   // 1.89 (to-do #90): All · On the go · the saved places; 1.123: a row in the filter, its panel the list to pick from.
   // Counting since and a place's own line are the engraved footnote of the All time plate's four panels.
@@ -1174,7 +1534,7 @@ document.addEventListener("click", e => {
 // 1.89: a place picked (All, on the go or a saved one): its numbers come from the relay the first time.
 async function lbPick(id){
   lbPlace = id; if (id) lbPlateOn = "all";          // 1.123: the place's numbers are what was asked for
-  lbSig = ""; renderLogbook(); lbStripSync(true);
+  lbSig = ""; renderLogbook(); lbStripSync(true); renderToday();
   if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
 }
 // The game's collection (points, tiers, the collections) and its records, bingo and trophies: on the Game page since
@@ -5029,7 +5389,7 @@ const PUSH_KINDS = [["special", "Special planes (A380, 747, Beluga, Antonov, eme
 const PUSH_KIND_DEFAULTS = {special: true, watch: true, military: true, fav: true, newtype: false, low: false, quiet: true};
 // A row of the lists (1.95): a tap opens its card in place. On the card the airline, the places and the Aircraft box
 // open their own cards, the photo the whole plane card (its credit is Planespotters' link) and ⌃ folds it back.
-const tlFind = k => spotted.concat(fullDay.list || []).find(r => tlKey(r) === k);
+const tlFind = k => lbl.map.get(k) || spotted.concat(fullDay.list || []).find(r => tlKey(r) === k);
 document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-more]");
   if (!b) return;
@@ -5116,7 +5476,8 @@ function tlFold(li, anim){
 // An open card hidden under the tab bar (or the header) comes into view
 function tlScroll(li){
   if (!li.isConnected) return;
-  const r = li.getBoundingClientRect(), top = $("top").getBoundingClientRect().bottom + 8, tb = $("tabs");
+  const band = li.closest(".lbDay"), over = band ? band.querySelector(".lbDayH") : $("top");     // 1.127: under the day's headline
+  const r = li.getBoundingClientRect(), top = (band ? lblLine() + over.offsetHeight : over.getBoundingClientRect().bottom) + 8, tb = $("tabs");
   const bottom = (tb && tb.getClientRects().length ? tb.getBoundingClientRect().top : innerHeight) - 8;
   const by = r.bottom > bottom ? Math.min(r.bottom - bottom, r.top - top) : r.top < top ? r.top - top : 0;
   if (by) try { scrollBy({top: by, behavior: REDUCED ? "auto" : "smooth"}); } catch { scrollBy(0, by); }

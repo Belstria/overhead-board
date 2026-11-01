@@ -185,15 +185,16 @@ test/index.html: SV_ROWS DAY_START_H boardDay todayKey loadLog saveLog SAME_PASS
     todayList fillEntry svFilter svPageNo svLegend svSig spottedSummary TIER_ORDER reviewTime dayHighlights svQuery spotMatch svFindHtml svFindWire lampOf
     altNum svPart svSignature renderSpottedBoard fitText SV_X drawSpottedTable svStep setLegend legendGroups
     legendChip drawLegend SV_TOOLS .svFind +renderSpotted +recentShown
-tools/app/head.html: .flights .fl .chip .legend #svList.wait #svList #svSum #svTools #todayFacts .dayFacts #todayP
+tools/app/head.html: .flights .fl .chip .legend .flights.tline.lbHasMore .flights.tline .lbDay .lbDayL .lbDayH .lbDayH.stuck .lbDayH.lbGrow @lbGrow .lbIn @lbIn .lbMore.lbFold .lbMore @lbScrew .cap.lbTop .cap.lbTop.rest .lbTop .lbTopT .lbTopProbe #svList.wait #svList #svSum #svTools #todayFacts .dayFacts #todayP
     #todayTop .tdFil .lbSeg .tlHead .tline .tlFoot .tlCard .tlBg .tlK .tlX .tlWas .tlGone #recentN #recentFoot #recentAll
 tools/app/main.js: TODAYP spotted logDay rollDay syncSightings fullDay loadFullDay dayList chip distText altText
     rowHtml rowSig svFilter svSig todayList svData SV_TOOLS buildSvTools legendHtml todayNumbers
     TD_PLATE TD_FACTS todayFactsSig tdSig renderTodayNumbers tdOpen $("tdPlate").onclick tdFilter tdFilDot $("tdFil").onclick todayJump renderToday renderLists
     tlKey plainCode noFlightNo rowName noRoute tlNode rowTier rowMarks FLAG_SVG rowInner tlPic tlCardSig tlAsking tlAhead tlAgo tlCardHtml cardLi
     tlHtml tlState tlFinding tlNothing tlOpenId tlTok tlRunning tlCap tlAgain tlBusy tlFill tlWire tlLate tlDone
+    LBL_PAGE lbl lblPlate lblOn lblIso lblSpan lblToday lblPlaces lblKey lblLive lblPass lblUrl lblWords lblWord lblHead lblDayLi lblHtml lblStop lblShown lblEnded lblLine lblMoreSync lblEmpty lblDraw lblAppend lblAdd lblLoad lblFirst lblPatch lblReset lblNews lblFlush lblSync lblLeave lblTopLang lblRaf lblRestT lblTopFit lblTopPlace lblTopRest lblScrolled $("lbTop").onclick
     tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd tlTap tlOpen tlFold tlScroll sightPlane
-relay/serve.py: day_stats same_spot sightings_json /sightings +Spot.day_entries
+relay/serve.py: day_stats same_spot sightings_json /sightings +Spot.day_entries FLIGHTS_PAGE FLIGHTS_DAYS SPECIAL_TYPE_CODES _list_sq _flight_test _flight_hidden flights_json /logbook/flights
 README.md: "- **Spotted today** (press" "- **Today, This place | All places**" "- **Today** (1.123)"
     "- **The day runs from 00:00"
 docs/history.md: "Spotted today's PAGE x OF y"
