@@ -1070,6 +1070,10 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .gLap{position:relative;display:grid;place-items:center;transition:opacity .3s}
 .gLap .rkI{display:flex}
 .gHead.off .gRing{opacity:.5}
+/* 1.127.1 (to-do #240, Dave's pick B): where "Overhead ⇄ Airport" would be cut off beside the chip, headFit() sets
+   #top.tight: the word "paused" goes and the points are dimmed (the level line stays) (a tap opens the Club, which says why) */
+#top.tight #gOff{display:none}
+#top.tight .gHead.off .gHv{opacity:.38}
 .gHead.flip .r1{animation:gR1 3.4s forwards} .gHead.flip .r2{animation:gR2 3.4s forwards}
 .gHead.gain .gRa{animation:gGlow 1.4s}
 .gHead.lvl .gRing{animation:gFlash .9s ease-out}

@@ -4966,7 +4966,7 @@ function setMode(md){
   poll(true);                                       // the new style picks its plane from fresh positions
   setTimeout(() => appTips("now"), 900);            // the first time in this style: its pages
 }
-function showModes(){ for (const b of document.querySelectorAll("#modes [data-mode]")) b.setAttribute("aria-pressed", String(b.dataset.mode === (S.mode || "overhead"))); }
+function showModes(){ for (const b of document.querySelectorAll("#modes [data-mode]")) b.setAttribute("aria-pressed", String(b.dataset.mode === (S.mode || "overhead"))); headFit(); }
 // Which of the two the Now tab shows.
 function applyMode(){
   showModes();
@@ -6308,7 +6308,20 @@ function gStripSetup(){
     `<circle class="gRt" cx="24" cy="24" r="21"/><circle class="gRa" id="gRa" cx="24" cy="24" r="21" pathLength="100" stroke-dasharray="0 100"/></svg>` +
     `<span class="gLap" id="gLap"></span></span>`;
   box.onclick = () => { audioInit(); ctlSound.nav(); gGoPlate("gHero"); };
+  if (window.ResizeObserver) new ResizeObserver(headFit).observe(box);
+  headFit();
 }
+// To-do #240 (Dave's pick B): when "Overhead ⇄ Airport" would be cut off beside the chip (a narrow phone, big numbers),
+// the header gets the class "tight": the chip drops "paused" and shows its points dimmed instead (head.html). It is
+// measured with the class off, so nothing changes at a width where the title fits.
+function headFit(){
+  const top = $("top"), h = $("modes");
+  if (!top || !h) return;
+  top.classList.remove("tight");
+  if (h.scrollWidth > h.clientWidth + 1) top.classList.add("tight");
+}
+window.addEventListener("resize", headFit);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(headFit);
 // 1.114.2: to a plate of the Club's page (switching to the page first), below the sticky top and the tabs; it lights up
 // for a moment, as the passport's regions do.
 // A page drawn again meanwhile (the points or the league came in) keeps the light and the place (gHit).
@@ -6727,6 +6740,8 @@ function gStripRender(g, anim){
   if ($("gLvTxt").textContent !== lv) $("gLvTxt").textContent = lv;
   if ($("gOff").textContent !== pz) $("gOff").textContent = pz;
   $("gOff").hidden = !off;
+  box.setAttribute("aria-label", T("Spotters' Club") + (off ? " · " + T("paused") : ""));     // headFit may drop the word
+  headFit();
 }
 // 1.116.1 (to-do #209): the chip's ring, how far the points are from this level's start to the next (careerPts, the
 // Club's level card's numbers). A player kept above their points (relay 96) shows an empty ring, never a negative one.
