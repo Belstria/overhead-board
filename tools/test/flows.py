@@ -3401,6 +3401,7 @@ def sky_read_checks(browser):
     print("Sky view reads the camera only where a find could count, and still finds" if not bad else f"{len(bad)} Sky view read check(s) failed")
     return bad
 
+
 def demo_rows_checks(browser, bad):
     """To-do #243: in demo mode the sample rows (no id, no hex) of Recent flights and of the day's list start closed, a
     tap opens that row and only that row, another tap moves the card, and a tap on the card's fold closes it."""
