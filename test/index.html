@@ -7879,6 +7879,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.124.1", date: "2026-11-01", notes: [
+    "The Logbook's Today numbers are there on a day with no planes yet, at 0.",
+    "Frequent flyer's tier bar always shows all four tiers; those with no cards are greyed out.",
+  ]},
   {v: "1.124", date: "2026-10-31", notes: [
     "Member cards are now called Frequent flyer, and you get an airline's card with your first scan of it.",
     "An airline's first scan brings a pop-up with its new card; the passport's pop-up is smaller too. A tap on either takes you to the card or the country.",
