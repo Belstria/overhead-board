@@ -4113,7 +4113,12 @@ function placePhoto(){
   }
 }
 $("photoImg").onload = () => placePhoto();
-$("photoImg").onerror = () => { const s = $("photoImg").getAttribute("src"); if (featPic().kind === "ps" && featPhoto() === s) { psBad.add(s); preloadPhoto(); } };
+$("photoImg").onerror = () => {      // 1.127.0.1: whichever source; the next photo, or none (the frame goes)
+  const img = $("photoImg"), s = img.getAttribute("src");
+  if (!s || featPhoto() !== s || !picDead(s)) return;
+  if (!featPhoto()) img.removeAttribute("src"); else preloadPhoto();
+  placePhoto();
+};
 // The photo's credit on its screen (1.93). Planespotters' is a link to the photo's page (their terms), in a new tab
 // where the browser has them: a click anywhere on the photo, or the remote: Up or Down puts the ring on it, OK opens
 // it, which or Up or Down again takes the ring away (photoKey); the page stays while it has the ring.
@@ -6313,7 +6318,16 @@ function modelPic(names, onReady, code){
    links to the photo's page, and a model photo says so only there. Their terms: the photo loaded straight from their
    address by the screen that shows it, never kept or passed on, so the share picture takes the next one (noPs). */
 const PS_KEEP_MS = 3600000;                   // the relay keeps an answer 23 hours, a screen one more at most
-const psPhotos = new Map(), psBad = new Set();   // registration -> {at, photo (null: none, undefined: asking), cbs}; photos that didn't load
+const psPhotos = new Map(), psBad = new Map();   // registration -> {at, photo (null: none, undefined: asking), cbs}; address -> when it didn't load (any source, picDead)
+const PIC_BAD_MS = 1800000;                      // a photo that didn't load is not tried again for half an hour (a network blip mustn't hide it for good)
+const picIsDead = src => { const t = psBad.get(src); if (t && Date.now() - t < PIC_BAD_MS) return true; psBad.delete(src); return false; };
+// 1.127.0.1 (to-do #257): a photo that doesn't load, whichever source, is remembered so the next one is taken; true the first time.
+function picDead(src){
+  if (!src || src === PIC_BLANK || picIsDead(src)) return false;
+  psBad.set(src, Date.now());
+  for (const v of modelPics.values()) if (v === src) { modelForget(src); break; }       // the model's, also from the week's keep
+  return true;
+}
 const psOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 73;
 // 1.111.0.1 (to-do #168): the plane's model names from its live type (not adsbdb's, which can be the registration's
 // aircraft before), so the relay (95) skips a photo of another maker's aircraft that once had the registration.
@@ -6340,9 +6354,10 @@ function psPhoto(reg, hex, onReady, model){
 function planePic(ac, info, d, onReady, noPs){
   const reg = info.reg || d.reg || ac.r, ps = noPs ? null : psPhoto(reg, ac.hex, onReady, psModel(ac));
   if (ps === undefined) return {src: "", kind: "", asking: true};
-  if (ps && !psBad.has(ps.src)) return {src: ps.src, kind: "ps", by: ps.by, link: ps.link};
-  if (d.photo) return {src: d.photo, kind: "own"};
+  if (ps && !picIsDead(ps.src)) return {src: ps.src, kind: "ps", by: ps.by, link: ps.link};
+  if (d.photo && !picIsDead(d.photo)) return {src: d.photo, kind: "own"};
   const names = [TYPES[String(ac.t || "").toUpperCase()], info.type, d.type, ac.desc], m = modelPic(names, onReady, ac.t);
+  if (m && picIsDead(m)) return {src: "", kind: ""};
   return m ? {src: m, kind: "model"} : {src: "", kind: "", asking: modelAsking(names, ac.t)};
 }
 // A photo's credit: who (the photographer, or what it shows) and where from; on a narrow screen the first part gives way.
@@ -6369,11 +6384,10 @@ function picHtml(p, cls = "", over = "", attrs = ""){
   const cr = ps && attrs ? `<a class="cCr" href="${escH(p.link)}" target="_blank" rel="noopener">${picCreditHtml(p)}</a>` : `<span class="cCr">${picCreditHtml(p)}</span>`;
   return `<div class="cPicW${cls}"${attrs}>` + (ps && !attrs ? `<a class="cPicA" href="${escH(p.link)}" target="_blank" rel="noopener">${img}${cr}</a>` : img + cr) + over + "</div>";
 }
-// A Planespotters photo that doesn't load gives way to the next one.
+// A photo that doesn't load, whichever source (Planespotters', adsbdb's, the model's), gives way to the next one
+// (1.127.0.1, to-do #257); the card is drawn again without it, so no broken image and no credit over an empty frame.
 function picFailed(img, again){
-  const s = img.getAttribute("src"), w = img.closest(".cPicW");
-  if (!s || !(img.closest(".cPicA") || (w && w.querySelector("a.cCr"))) || psBad.has(s)) return;      // Planespotters': a link
-  psBad.add(s); if (again) again();
+  if (picDead(img.getAttribute("src")) && again) again();
 }
 
 // Favourites and hidden planes (lists on the relay): the sheet for one plane, the toggles on the cards, the manager.
@@ -6724,7 +6738,7 @@ function planeBody(o, sky){
   const facts = {...f, reg: f.reg || d.reg, type: f.type || d.type, flight: f.flight || f.callsign};
   const share = {flight: name, airline: info.airline || "", from: info.from, to: info.to, type, reg: info.reg || d.reg || ac.r || ""};
   const wire = el => {
-    for (const im of el.querySelectorAll(".cPicA img")) im.onerror = () => picFailed(im, sky ? null : again);
+    for (const im of el.querySelectorAll(".cPicW img")) im.onerror = () => picFailed(im, sky ? null : again);
     const al = el.querySelector("[data-al]"); if (al) al.onclick = () => airlineCard(f);
     const ty = el.querySelector("[data-ty]"); if (ty) ty.onclick = () => typeCard({typeCode: ac.t, type, desc: ac.desc});
     for (const b of el.querySelectorAll("[data-pl]")) b.onclick = () => placeCard(info[b.dataset.pl]);
@@ -7884,6 +7898,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.127.0.1", date: "2026-11-01", notes: [
+    "A plane's photo that doesn't load no longer leaves a broken picture: the next one is shown, and its credit only with it.",
+  ]},
   {v: "1.127", date: "2026-11-01", notes: [
     "The Logbook's plates now run Today, this year, All time.",
     "Under this year and All time, the list goes back through your earlier flights, 50 at a time, with Show more at the end.",

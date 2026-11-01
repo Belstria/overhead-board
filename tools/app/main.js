@@ -669,7 +669,7 @@ function renderAircraftInfo(){
         scr.classList.add("has"); paintRwy();
         if (!REDUCED) { void scr.offsetWidth; scr.classList.add("on"); }
       };
-      img.onerror = () => { scr.classList.remove("has"); if (p.kind === "ps" && img.getAttribute("src") === src) { psBad.add(src); renderAircraftInfo(); } };
+      img.onerror = () => { scr.classList.remove("has"); if (img.getAttribute("src") === src && picDead(src)) renderAircraftInfo(); };
       img.src = src;
     } else img.removeAttribute("src");
   }
@@ -1409,7 +1409,7 @@ async function foundCard(k, g){
       ["Last seen", escH(g.last ? `${fmtDay(g.last)}, ${hhmm(new Date(g.last))}` : "")], ["Seen from", escH(lbfPlaces(g).join(", "))]],
     btns: listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""});
   const wire = el => {
-    for (const im of el.querySelectorAll(".cPicA img")) im.onerror = () => picFailed(im, late);
+    for (const im of el.querySelectorAll(".cPicW img")) im.onerror = () => picFailed(im, late);
     const al = el.querySelector("[data-fal]"); if (al) al.onclick = () => airlineCard({airline: g.airline, callsign: g.callsign, airlineCode: g.airlineIata});
     const ty = el.querySelector("[data-fty]"); if (ty) ty.onclick = () => typeCard({typeCode: g.typeCode, type: g.type});
     for (const b of el.querySelectorAll("[data-pl]")) b.onclick = () => placeCard(g.route[b.dataset.pl]);

@@ -3214,6 +3214,46 @@ def browser_checks(browser):
         bad.append("the share picture would get a Planespotters photo")
     if e((pic % ("44d0ab", "CH-10", "C130", "")) + ".kind") == "ps":
         bad.append("a photo of another aircraft under the same hex was shown")
+    # 1.127.0.1 (to-do #257): a photo that doesn't load, whichever source, gives way to the next (Planespotters', adsbdb's,
+    # the model's, none): no broken image, and the credit only with the photo showing; a dead address is asked for once
+    hits = {}
+    def pics(route):
+        name = route.request.url.rsplit("/", 1)[-1].split(".")[0]
+        hits[name] = hits.get(name, 0) + 1
+        if name.endswith("dead"):
+            route.fulfill(status=404, body="not found", content_type="text/html")
+        else:
+            route.fulfill(status=200, content_type="image/svg+xml",
+                          body='<svg xmlns="http://www.w3.org/2000/svg" width="420" height="280"><rect width="420" height="280" fill="#456"/></svg>')
+    pg.route("https://pics.test/**", pics)
+    e("""window.__pc = (psSrc, ownSrc, modelSrc) => {
+        psBad.clear(); psPhotos.clear(); const reg = "ZZ-TEST", ac = {hex: "abc123", r: reg, t: "A320"}, k = modelKey([TYPES.A320], "A320");
+        psPhotos.set(reg, {at: Date.now(), photo: psSrc ? {src: psSrc, link: "https://www.planespotters.net/photo/1/zz-test-airbus", by: "Tester"} : null, cbs: []});
+        if (modelSrc) modelPics.set(k, modelSrc); else modelPics.delete(k);
+        let box = document.getElementById("__pcBox"); if (!box) { box = document.createElement("div"); box.id = "__pcBox"; document.body.appendChild(box); }
+        const draw = () => { box.innerHTML = picHtml(planePic(ac, {}, ownSrc ? {photo: ownSrc} : {}, null)); wire(); };
+        const wire = () => { for (const im of box.querySelectorAll(".cPicW img")) im.onerror = () => picFailed(im, draw); };
+        draw(); return true; }
+    window.__pcRead = () => { const box = document.getElementById("__pcBox"), ims = [...box.querySelectorAll("img.cPic:not([data-blank])")];
+        return [ims.length, ims.every(i => i.complete && i.naturalWidth > 0), (box.querySelector(".cCr") || {}).textContent || ""]; }""")
+    ps_, own_, mod_ = "https://pics.test/ps.jpg", "https://pics.test/own.jpg", "https://pics.test/model.jpg"
+    for label, args, want in (
+            ("all three load", (ps_, own_, mod_), [1, True, "Planespotters"]),
+            ("Planespotters dead", ("https://pics.test/psdead.jpg", own_, mod_), [1, True, "airport-data.com"]),
+            ("Planespotters and own dead", ("https://pics.test/psdead.jpg", "https://pics.test/owndead.jpg", mod_), [1, True, "Wikimedia Commons"]),
+            ("own dead, no Planespotters", (None, "https://pics.test/owndead.jpg", mod_), [1, True, "Model only"]),
+            ("own dead, no model picture", (None, "https://pics.test/owndead.jpg", None), [0, True, ""]),
+            ("all three dead", ("https://pics.test/psdead.jpg", "https://pics.test/owndead.jpg", "https://pics.test/modeldead.jpg"), [0, True, ""])):
+        hits.clear()
+        e("__pc(%s)" % ", ".join("null" if a is None else '"%s"' % a for a in args))
+        pg.wait_for_timeout(900)
+        got = e("__pcRead()")
+        if got[:2] != want[:2] or want[2] not in got[2] or (not want[2] and got[2]):
+            bad.append(f"a photo that doesn't load ({label}): got {got!r}, expected {want!r}")
+        if any(n > 1 for n in hits.values()):
+            bad.append(f"a photo that doesn't load ({label}) was asked for again: {hits}")
+    e("psBad.clear(); psPhotos.clear(); modelPics.delete(modelKey([TYPES.A320], 'A320')); document.getElementById('__pcBox').remove()")
+    pg.unroute("https://pics.test/**")
     ctx.close()
     # The private page (relay 99): a visitor without a profile gets the QR code, the two buttons and nothing of the
     # board; "I have an invite link" opens only this site's /join/ link and refuses anything else.
