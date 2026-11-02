@@ -597,7 +597,7 @@ function tlCardHtml(e){
     chip: chips, band: e.from || e.to ? [routeEnd(e.from, "from"), "", routeEnd(e.to, "to")] : e.done !== false ? noRoute(e) : null,
     tiles: [["Aircraft", shortType(e.type), "", e.type ? " data-ty" : ""], ["Closest", distText(e.minDist)], ["Height", altText(e.altAtMin)]]});
   const tier = TIER_NAME[rowTier(e)];                       // 1.122 (to-do #232): the rarity the bubble's colour shows, in words
-  return `<div class="tlCard cardish"><i class="tlBg"></i><p class="tlK"><span>${escH(e.time || "")} · <span data-ago>${escH(tlAgo(e))}</span>${tier ? ` · ${escH(T(tier))}` : ""}</span>` +
+  return `<div class="tlCard cardish">${'<i class="scr"></i>'.repeat(4)}<i class="tlBg"></i><p class="tlK"><span>${escH(e.time || "")} · <span data-ago>${escH(tlAgo(e))}</span>${tier ? ` · ${escH(T(tier))}` : ""}</span>` +
     `<button type="button" class="tlX" data-fold aria-label="${escH(T("Close"))}">${DD}</button></p>${card}</div>`;
 }
 const cardLi = (e, now) => `<li class="fl open" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e, now)}">${tlCardHtml(e)}</li>`;
@@ -5553,6 +5553,7 @@ function tlOpen(L, li, e){
   const was = document.createElement("div");     // the row, fading away at the top while the card grows under it
   was.className = "tlWas"; was.innerHTML = rowIn; li.append(was);
   li.classList.add("tlAnim");
+  card.classList.add("tlMill");                  // 1.129.16: the recess and its lines cut in (CSS), only when opened by a tap
   tlStart(TL_MS);
   const go = (el, kf, o) => el.animate(kf, {duration: TL_MS, easing: TL_EASE, fill: "backwards", ...o});
   const grow = go(li, [{height: h0 + "px", marginTop: m0[0], marginBottom: m0[1]}, {height: h1 + "px", marginTop: m1[0], marginBottom: m1[1]}]);
@@ -5572,7 +5573,7 @@ function tlFold(li, anim){
   li.className = "fl"; li.tabIndex = 0; li.innerHTML = rowInner(e, !!L && L.id === "recent");
   if (!anim || REDUCED || !card || typeof li.animate !== "function") return;
   const h0 = li.offsetHeight, cs0 = getComputedStyle(li), m0 = [cs0.marginTop, cs0.marginBottom];
-  card.classList.add("tlGone"); li.append(card);  // the card over the row, fading as it folds
+  card.classList.remove("tlMill"); card.classList.add("tlGone"); li.append(card);  // the card over the row, fading as it folds
   li.classList.add("tlAnim");
   tlStart(320);
   const shut = li.tlNow = li.animate([{height: h1 + "px", marginTop: m1[0], marginBottom: m1[1]}, {height: h0 + "px", marginTop: m0[0], marginBottom: m0[1]}], {duration: 320, easing: TL_EASE});

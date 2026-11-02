@@ -2827,6 +2827,17 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   touchend). The tap beside the card, Escape / the TV's back key and Android's back (`backStep`) were already silent, and `cardOpen` itself plays
   nothing (the tap that opens a card plays its own `nav`). The swipe's click is gone; the board's × (hidden in the app) no longer clicks either. Buttons
   inside a card that close it as part of an action (Done, Save / Discard, Go live, a place's Use) keep their button click. Flows: `card_close_checks`.
+- 1.129.16 (to-do #284, Dave's pick A of three, "Milled into the plate"; app only, no relay change): **An opened row is milled into its plate.** The
+  card in place (`tlCardHtml`, Recent flights on Now and the Logbook) drops the gold-edged box: `.tlBg` is a recess (inner shadow, edge light; flat
+  without Realistic look), four shared screws `.scr` sit in its corners (`#recent .scr` hides the list's own, so `#recent .tlCard>.scr` shows them);
+  `.tlK` is engraved like the day's title with a hairline (`::before`) running to `.tlX`, now a round metal knob with the amber chevron; the photo
+  (`.cSkyPic`) sits in a window cut into the metal; the route's codes get an engraved line each (`.cRbEnd b::after` / `::before`) towards the plane, whose
+  amber disc went; Aircraft / Closest / Height lose their boxes for a machined rule above and dividers between. Same facts, order and taps. Daylight:
+  `:is(#svList,#recent) .tlCard.cardish` keeps the night metal and inks (an id's weight beats the plates' paper-card rule). Motion: `tlOpen` adds
+  `.tlMill` (only when it animates, so not with less motion or when a list is drawn with a row open) and CSS keyframes (`tlMillBg`, `tlMillLine`,
+  `tlMillRule`, `tlMillDiv`, `lbIn` for the screws) cut the recess in over the app's own opening, ending about 0.55 s after the tap; `tlFold` drops the
+  class before the card fades so the moved element doesn't replay it. Checked at 390 and 360 px: no photo, a helicopter without route, a special plane, a
+  favourite, long names (the tiles lost their 6 px gaps, so a type is cut no harder), daylight, Realistic look off.
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 
