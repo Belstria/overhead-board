@@ -1020,9 +1020,6 @@ body.real{--pl-hi:inset 0 1px 0 rgba(255,255,255,.12);--pl-side:inset 1px 0 0 rg
 .tline li.st::before{content:"";position:absolute;left:-20px;top:18px;width:9px;height:9px;border-radius:50%;background:#3d3f44;box-shadow:0 0 0 2px #0d0e10,0 1px 0 2px rgba(255,255,255,.06)}
 .tline li.st.find::before{background:var(--amber);box-shadow:0 0 0 2px #0d0e10,0 0 10px var(--amber)}
 .tline li.st b{display:block;color:var(--ink);font-size:var(--fs-base)}
-/* daylight's dark ink and deep amber are for the paper; the plate stays metal, with the night's colours */
-html.daylight .tline .l1 .f,html.daylight .tline li.st b{color:#f3f0e8}
-html.daylight .tline .l1 time,html.daylight .tline li.tg,html.daylight .lbDayH{color:#f0b429}
 .tlFoot{display:flex;justify-content:center;margin:8px 0 0}
 /* the card in place: the gold-edged box of a page's highlight, when and how long ago, ⌃ (the chevron of what opens,
    turned up) to fold it; a smaller photo than a card's; while it opens, the row's copy, the gliding texts, the old card */
@@ -1282,6 +1279,10 @@ body.arOpen #sheet{z-index:75}
 /* 1.66: Daylight (Settings → Display): a cream page, dark text, black flaps with white letters, for the sun */
 html.daylight{color-scheme:light;--housing:#efe9dc;--muted:#55524b;--label2:#5a5650;--line:#d3cab7}
 html.daylight body{background-color:#efe9dc}
+/* 1.129.13 (to-do #282): a plate stays metal in daylight, so on it the night's ink, greys and amber (daylight's dark ink
+   and deep amber are for the paper); a paper card on a plate, or a plate that is paper (.cardish: Favourites & hidden), has daylight's again */
+html.daylight .plate,html.daylight #recentPl,html.daylight #svList>li{--ink:#f3f0e8;--muted:#959aa3;--label2:#6d7179;--amber:#f0b429;--line:#26272b;color:var(--ink)}
+html.daylight .plate.cardish,html.daylight .plate .cardish,html.daylight #recentPl .cardish,html.daylight #svList .cardish{--ink:#191919;--muted:#55524b;--label2:#5a5650;--amber:#a85300;--line:#d3cab7}
 html.daylight .panel{background:#e2d9c6;border-radius:6px}
 html.daylight .rvCard,html.daylight .cardish,html.daylight #cardBox .cardIn{background:#fbf8f1!important;color:#191919;border-color:#d3cab7}
 html.daylight #cardBox .cardIn *,html.daylight .cardish *{border-color:#d3cab7}
@@ -13338,6 +13339,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.129.13", date: "2026-11-02", notes: [
+    "Settings is easier to read in daylight.",
+  ]},
   {v: "1.129.12", date: "2026-11-02", notes: [
     "Recent flights and the Logbook's days now sit on metal plates, like Settings.",
   ]},

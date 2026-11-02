@@ -2807,6 +2807,14 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   own plate has that daylight problem (its labels go dark on the metal): reported, not changed here. Show more spans the plate's width. 120 rows draw in
   about 11 ms (headless). `.scr{overflow-anchor:none}`: Chrome's scroll anchoring picked a day's bottom screw (an absolute `<i>` before
   the rows) and scrolled with it when Show more grew the plate (flows.py "Show more moved the row in view").
+- 1.129.13 (to-do #282; app only, no relay change; found while building 1.129.12, Dave: fix it): **Settings is easier to read in daylight.** Daylight
+  (`html.daylight`, `applyTheme`) sets `--ink:#191919`, `--amber:#a85300` and darker `--muted`/`--label2` for the cream page, but the metal plates stay dark,
+  so Settings' row labels, the Club's level, numbers and rows, the Account sheet's name and input went dark on dark. One rule in head.html's daylight block
+  gives every `.plate` (and the 1.129.12 lists: `#recentPl`, `#svList>li`) the night's `--ink`, `--muted`, `--label2`, `--amber` and `--line` plus
+  `color:var(--ink)`; a paper card on a plate or a plate that is paper (`.cardish`, `.plate.cardish`: Favourites & hidden's sheet) gets daylight's back. It
+  replaces 1.129.12's own daylight colours for the lists (same result). Checked in daylight with Realistic look on and off: Settings, its ten sheets, the
+  Club, About, the Radar, the Logbook (pixel diffs: only the dark-on-dark text changed; Location, Display, Favourites & hidden, the Flight school's
+  record and the Logbook unchanged). Not on a plate and left as it was: the Club's segmented tabs (the active one is dark on dark in daylight).
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 
