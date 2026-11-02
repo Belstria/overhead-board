@@ -1021,20 +1021,62 @@ body.real{--pl-hi:inset 0 1px 0 rgba(255,255,255,.12);--pl-side:inset 1px 0 0 rg
 .tline li.st.find::before{background:var(--amber);box-shadow:0 0 0 2px #0d0e10,0 0 10px var(--amber)}
 .tline li.st b{display:block;color:var(--ink);font-size:var(--fs-base)}
 .tlFoot{display:flex;justify-content:center;margin:8px 0 0}
-/* the card in place: the gold-edged box of a page's highlight, when and how long ago, ⌃ (the chevron of what opens,
-   turned up) to fold it; a smaller photo than a card's; while it opens, the row's copy, the gliding texts, the old card */
+/* the card in place (1.129.16, to-do #284, Dave's pick A): a recess milled into the plate (inner shadow, edge light, four
+   small screws), when and how long ago engraved like the day's title with its hairline running to a round metal knob,
+   ⌃ (the chevron of what opens, turned up) to fold it; a smaller photo than a card's, in a window cut into the metal;
+   while it opens, the row's copy, the gliding texts, the old card */
 .tline li.fl.open{padding:0;margin:8px 0 10px 22px;border:0;cursor:default;background:none;box-shadow:none}
 .tline li.fl.open::before{top:18px}
 .tline li.fl.tlAnim{overflow:hidden}
-.tlCard{position:relative;padding:10px 12px 12px;border-radius:14px}
-.tlBg{position:absolute;inset:0;border-radius:14px;background:var(--box-bg);border:1px solid rgba(240,180,41,.35);pointer-events:none}
+.tlCard{position:relative;padding:12px 12px 16px;border-radius:6px}
+.tlBg{position:absolute;inset:0;border-radius:6px;background:linear-gradient(#161719,#1c1d20);pointer-events:none;
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.85),inset 0 1px 0 rgba(0,0,0,.9),inset 0 -1px 0 rgba(255,255,255,.06),0 1px 0 rgba(255,255,255,.09),0 -1px 0 rgba(0,0,0,.45)}
+body:not(.real) .tlBg{background:#1b1c1f}
 .tlCard>:not(.tlBg){position:relative}
-.tlK{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 2px 8px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.tline .tlCard>.scr{display:block;position:absolute;z-index:1;width:7px;height:7px}
+#recent .tlCard>.scr{display:block}
+.tline .tlCard>.scr:nth-of-type(1){left:5px;top:5px}.tline .tlCard>.scr:nth-of-type(2){right:5px;left:auto;top:5px}
+.tline .tlCard>.scr:nth-of-type(3){left:5px;bottom:5px}.tline .tlCard>.scr:nth-of-type(4){right:5px;bottom:5px}
+.tlK{display:flex;justify-content:space-between;align-items:center;gap:6px;margin:0 0 10px 2px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
 .tlK{cursor:pointer}
-.tlX{all:unset;box-sizing:border-box;cursor:pointer;display:grid;place-items:center;width:40px;height:32px;margin:-10px -10px -10px 0;color:var(--muted)}
-.tlX .dd{width:18px;height:18px;transform:rotate(180deg)}
-.tlX .dd circle{stroke:rgba(240,180,41,.55)}
+.tlK>span{flex:0 1 auto}
+.tlK::before{content:"";order:1;flex:1;min-width:0;height:1px;background:rgba(214,208,194,.25);transform-origin:0 50%}
+.tlX{all:unset;order:2;box-sizing:border-box;cursor:pointer;display:grid;place-items:center;width:36px;height:32px;margin:-10px -6px -10px 0;color:var(--amber)}
+.tlX .dd{width:24px;height:24px;border-radius:50%;transform:rotate(180deg);
+  background:radial-gradient(circle at 62% 70%,#6a6d72,#35373b 55%,#1d1e21);box-shadow:0 -1px 2px rgba(0,0,0,.85),inset 0 -1px 0 rgba(255,255,255,.18)}
+.tlX .dd circle{display:none}
 .tlX:focus-visible{outline:2px solid var(--amber);border-radius:6px}
+/* the photo's window, the route's engraved lines (from each code to the plane), the facts between machined lines */
+.tlCard .cInfo .cSkyPic{border-radius:4px;box-shadow:0 0 0 3px #0b0b0c,0 1px 0 3px rgba(255,255,255,.07)}
+.tlCard .cInfo .cSkyPic::after{content:"";position:absolute;inset:0;z-index:1;box-shadow:inset 0 3px 8px rgba(0,0,0,.75);pointer-events:none}
+.tlCard .cInfo .cOvPlain{padding-top:2px}
+.tlCard .cInfo .cRouteB{margin:16px 4px 0}
+.tlCard .cInfo .cRouteB .cKind,.tlCard .cInfo .cRouteB .cKind.only{padding:0 8px;border-radius:0;background:none;box-shadow:none;color:var(--amber);filter:drop-shadow(0 -1px 0 rgba(0,0,0,.85))}
+.tlCard .cInfo .cRbEnd b{display:flex;align-items:center;gap:12px;text-shadow:0 -1px 0 rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.05)}
+.tlCard .cInfo .cRbEnd:first-child b::after,.tlCard .cInfo .cRbEnd:last-child b::before{content:"";flex:1;min-width:0;height:1px;background:rgba(0,0,0,.8);box-shadow:0 1px 0 rgba(255,255,255,.08);transform-origin:0 50%}
+.tlCard .cInfo .cRbEnd:last-child b::before{transform-origin:100% 50%}
+.tlCard .cInfo .cTiles{gap:0;margin-top:14px;padding-top:12px;box-shadow:inset 0 1px 0 rgba(0,0,0,.75),inset 0 2px 0 rgba(255,255,255,.05)}
+.tlCard .cInfo .cTile{padding:2px 6px;border-radius:0;background:none}
+.tlCard .cInfo .cTile+.cTile{box-shadow:inset 1px 0 0 rgba(0,0,0,.75),inset 2px 0 0 rgba(255,255,255,.05)}
+.tlCard .cInfo .cTile span,.tlCard .cInfo .cTile b,.tlCard .cInfo .cNoRoute{text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+.tlCard .cInfo button.cTile:active{background:rgba(255,255,255,.04)}
+/* the card keeps the night metal in daylight, like the plates (1.129.13) */
+html.daylight :is(#svList,#recent) .tlCard.cardish{background:none!important;--ink:#f3f0e8;--muted:#959aa3;--label2:#6d7179;--amber:#f0b429;color:#f3f0e8}
+/* opened by a tap (tlMill, tlOpen): the recess's shadow and edge light fade in, the header's hairline draws towards the
+   knob, the route's lines outwards from the codes to the plane, the facts' rule and dividers cut in, the screws last */
+.tlMill .tlBg{animation:tlMillBg .38s .04s cubic-bezier(.33,1,.68,1) backwards}
+.tlMill .tlK::before{animation:tlMillLine .38s .11s cubic-bezier(.33,1,.68,1) backwards}
+.tlMill .cInfo .cRbEnd:first-child b::after,.tlMill .cInfo .cRbEnd:last-child b::before{animation:tlMillLine .42s .15s cubic-bezier(.33,1,.68,1) backwards}
+.tlMill .cInfo .cTiles{animation:tlMillRule .3s .2s cubic-bezier(.33,1,.68,1) backwards}
+.tlMill .cInfo .cTile+.cTile{animation:tlMillDiv .3s .29s cubic-bezier(.33,1,.68,1) backwards}
+.tlMill .cInfo .cTile+.cTile+.cTile{animation-delay:.33s}
+.tlMill>.scr{animation:lbIn .2s .26s backwards}
+.tlMill>.scr:nth-of-type(2){animation-delay:.285s}.tlMill>.scr:nth-of-type(3){animation-delay:.31s}.tlMill>.scr:nth-of-type(4){animation-delay:.335s}
+@keyframes tlMillBg{from{box-shadow:inset 0 2px 6px transparent,inset 0 1px 0 transparent,inset 0 -1px 0 transparent,0 1px 0 transparent,0 -1px 0 transparent}}
+@keyframes tlMillLine{from{transform:scaleX(0)}}
+@keyframes tlMillRule{from{box-shadow:inset 0 1px 0 transparent,inset 0 2px 0 transparent}}
+@keyframes tlMillDiv{from{box-shadow:inset 1px 0 0 transparent,inset 2px 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){.tlMill *,.tlMill::before,.tlMill *::before,.tlMill *::after{animation:none!important}}
 .tlCard .cInfo .cSkyPic .cPic{height:170px}
 .tlCard .cSkyPic,.tlCard .cOvPlain{cursor:pointer}
 .tlWas{position:absolute;left:0;right:0;top:0;z-index:2;padding:9px 12px 10px;border-radius:12px;background:var(--box-bg);border:var(--box-bd);pointer-events:none}
@@ -7898,7 +7940,7 @@ function tlCardHtml(e){
     chip: chips, band: e.from || e.to ? [routeEnd(e.from, "from"), "", routeEnd(e.to, "to")] : e.done !== false ? noRoute(e) : null,
     tiles: [["Aircraft", shortType(e.type), "", e.type ? " data-ty" : ""], ["Closest", distText(e.minDist)], ["Height", altText(e.altAtMin)]]});
   const tier = TIER_NAME[rowTier(e)];                       // 1.122 (to-do #232): the rarity the bubble's colour shows, in words
-  return `<div class="tlCard cardish"><i class="tlBg"></i><p class="tlK"><span>${escH(e.time || "")} · <span data-ago>${escH(tlAgo(e))}</span>${tier ? ` · ${escH(T(tier))}` : ""}</span>` +
+  return `<div class="tlCard cardish">${'<i class="scr"></i>'.repeat(4)}<i class="tlBg"></i><p class="tlK"><span>${escH(e.time || "")} · <span data-ago>${escH(tlAgo(e))}</span>${tier ? ` · ${escH(T(tier))}` : ""}</span>` +
     `<button type="button" class="tlX" data-fold aria-label="${escH(T("Close"))}">${DD}</button></p>${card}</div>`;
 }
 const cardLi = (e, now) => `<li class="fl open" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e, now)}">${tlCardHtml(e)}</li>`;
@@ -13345,6 +13387,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.129.16", date: "2026-11-02", notes: [
+    "An opened plane in the lists is now milled into its metal plate.",
+  ]},
   {v: "1.129.15", date: "2026-11-02", notes: [
     "Closing an info card is silent now.",
   ]},
@@ -15005,6 +15050,7 @@ function tlOpen(L, li, e){
   const was = document.createElement("div");     // the row, fading away at the top while the card grows under it
   was.className = "tlWas"; was.innerHTML = rowIn; li.append(was);
   li.classList.add("tlAnim");
+  card.classList.add("tlMill");                  // 1.129.16: the recess and its lines cut in (CSS), only when opened by a tap
   tlStart(TL_MS);
   const go = (el, kf, o) => el.animate(kf, {duration: TL_MS, easing: TL_EASE, fill: "backwards", ...o});
   const grow = go(li, [{height: h0 + "px", marginTop: m0[0], marginBottom: m0[1]}, {height: h1 + "px", marginTop: m1[0], marginBottom: m1[1]}]);
@@ -15024,7 +15070,7 @@ function tlFold(li, anim){
   li.className = "fl"; li.tabIndex = 0; li.innerHTML = rowInner(e, !!L && L.id === "recent");
   if (!anim || REDUCED || !card || typeof li.animate !== "function") return;
   const h0 = li.offsetHeight, cs0 = getComputedStyle(li), m0 = [cs0.marginTop, cs0.marginBottom];
-  card.classList.add("tlGone"); li.append(card);  // the card over the row, fading as it folds
+  card.classList.remove("tlMill"); card.classList.add("tlGone"); li.append(card);  // the card over the row, fading as it folds
   li.classList.add("tlAnim");
   tlStart(320);
   const shut = li.tlNow = li.animate([{height: h1 + "px", marginTop: m1[0], marginBottom: m1[1]}, {height: h0 + "px", marginTop: m0[0], marginBottom: m0[1]}], {duration: 320, easing: TL_EASE});

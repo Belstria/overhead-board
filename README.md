@@ -833,8 +833,10 @@ Five buttons along the bottom:
   is the plane's rarity colour (grey common, green uncommon, blue rare, purple very rare, gold special); the words are on the card. A plane without a
   flight number shows its registration (or its owner); without a route the row shows its type. **Tap a plane** and its card opens right
   there: the row grows downwards into the card, the rows below slide down and the card's content fades in (since
-  1.97.1; just opens with less motion on); the photo (Planespotters' first, its credit a link to the photo's page) opens the
-  plane's whole card, the airline, the places and the Aircraft box theirs, and ⌃, the bar it sits in or another plane folds it back.
+  1.97.1; just opens with less motion on). Since 1.129.16 the card is **milled into the plate**: a recess with four small screws,
+  the time engraved with its line running to a round metal knob (⌃), the photo in a window cut into the metal, an engraved line
+  from each airport to the plane, and Aircraft, Closest and Height between machined lines; as it opens the lines draw in. The photo (Planespotters' first, its credit a link to the photo's page) opens the
+  plane's whole card, the airline, the places and the aircraft type theirs, and the knob, the bar it sits in or another plane folds it back.
   In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
   itself every 20 seconds; it stays when one side has no plane), with the runway screen in place of the photo, and the
   take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
