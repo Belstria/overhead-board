@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 107
+RELAY_VERSION = 108
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -6033,6 +6033,50 @@ def admin_stats(pid, p, live):
             f"{m['newTypeCount']:,} types · {len(b.get('types', {})):,} types in the logbook<br>{rare} · screens on now: {scr}</p>")
 
 
+LEAFLET_URL = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/"      # the admin page's map (relay 108)
+LEAFLET_SRI = {"leaflet.min.css": "sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==",
+               "leaflet.min.js": "sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g=="}
+MAP_CSS = ("<style>#umap{height:340px;margin:8px 0;border-radius:10px;border:1px solid #26272b;background:#16171a;color:#8d887b;"
+           "font-size:14px}</style>")
+
+
+def admin_pins(profs):
+    """Relay 108 (to-do #278): where the boards are, for the owner's map. One pin for each profile with a location: the one
+    its settings hold, which a phone on live location keeps up to date and a screen keeps at its saved place. Only [lat, lon]
+    and shuffled: nothing in them says whose they are. The demo and test profiles and those with no location are left out.
+    The list goes into the admin page's response only, never to a log, an event or a file."""
+    pins = []
+    for p in profs:
+        st = p.get("settings") or {}
+        if st.get("demo") or re.match(r"(test|demo)\b", str(p.get("name") or "").strip().lower()) or not st.get("located"):
+            continue
+        try:
+            lat, lon = float(st.get("lat")), float(st.get("lon"))
+        except (TypeError, ValueError):
+            continue
+        if abs(lat) <= 90 and abs(lon) <= 180:
+            pins.append([round(lat, 5), round(lon, 5)])
+    random.shuffle(pins)
+    return pins
+
+
+def admin_map_html(pins):
+    """The map of admin_pins: Leaflet with OpenStreetMap's tiles (the usage policy asks for the credit and a referrer, which
+    each tile carries). It starts on Vienna and grows to hold every pin; a pin is a plain dot with nothing to tap or hover."""
+    if not pins:
+        return ""
+    tags = (f'<link rel=stylesheet href="{LEAFLET_URL}leaflet.min.css" integrity="{LEAFLET_SRI["leaflet.min.css"]}" crossorigin=anonymous>'
+            f'<script src="{LEAFLET_URL}leaflet.min.js" integrity="{LEAFLET_SRI["leaflet.min.js"]}" crossorigin=anonymous></script>')
+    js = ("(function(){var el=document.getElementById('umap');if(!window.L){el.textContent='The map needs the internet.';return}"
+          "var P=" + json.dumps(pins, separators=(",", ":")) + ",m=L.map(el),b=L.latLngBounds([48.12,16.18],[48.32,16.58]);"
+          "L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,referrerPolicy:'strict-origin-when-cross-origin',"
+          "attribution:'&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors'}).addTo(m);"
+          "P.forEach(function(p){b.extend(p);L.circleMarker(p,{radius:7,color:'#111',weight:2,fillColor:'#f2b134',fillOpacity:1,"
+          "interactive:false}).addTo(m)});m.fitBounds(b,{padding:[24,24],maxZoom:14})})();")
+    return (MAP_CSS + tags + f"<h2>Where boards are</h2><div id=umap></div><p class=muted>{len(pins)} place{'s' if len(pins) != 1 else ''}</p>"
+            f"<script>{js}</script>")
+
+
 def admin_html(host, made=None):
     """Relay 42 (to-do #34): every profile is a Guest (no account yet: an invite link brings in a device) or an Account
     (a username: devices sign in with it, so there is no link any more), with its devices, Flightradar24 use and limit."""
@@ -6044,6 +6088,7 @@ def admin_html(host, made=None):
         by = (_fr24_usage().get("by") or {})
         items = sorted(profiles()["profiles"].items(), key=lambda kv: -kv[1].get("lastSeen", 0))
         pending = collections.Counter(i["profile"] for i in profiles()["invites"].values() if i["expires"] > time.time())
+        pins = admin_pins(profiles()["profiles"].values())
         for pid, p in items:
             acc = p.get("account") or {}
             user = acc.get("user") or ""
@@ -6104,7 +6149,7 @@ def admin_html(host, made=None):
     body = (ADMIN_CSS + f"<h1>Friends &amp; family</h1><p>Everyone has their own profile: their own location, Spotted today and "
             f"logbook. A guest joins with an invite link; once they create an account, they sign in with it instead. A screen "
             f"without a profile shows a QR code to sign it in from a phone. This page only opens at home.</p>{made_html}"
-            f"<h2>People</h2>{people}<p class=muted>Flightradar24 a day: {FR24_DAY_GUEST:,} credits for a guest, {FR24_DAY_ACCOUNT:,} "
+            f"{admin_map_html(pins)}<h2>People</h2>{people}<p class=muted>Flightradar24 a day: {FR24_DAY_GUEST:,} credits for a guest, {FR24_DAY_ACCOUNT:,} "
             f"with an account, unless set here.</p><h2>Invite someone</h2>"
             f"<form method=post action='/admin/invite'><input type=text name=name maxlength=40 placeholder='Name, e.g. Mum' required> "
             f"<button class=go>Make a link</button></form>" + fr24_admin_html() + hue_admin_html())

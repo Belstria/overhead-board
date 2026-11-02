@@ -95,7 +95,7 @@ and may have an account (user, scrypt password, passkeys). `at_home()` only open
 `/status`, `/admin/*` POSTs), and since relay 43 `owner_ok()` only for the one profile named `HOME_OWNER` (David)
 (relay 54: a device without a profile only on the relay's own computer, e.g. `curl` over SSH, or while no David
 profile exists; other guests: 403). A guest not yet `located` gets the relay's place and airport in
-`OVERHEAD_DEFAULTS`, never its lat/lon (Dave's home). `/admin` makes invites, accounts and limits. Screens name
+`OVERHEAD_DEFAULTS`, never its lat/lon (Dave's home). `/admin` makes invites, accounts and limits, and (relay 108) maps where the boards are: shuffled `[lat, lon]` pins from the profiles' settings, no names, only in that page. Screens name
 their place on each position request. `host_ok()` refuses foreign Host names; loopback (the tunnel) always passes.
 
 ## The relay's home and how to update it

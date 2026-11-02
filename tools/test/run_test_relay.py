@@ -159,7 +159,18 @@ def run(a, tmp, procs):
                      "settings": {"lat": 48.2085, "lon": 16.3731, "place": "Vienna", "home": "VIE", "radiusKm": 15, "located": True}},
         "new00001": {"name": "New guest", "created": now, "lastSeen": 0, "fr24": False, "devices": dev("new-device"), "settings": None},
         "own00001": {"name": "David", "created": now, "lastSeen": now, "fr24": True, "devices": dev("owner-device"),
-                     "settings": {"lat": 48.2085, "lon": 16.3731, "place": "Vienna", "home": "VIE", "radiusKm": 15, "located": True}}}}),
+                     "settings": {"lat": 48.2085, "lon": 16.3731, "place": "Vienna", "home": "VIE", "radiusKm": 15, "located": True}},
+        # relay 108: the owner's map of where boards are: three more with a place (one far away, one on the go), one with
+        # none and one demo profile (left out)
+        "map00001": {"name": "Anna", "created": now, "lastSeen": now - 60, "devices": dev("anna-device"),
+                     "settings": {"lat": 48.2082, "lon": 16.3738, "place": "Vienna", "home": "VIE", "radiusKm": 15, "located": True}},
+        "map00002": {"name": "Ben", "created": now, "lastSeen": now - 120, "devices": dev("ben-device"),
+                     "settings": {"lat": 48.2301, "lon": 16.4102, "place": "On the go", "home": "VIE", "radiusKm": 15, "located": True}},
+        "map00003": {"name": "Dora", "created": now, "lastSeen": now - 180, "devices": dev("dora-device"),
+                     "settings": {"lat": 47.0707, "lon": 15.4395, "place": "Graz", "home": "GRZ", "radiusKm": 15, "located": True}},
+        "map00004": {"name": "Clara", "created": now, "lastSeen": now - 240, "devices": dev("clara-device"), "settings": None},
+        "map00005": {"name": "Demo guest", "created": now, "lastSeen": now - 300, "devices": dev("demo-device"),
+                     "settings": {"lat": 48.1900, "lon": 16.3300, "place": "Vienna", "located": True}}}}),
         encoding="utf-8")
     # relay 68: a sighting from yesterday saved before the relay knew airline names (the Test profile), which the relay
     # fills in once; the Austrian one already has its name and must stay as it is

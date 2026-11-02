@@ -49,10 +49,14 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - the Now tab's Sky view row (1.128): each state, In range through the relay's list, the ★ the same, its key, label and strip
 - the private page (relay 99): the QR code and the two ways in, nothing of the board; the invite field opens only this
   site's /join/ link and refuses another site's, a bare //host, javascript: and another path
+- the owner's map of where boards are (relay 108, to-do #278): one pin for each profile with a place, none for the test and
+  demo profiles or one with no place, only [lat, lon] in shuffled order, no name or id in it; Leaflet from a fixed version
+  with integrity; a guest's admin page is still refused
 """
 import gzip
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -2833,6 +2837,23 @@ def checks():
     expect("/admin at home, David", call("/admin", "owner-device", AT_HOME)[0], 200)
     expect("/admin from outside, David", call("/admin", "owner-device", OUTSIDE)[0] in (403, 404), True)
     expect("/admin on the relay's own computer", call("/admin")[0], 200)
+    # relay 108 (to-do #278): the owner's map. Pins for David, Anna, Ben (on the go) and Dora (far away); the Test and Demo
+    # profiles, Clara (no place) and New guest are left out. Only numbers go into the page, in no fixed order.
+    want = sorted([[48.2085, 16.3731], [48.2082, 16.3738], [48.2301, 16.4102], [47.0707, 15.4395]])
+    orders, block = set(), ""
+    for _ in range(12):
+        pg = call("/admin", "owner-device", AT_HOME)[2].decode()
+        m = re.search(r"var P=(\[\[[-0-9.,\[\]]*\]\])", pg)
+        orders.add(m.group(1) if m else None)
+        block = pg.split("<h2>Where boards are</h2>", 1)[-1].split("<h2>People</h2>", 1)[0]
+    expect("the admin map: a pin for each profile with a place, nothing else", sorted(json.loads(next(iter(orders - {None}), "[]"))), want)
+    expect("the admin map: the pins come in a different order each time", len(orders - {None}) > 1, True)
+    expect("the admin map: no name or profile id near the pins",
+           [n for n in ("Anna", "Ben", "Dora", "Clara", "David", "Demo", "Test", "New guest", "map0000", "own0000", "test0001") if n in block], [])
+    expect("the admin map: Leaflet at a fixed version, with integrity",
+           (pg.count("cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/"), pg.count("integrity=\"sha512-")), (2, 2))
+    expect("the admin map: credits OpenStreetMap, no tooltip or popup", ("OpenStreetMap</a> contributors" in pg, "bindTooltip" in pg or "bindPopup" in pg), (True, False))
+    expect("the admin map: a guest gets no page", b"umap" in call("/admin", "test-device", AT_HOME)[2], False)
     expect("/status at home, no profile", call("/status", headers=AT_HOME)[0], 403)
     # relay 69: the page knows the owner (and only the owner); without a profile (the update check) it still builds,
     # and what a profile saved stays escaped inside the page's script
