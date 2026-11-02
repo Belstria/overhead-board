@@ -5836,7 +5836,7 @@ function cardOpen(html, wire){
   const info = String(html).startsWith('<div class="cInfo"') ? " info" : "";  // 1.94: an info card (× on its photo)
   box.innerHTML = `<div class="cardIn${info}" role="dialog" aria-modal="true"><button class="cardX" type="button" aria-label="${escH(T("Close"))}">×</button>${html}</div>`;
   box.hidden = false;
-  box.querySelector(".cardX").onclick = () => { ctlSound.click(); cardClose(); };
+  box.querySelector(".cardX").onclick = cardClose;
   if (wire) wire(box.querySelector(".cardIn"));
   if (sheet) cardSheetPost(box, sheet);
   return ++cardTok;
@@ -7926,6 +7926,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.129.15", date: "2026-11-02", notes: [
+    "Closing an info card is silent now.",
+  ]},
   {v: "1.129.14", date: "2026-11-02", notes: [
     "The Club's tabs are easier to read in daylight.",
   ]},

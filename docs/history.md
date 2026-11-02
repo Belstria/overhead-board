@@ -2822,6 +2822,11 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   (`rgba(0,0,0,.1)`); a row on a plate (`gSeg`, `trSeg`, `lbPer`, `catSeg`, `logSeg`) keeps the night track. The `:is(.plate,#recentPl,#svList>li)` restore
   carries an id's weight, so the connection log's row on its sheet also loses the cream border `#cardBox .cardIn *` gave it. Checked in daylight with
   Realistic look on and off (every `.seg` row); night is untouched (the rules are daylight-only).
+- 1.129.15 (to-do #285; app only, no relay change): **Closing an info card is silent.** A spy on `ctlSound`, `sfxOut` and the named sounds while the card
+  (`#cardBox`) closed each way found one sound: the swipe down played `ctlSound.click()` before `cardClose()` (`tools/app/main.js`, the card drag's
+  touchend). The tap beside the card, Escape / the TV's back key and Android's back (`backStep`) were already silent, and `cardOpen` itself plays
+  nothing (the tap that opens a card plays its own `nav`). The swipe's click is gone; the board's × (hidden in the app) no longer clicks either. Buttons
+  inside a card that close it as part of an action (Done, Save / Discard, Go live, a place's Use) keep their button click. Flows: `card_close_checks`.
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 

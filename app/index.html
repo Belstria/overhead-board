@@ -3147,7 +3147,7 @@ function cardOpen(html, wire){
   const info = String(html).startsWith('<div class="cInfo"') ? " info" : "";  // 1.94: an info card (× on its photo)
   box.innerHTML = `<div class="cardIn${info}" role="dialog" aria-modal="true"><button class="cardX" type="button" aria-label="${escH(T("Close"))}">×</button>${html}</div>`;
   box.hidden = false;
-  box.querySelector(".cardX").onclick = () => { ctlSound.click(); cardClose(); };
+  box.querySelector(".cardX").onclick = cardClose;
   if (wire) wire(box.querySelector(".cardIn"));
   if (sheet) cardSheetPost(box, sheet);
   return ++cardTok;
@@ -11816,7 +11816,7 @@ function cardSheetClose(b){
     if (!d || d.beside || !d.on) return;
     dragged = Date.now();
     $("cardBox").classList.remove("drag");
-    if (d.dy > 90 || (d.v > .5 && d.dy > 20)) { ctlSound.click(); cardClose(); }
+    if (d.dy > 90 || (d.v > .5 && d.dy > 20)) cardClose();
     else d.ci.style.transform = "";                  // springs back
   };
   document.addEventListener("touchend", end); document.addEventListener("touchcancel", end);
@@ -13345,6 +13345,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.129.15", date: "2026-11-02", notes: [
+    "Closing an info card is silent now.",
+  ]},
   {v: "1.129.14", date: "2026-11-02", notes: [
     "The Club's tabs are easier to read in daylight.",
   ]},
