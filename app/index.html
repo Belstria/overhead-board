@@ -1317,7 +1317,6 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .setAsk div{display:flex;gap:10px;justify-content:flex-end;align-items:center}
 .setAsk .setNo{all:unset;cursor:pointer;padding:10px 12px;font:700 var(--fs-s)/1 var(--f-board);color:#ff8a80}
 .setAsk .setNo:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-.idxH{margin:18px 0 6px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .idx{margin:0;padding:0;list-style:none;border-radius:14px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.07);overflow:hidden}
 .idx li+li{border-top:1px solid rgba(255,255,255,.06)}
 .idx button,.idx a{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:8px 14px}
@@ -1327,8 +1326,16 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .idx b{flex:1 0 auto;font:700 var(--fs-base)/1.2 var(--f-board);color:var(--ink)}
 .idx small{flex:0 1 auto;min-width:0;text-align:right;font:500 var(--fs-s)/1.25 var(--f-board);color:var(--muted)}
 .idx i{font-style:normal;color:var(--muted);font-size:var(--fs-xl)}
-.idx .sIco{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:rgba(240,180,41,.14);color:var(--amber)}
-.idx .sIco svg{width:17px;height:17px}
+/* 1.129.7 (to-do #272, Dave's pick C): Settings' rows sit on the Club's metal plate (.plate.secPlate, .gRows); only the stamped
+   marks are new: cut into the metal, no tile. Arrows are amber (they open something), values the plate's engraved colour. */
+#setList .setPlate{margin:12px 0 0;padding-bottom:14px}
+#setList .gRows button{min-height:46px;gap:12px}
+#setList .gRows .sMark{flex:none;width:20px;height:20px;color:var(--amber);filter:drop-shadow(0 -1px 0 rgba(0,0,0,.85)) drop-shadow(0 1px 0 rgba(255,255,255,.07))}
+#setList .gRows .sMark svg{display:block;width:100%;height:100%}
+#setList .gRows b{flex:1 0 auto}
+#setList .gRows .sVal{flex:0 1 auto;min-width:0;text-align:right;color:rgba(214,208,194,.72)}
+#setList .gRows .sVal:empty{display:none}
+#setList .gRows i{flex:none;color:var(--amber);font:500 var(--fs-xl)/1 var(--f-board)}
 /* 1.117 (to-do #210, Dave's pick B): the Logbook and About as an index (.idx) under their summary; the period's More,
    the connection card's Details and the log unfold in place under a one-row .idx; the connection and the Log open
    with a verdict (.verdict: a lamp, a word, one line) */
@@ -13212,6 +13219,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.129.7", date: "2026-11-02", notes: [
+    "Settings: the rows sit on metal plates like the Club's, with stamped marks and amber arrows.",
+  ]},
   {v: "1.129.4", date: "2026-11-02", notes: [
     "Older Logbook flights gain routes that were missing.",
   ]},
@@ -14437,10 +14447,11 @@ function setListRender(){
   if (!box || tab !== "settings") return;
   const row = id => { const p = PLATES.find(x => x.id === id) || VIEW_PLATES.find(x => x.id === id);
     if (id === "favs" ? !listsOk() : !p) return "";
-    return `<li><button type="button" data-set="${id}"><span class="sIco" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${SET_ICO[id] || ""}</svg></span>` +
-      `<b>${escH(id === "favs" ? T("Favourites & hidden") : T(p.title))}</b><small>${escH(setLine(id))}</small><i aria-hidden="true">›</i></button></li>`; };
-  const html = `<p class="idxH">${escH(T("The board"))}</p><ul class="idx">${["loc", "traffic", "display", "flaps", "night", "favs"].map(row).join("")}</ul>` +
-    `<p class="idxH">${escH(T("You and this phone"))}</p><ul class="idx">${["account", "push", "device", "about"].map(row).join("")}</ul>`;
+    return `<button type="button" data-set="${id}"><span class="sMark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${SET_ICO[id] || ""}</svg></span>` +
+      `<b>${escH(id === "favs" ? T("Favourites & hidden") : T(p.title))}</b><span class="sVal">${escH(setLine(id))}</span><i aria-hidden="true">›</i></button>`; };
+  // 1.129.7 (to-do #272, Dave's pick C): each group on a metal plate as the Club's (secPlate, gRows), a stamped mark for each row
+  const grp = (title, ids) => secPlate(T(title), `<div class="gRows">${ids.map(row).join("")}</div>`, "setPlate");
+  const html = grp("The board", ["loc", "traffic", "display", "flaps", "night", "favs"]) + grp("You and this phone", ["account", "push", "device", "about"]);
   if (box.dataset.h === html) return;
   box.dataset.h = html; box.innerHTML = html;
   for (const b of box.querySelectorAll("[data-set]")) b.onclick = () => setOpen(b.dataset.set);

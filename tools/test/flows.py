@@ -4017,6 +4017,7 @@ def browser_checks(browser):
     demo_rows_checks(browser, bad)
     sky_sizes_checks(browser, bad)
     styles_cell_checks(browser, bad)
+    settings_plate_checks(browser, bad)
     card_sound_checks(browser, bad)
     sky_row_checks(browser, bad)
     for b_ in bad:
@@ -4272,6 +4273,68 @@ def styles_cell_checks(browser, bad):
         pg.wait_for_timeout(1500)
         ctx.close()
     print("the Styles cell holds" if not [b for b in bad if b.startswith("styles cell")] else "styles cell check(s) failed")
+
+
+def settings_plate_checks(browser, bad):
+    """To-do #272: Settings' rows sit on two Club plates (.plate.secPlate with .gRows), with a stamped mark, an engraved value
+    and an amber arrow. Every row opens its panel (About its page), at 360 and 390 px, with a long, an empty and no value,
+    and Night on; nothing scrolls sideways and no row wraps beyond two lines of text."""
+    def hooked(route):
+        r = route.fetch()
+        t = r.text()
+        i = t.rindex("})();")
+        route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+    for w in (390, 360):
+        ctx = browser.new_context(viewport={"width": w, "height": 844})
+        ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+        ctx.route("**/app/", hooked)
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: bad.append(f"settings plate page error: {e}"))
+        pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
+        pg.goto(BASE + "/app/")
+        pg.wait_for_function("!!window.__e", timeout=20000)
+        pg.wait_for_timeout(4500)
+        e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
+        pg.click("[data-tab=settings]")
+        pg.wait_for_timeout(600)
+        if e("document.querySelectorAll('#setList .plate.secPlate .gRows').length") != 2:
+            bad.append(f"settings plate {w}: not two Club plates")
+        if e("!!document.querySelector('#setList .idx, #setList .idxH, #setList .sIco')"):
+            bad.append(f"settings plate {w}: an old index row is still there")
+        for what, js in (("a long value", "[...document.querySelectorAll('#setList .sVal')].forEach((v, i) => { v.textContent = ['Vienna Schwechat and its long name · 15 km around', 'below 4,500 ft · hovering 3 min', 'Deutsch · feet and knots · Tokyo night', 'sound on, chimes off', 'quiet 22:30 – 07:00', '12 favourites · 3 hidden', 'A Very Long Guest Name Indeed', 'blocked in the browser', '', 'x'][i] || ''; }); 1"),
+                         ("the usual values", "$('setList').dataset.h = ''; setListRender(); 1")):
+            e(js)
+            pg.wait_for_timeout(300)
+            if e("document.documentElement.scrollWidth > innerWidth || $('setList').scrollWidth > $('setList').clientWidth"):
+                bad.append(f"settings plate {w} ({what}): scrolls sideways")
+            tall = e("[...document.querySelectorAll('#setList [data-set]')].filter(b => b.getBoundingClientRect().height > 72).map(b => b.dataset.set)")
+            if tall:
+                bad.append(f"settings plate {w} ({what}): rows wrap badly: {tall}")
+            if e("getComputedStyle(document.querySelector('#setList .gRows i')).color") != "rgb(240, 180, 41)":
+                bad.append(f"settings plate {w}: the arrows aren't amber")
+        ids = e("[...document.querySelectorAll('#setList [data-set]')].map(b => b.dataset.set)")
+        if not {"loc", "traffic", "display", "flaps", "night", "account", "push", "device", "about"} <= set(ids):
+            bad.append(f"settings plate {w}: rows missing: {ids}")
+        for rid in ids:
+            e("window.scrollTo(0, 0); 1")
+            pg.click(f"#setList [data-set={rid}]")
+            pg.wait_for_timeout(700)
+            if rid == "about":
+                ok = e("!$('t-about').hidden")
+                e("aboutHide(); 1")
+            else:
+                ok = e("!!document.querySelector('#cardBox .setSheet .plate')")
+                e("cardClose(); 1")
+                try:
+                    pg.wait_for_function("document.getElementById('cardBox').hidden", timeout=5000)
+                except Exception:
+                    bad.append(f"settings plate {w}: the {rid} panel didn't close")
+                    e("setAsking = false; cardClose(); 1")
+            if not ok:
+                bad.append(f"settings plate {w}: the {rid} row doesn't open its panel")
+            pg.wait_for_timeout(400)
+        ctx.close()
+    print("the Settings rows open their panels" if not [b for b in bad if b.startswith("settings plate")] else "settings plate check(s) failed")
 
 
 def card_sound_checks(browser, bad):
