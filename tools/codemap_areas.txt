@@ -38,14 +38,14 @@ changelog: notice|scal|screen size|sharper
 [flaps] The split-flap engine: fields and drums, flap faces (tile), drawing a flap mid-flip, the animation loop, the app's flap panels
 test/index.html: DRUM_ALPHA DRUM_DIGIT DRUM_ALT DRUM_POS TRENDS TREND_COLOR fields allCells LIST_ROWS def LIST_IDS
     PAGE_FIELDS pdef TOP_IDS VIEW_FIELDS vdef placeRow BIG MID PLUS_W Y layout geometry mix tiles tileBytes clearTiles
-    IVORY rr shade tile drawCell paintCell redrawAll running lastFrame kick frame path snapping pace QUICK_MS retarget
+    IVORY rr shade tile drawCell paintCell redrawAll running lastFrame kick frame path snapping flapSpeed pace blur lerp QUICK_MS retarget
     setChars setWord +drawStatic +label +COCKPIT +DEFAULTS +applySettings
 tools/app/head.html: .panel
 tools/app/main.js: fields allCells panels makePanel def placeRow panelSpeech drawCell flapsHeld flapsHold redrawAll sizePanel showPanel
     refreshPanels drawPanelStatic label +DEFAULTS +applySettings
 tools/app/build.py: "E3" "E4" "E5"
 docs/architecture.md: "engine: `def()` fields of cells"
-README.md: "- **Quick flaps**" "- **Worn hardware**"
+README.md: "- **Flap speed**" "- **Worn hardware**"
 changelog: \bflap|drum|letter
 
 [housing] The board's printed parts: brushed metal, wear, slots and screws, engraved labels and pictograms (drawStatic)
@@ -253,16 +253,16 @@ README.md: "- **Radar** (press" "- **Radar**: the radar instrument"
 changelog: radar|map\b|nearest
 
 [settings] Settings: the cockpit (COCKPIT, plates, controls, Save/Cancel, jump bar), the settings kept and synced to the relay
-test/index.html: DEFAULTS GUEST SKEY loadSettings overRule saveSettings S meBase settingsChanged locSet cockpitKeys
+test/index.html: DEFAULTS GUEST SKEY loadSettings flapSpeedRule overRule saveSettings S meBase settingsChanged locSet cockpitKeys
     ME_KEY mePending meTimer meFails meBusy meSend meFlush meUnsynced syncShow addEventListener("online") lcdMarquee
     COCKPIT_FOR COCKPIT cockpitFor PLATES VIEW_PLATES ITEMS draft rotaryAngles rotOpts rotaryIndex HINTS +DEV_ICON
-    +viewItemHtml +acctHas +wireViews itemHtml wheelStep cockpitDraft wireCockpit cockpitShow cockpitUnsaved
+    +viewItemHtml +acctHas +wireViews itemHtml wheelStep cockpitDraft wheelFinger wireCockpit cockpitShow cockpitUnsaved
     cockpitDirty cockpitSave cockpitCancel ctlCap plateHtml cockpitOpen savedFlash cockpitDone cockpitMark
     +accountOpen +ctlNoise +ctlReady +ctlBurst +ctlRing +ctlSound +hereNow +nearestAirport +nearbyAirports +putDraft
     +locatedAt +wireLocation +settingsSync +wireSearch applySettings #cockpit .plate .inst #hintTip .lcd .rotary
     .toggle .wheels .wheel @rollUp @rollDown .ctlCap .ctlTop .ctlBot +stylesCard +favCounts +accountBox
 tools/app/head.html: #cockpit .syncNote #t-settings .setSave .setAsk .idxH .idx #setExtra #setList .inst.stCell .stCell .stStrip .stPanel .stKey
-tools/app/main.js: GUEST DEFAULTS SKEY LIGHT_FIXED loadSettings overRule saveMe located saveSettings S meBase
+tools/app/main.js: GUEST DEFAULTS SKEY LIGHT_FIXED loadSettings flapSpeedRule overRule saveMe located saveSettings S meBase
     COCKPIT_FOR plateHtml cockpitOpen savedTimer cockpitDone cockpitMark SET_ICO setPid setHome setHeld setAsking STRIP_N STRIP_ID stripP stripRO stripText stripPaint stripSet stripDrop stripMount
     pushLine setCap setLine setListRender setOpen setBack setAsk setRestore settingsExtra topSize
     applySettings +renderPush +renderFavBox +renderAbout +showTab

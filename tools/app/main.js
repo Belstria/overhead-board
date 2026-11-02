@@ -11,17 +11,24 @@ const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt
 const LIGHT = false;                  // the light version (tools/light/build.py): the same app without the split flaps
 //@L:end
 const GUEST = window.OVERHEAD_GUEST || null;
-const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:5,
-  logos:true, overKm:1, demo:false, daylight:false, theme:"classic", palette:"", finish:"", badge:"", ticket:"", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto",
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", real:true, flapSpeed:50, refreshS:5,
+  logos:true, overKm:1, demo:false, daylight:false, theme:"classic", palette:"", finish:"", badge:"", ticket:"", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto",
   night:true, nightFrom:"22:30", nightTo:"07:00"};
 const SKEY = (LIGHT ? "od.light.settings" : "od.app.settings") + (GUEST ? ".g." + GUEST.id : "");   // each guest's own, in a shared browser
 // The light version has no flaps: these stay fixed there, and aren't sent to the profile (the app and the board keep theirs).
-const LIGHT_FIXED = {real: false, imperfect: false, quick: false, theme: "classic", finish: "", soundSet: "recorded"};
+const LIGHT_FIXED = {real: false, imperfect: false, theme: "classic", finish: "", soundSet: "recorded"};
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SKEY) || "{}") || {}; } catch {}
   const {mode, live, livePrev, daylight, ...shared} = GUEST && GUEST.settings || {};      // the style (1.40) and Daylight (1.66) stay this device's own
-  return overRule({...DEFAULTS, ...shared, ...saved, ...(LIGHT ? LIGHT_FIXED : {})});
+  return flapSpeedRule(overRule({...DEFAULTS, ...shared, ...saved, ...(LIGHT ? LIGHT_FIXED : {})}), {...shared, ...saved});
+}
+// 1.129.6: Flap speed has one scale: 10 = the old 10, 50 = the old 100 (and the default), 100 = the old Quick flaps. It
+// lives under a new key (flapSpeed), so the old ones (speedPct, quick) are only read while flapSpeed has never been
+// saved: the move happens once, and never twice. Nothing saved: 50. An old device keeps its own old keys.
+function flapSpeedRule(s, own){
+  if (own.flapSpeed == null) s.flapSpeed = own.quick ? 100 : own.speedPct == null ? 50 : Math.round(10 + (Math.min(100, Math.max(10, +own.speedPct || 85)) - 10) * 40 / 90);
+  return s;
 }
 // 1.84: OVERHEAD became within 1 km at any height or 45° up; settings saved with the old 3 km move to 1 km, once.
 function overRule(s){ if (s.overRule == null) { if (+s.overKm === 3) s.overKm = 1; s.overRule = 2; } return s; }
@@ -5402,15 +5409,18 @@ $("dot").onclick = statusCard;
 $("rvMap").onclick = () => { radarMapSet(!radarMapOn); ctlSound.toggle(radarMapOn); buildRadarLegend(); };
 for (const [id, d] of [["rvZoomOut", -1], ["rvZoomIn", 1]]) $(id).onclick = () => radarZoomTo(d);
 $("rvReset").onclick = () => { ctlSound.click(); radarZoomTo(0); };
+wheelFinger($("rvWheel"), (d, quiet) => radarZoomTo(-d, quiet));      // 1.129.6: ▲ is zoom out (a bigger number), a drag up the same
 $("rvWheel").onkeydown = e => { const d = {ArrowUp: -1, ArrowRight: -1, ArrowDown: 1, ArrowLeft: 1}[e.key]; if (d) { e.preventDefault(); radarZoomTo(d); } };
 // d: steps closer (+) or wider (-); 0 (1.82.2, the radar's ⟲; a push button beside the wheel since 1.83.2): back to the
 // usual range for the radius, and the middle.
-function radarZoomTo(d){
+function radarZoomTo(d, quiet){
   const was = radarZoom;
   if (d) radarZoomStep(d); else radarZoomSet(0);
-  if (radarZoom === was) return;
-  ctlSound.wheel(); buildRadarLegend(); rvSig = ""; renderRadarList();
+  if (radarZoom === was) return false;
+  if (!quiet) ctlSound.wheel();
+  buildRadarLegend(); rvSig = ""; renderRadarList();
   const b = $("rvZoomKm"); b.className = ""; void b.offsetWidth; b.className = d > 0 ? "down" : "up";     // the wheel rolls, as in Settings
+  return true;
 }
 // 1.65: pinch the radar to zoom; 1.68.1: really zoom: the range follows the fingers (radar.live, the map stretched
 // meanwhile), and stays where they let go (the map is then drawn afresh for it). One finger still scrolls the page.
@@ -5822,7 +5832,7 @@ function applySettings(n){
     lon: isFinite(lon) && Math.abs(lon) <= 180 ? lon : S.lon,
     radiusKm: Math.min(20, Math.max(1, num(n.radiusKm) || 15)),
     home: clean(n.home).slice(0, 3), favs: String(n.favs || "").trim(),
-    maxAltFt: +n.maxAltFt, airtimeMin: +n.airtimeMin, speedPct: +n.speedPct || 85, overKm: +n.overKm || 1};
+    maxAltFt: +n.maxAltFt, airtimeMin: +n.airtimeMin, flapSpeed: +n.flapSpeed || 50, overKm: +n.overKm || 1};
   const langWas = LANG;
   if (GUEST) S.located = true;                               // a guest who saved Settings has chosen their place
   saveSettings(); audioInit(); nightCheck();
@@ -6348,7 +6358,7 @@ document.addEventListener("click", e => { if (e.target.closest && e.target.close
 // 1.123 (to-do #241): a sideways swipe goes Logbook, Club, but never on the plates (they scroll sideways themselves), a plane's
 // row (it has its own swipes) or anything else that scrolls sideways.
 for (const id of ["t-logbook", "t-game"]) { let sw = null;
-  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .lbStrip, .bingo, .hgRow, .lyCar, .lyIdx, .ppMap, .tline li.open") || swipeRow(e.target) ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
+  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .wheel, .seg, .lbStrip, .bingo, .hgRow, .lyCar, .lyIdx, .ppMap, .tline li.open") || swipeRow(e.target) ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
   $(id).addEventListener("touchend", e => {
     if (!sw) return;
     const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y; sw = null;
