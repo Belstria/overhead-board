@@ -4128,6 +4128,7 @@ def browser_checks(browser):
     sky_sizes_checks(browser, bad)
     styles_cell_checks(browser, bad)
     card_sound_checks(browser, bad)
+    club_swipe_checks(browser, bad)
     sky_row_checks(browser, bad)
     for b_ in bad:
         print("flow:", b_)
@@ -4382,6 +4383,185 @@ def styles_cell_checks(browser, bad):
         pg.wait_for_timeout(1500)
         ctx.close()
     print("the Styles cell holds" if not [b for b in bad if b.startswith("styles cell")] else "styles cell check(s) failed")
+
+
+def club_swipe_checks(browser, bad):
+    """To-dos #276, #277, with real touches (the browser's own input, so scrolling and pointer events happen too): a swipe moves
+    the Club's section both ways and stops at both ends, with the tab's sound; from a screen's edge nothing; on the Frequent flyer
+    carousel the cards move, also on the last card; a vertical scroll, a tap and an open panel leave the section alone; the
+    Logbook's swipe still opens the Club. The tab row: its keys share the bar and no line beside the selected one; at 320 px it
+    scrolls with the first tab whole and the selected one in view; at 360 px it fits."""
+    def hooked(route):
+        r = route.fetch()
+        t = r.text()
+        i = t.rindex("})();")
+        route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+    ctx = browser.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
+    ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+    ctx.route("**/app/", hooked)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: bad.append(f"club swipe page error: {e}"))
+    pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
+    pg.goto(BASE + "/app/")
+    pg.wait_for_function("!!window.__e", timeout=20000)
+    pg.wait_for_timeout(4000)
+    e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
+    cdp = ctx.new_cdp_session(pg)
+
+    def touch(x0, y0, x1, y1, steps=8, ms=16):
+        cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": x0, "y": y0}]})
+        for i in range(1, steps + 1):
+            cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x0 + (x1 - x0) * i / steps, "y": y0 + (y1 - y0) * i / steps}]})
+            pg.wait_for_timeout(ms)
+        cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+        pg.wait_for_timeout(350)
+
+    def go(k, w=390):
+        pg.set_viewport_size({"width": w, "height": 844})
+        e(f'gSubGo("{k}"); 1')
+        pg.wait_for_timeout(500)
+
+    def check(what, got, want):
+        if got != want:
+            bad.append(f"club swipe: {what}: {got!r}, wanted {want!r}")
+
+    e("{ const W = {}; Object.keys(AIRLINES).slice(0, 12).forEach((k, i) => W[k] = [1, 12, 60, 250][i % 4]); const ow = walletHtml; walletHtml = g0 => ow({wallet: W, walletInfo: {}}); } 1")
+    e("showTab('game'); 1")
+    pg.wait_for_timeout(1500)
+    subs = e("[...$('gSubSeg').children].map(b => b.dataset.gs)")
+    check("the five sections", subs, ["level", "league", "hangar", "passport", "cards"])
+    y = 500
+    e("window.__N = 0; { const n = ctlSound.nav; ctlSound.nav = () => { window.__N++; n(); }; } 1")
+    now = lambda: e("gSub")                                     # noqa: E731
+    hist = e("history.length")
+    touch(120, 160, 300, 160)
+    check("a swipe right on Level stays, in the Club", (now(), e("tab")), ("level", "game"))
+    for k in subs[1:]:                                          # just under the tabs: free on every section
+        touch(300, 160, 120, 160)
+        check("a swipe left goes to the next section", now(), k)
+    check("each step has the tab's sound", e("window.__N"), 4)
+    check("a section's step adds no history", e("history.length"), hist)
+    e("scrollTo({top: 0}); 1")
+    pg.wait_for_timeout(300)
+    box = e("(() => { const c = document.querySelector('.lyCar').getBoundingClientRect(), h = $('gSub').getBoundingClientRect(); return {top: c.top, bottom: c.bottom, free: c.top - h.bottom > 30 ? h.bottom + 14 : c.bottom + 14}; })()")
+    touch(300, box["free"], 120, box["free"])
+    check("a swipe left on the last section stays", now(), "cards")
+    touch(120, box["free"], 300, box["free"])
+    check("a swipe right goes back", now(), "passport")
+    go("cards")
+    mid = (box["top"] + box["bottom"]) / 2
+    pos = "(() => { const c = [...document.querySelectorAll('.lyCar .lyC')], m = innerWidth / 2; let b = 0, d = 1e9; c.forEach((x, i) => { const r = x.getBoundingClientRect(), g = Math.abs(r.left + r.width / 2 - m); if (g < d) { d = g; b = i; } }); return [b, c.length]; })()"
+    p0 = e(pos)
+    touch(300, mid, 120, mid)
+    pg.wait_for_timeout(900)
+    p1 = e(pos)
+    check("a swipe on the carousel stays on the section", now(), "cards")
+    if p1[0] <= p0[0]:
+        bad.append(f"club swipe: the carousel's card didn't move: {p0} {p1}")
+    for _ in range(p1[1] + 1):
+        touch(330, mid, 60, mid)
+        pg.wait_for_timeout(400)
+    pg.wait_for_timeout(900)
+    p2 = e(pos)
+    check("the carousel reached its last card", p2[0], p2[1] - 1)
+    touch(330, mid, 60, mid)
+    check("a swipe left on the last card stays on the section", now(), "cards")
+    for _ in range(p1[1] + 1):
+        touch(60, mid, 330, mid)
+        pg.wait_for_timeout(400)
+    pg.wait_for_timeout(900)
+    check("the carousel came back to its first card", e(pos)[0], 0)
+    touch(60, mid, 330, mid)
+    check("a swipe right on the first card stays on the section", now(), "cards")
+    go("hangar")
+    shelf = e("(() => { const r = [...document.querySelectorAll('.hgRow')].find(x => x.scrollWidth > x.clientWidth + 40); if (!r) return null; r.scrollIntoView({block: 'center'}); const b = r.getBoundingClientRect(); return b.top + b.height / 2; })()")
+    if shelf is None:
+        bad.append("club swipe: no Hangar shelf that scrolls")
+    else:
+        touch(300, shelf, 120, shelf)
+        check("a swipe on a Hangar shelf stays on the section", now(), "hangar")
+        if e("Math.max(...[...document.querySelectorAll('.hgRow')].map(x => x.scrollLeft))") < 50:
+            bad.append("club swipe: the Hangar shelf didn't scroll under the finger")
+    go("league")
+    for x0, x1 in ((10, 200), (40, 230), (380, 190), (350, 160)):
+        touch(x0, y, x1, y)
+        check(f"a swipe starting at x {x0}, in the phone's back zone, does nothing", now(), "league")
+    touch(195, y, 195, y, steps=1)
+    check("a tap doesn't change section", now(), "league")
+    e("document.body.style.minHeight = '3000px'; scrollTo({top: 0}); 1")
+    touch(200, 700, 215, 300, steps=10)
+    check("a vertical scroll doesn't change section", now(), "league")
+    if e("scrollY") < 100:
+        bad.append("club swipe: the vertical drag didn't scroll the page")
+    touch(120, 600, 220, 450)
+    check("a diagonal stays a scroll", now(), "league")
+    touch(300, y, 250, y, steps=2, ms=8)
+    check("a short quick flick counts as a swipe", now(), "hangar")
+    e("document.body.style.minHeight = ''; gSubGo('league'); 1")
+    pg.wait_for_timeout(400)
+    # a browser that takes the touch over ends it with touchcancel, not touchend (iOS can): made by hand, the headless browser doesn't
+    cancel = """((x0, x1, last) => { const el = $('t-game'), P = (x, y) => new Touch({identifier: 1, target: el, clientX: x, clientY: y}), F = (n, x, list) => el.dispatchEvent(new TouchEvent(n, {bubbles: true, touches: list ? [P(x, 500)] : [], changedTouches: [P(x, 500)]}));
+      F('touchstart', x0, true); F('touchmove', x0 + (x1 - x0) / 2, true); F('touchmove', x1, true); F(last, x1, false); return gSub; })"""
+    check("a swipe ended by touchcancel still counts", e(cancel + "(300, 120, 'touchcancel')"), "hangar")
+    check("a short touch ended by touchcancel doesn't", e(cancel + "(300, 290, 'touchcancel')"), "hangar")
+    e("gSubGo('league'); 1")
+    pg.wait_for_timeout(400)
+    e("gHowCard(); 1")
+    pg.wait_for_timeout(500)
+    check("the panel is open", e("cardOpenNow()"), True)
+    touch(300, y, 120, y)
+    check("an open panel blocks it", now(), "league")
+    check("an open panel blocks a touch that reaches the section", e(cancel + "(300, 120, 'touchend')"), "league")
+    e("cardClose(); 1")
+    pg.wait_for_timeout(500)
+    go("passport")                                              # the empty page under a short section counts too
+    low = e("(() => { const c = document.elementFromPoint(300, 620); return c && !c.closest('#t-game') ? 620 : 0; })()")
+    if low:
+        touch(300, low, 120, low)
+        check("a swipe on the empty page under a section", now(), "cards")
+    e("showTab('logbook'); 1")
+    pg.wait_for_timeout(800)
+    touch(120, 160, 300, 160)
+    check("a swipe right on the Logbook stays", e("tab"), "logbook")
+    plate = e("(() => { const r = $('lbStrip').getBoundingClientRect(); return [r.top + r.height / 2, $('lbStrip').scrollLeft]; })()")
+    touch(300, plate[0], 120, plate[0])
+    pg.wait_for_timeout(700)
+    check("a swipe on the Logbook's plates stays there", e("tab"), "logbook")
+    if e("$('lbStrip').scrollLeft") <= plate[1]:
+        bad.append("club swipe: the Logbook's plates didn't move under the finger")
+    gap = e("$('lbStrip').getBoundingClientRect().bottom + 2")
+    touch(300, gap, 120, gap)
+    check("the Logbook's swipe opens the Club", e("tab"), "game")
+    check("arriving on the Club, at Level", now(), "level")
+    e("gSubGo('passport'); 1")
+    pg.wait_for_timeout(300)
+    check("back from a section goes to Now in one step", e("backStep()(), tab"), "now")
+
+    # the tab row
+    row = """(() => { const s = $('gSubSeg'), r = s.getBoundingClientRect(), k = [...s.children], b = k[0].getBoundingClientRect(), l = s.querySelector('[aria-pressed=true]').getBoundingClientRect();
+      const line = el => getComputedStyle(el, '::before').display !== 'none' && getComputedStyle(el, '::before').content !== 'none';
+      return {over: s.scrollWidth > s.clientWidth + 1, cut: k.some(x => x.scrollWidth > x.clientWidth), lit: l.left >= r.left - .5 && l.right <= r.right + .5, first: b.left - r.left, lines: k.map(line), left: s.scrollLeft, gap: r.right - k[4].getBoundingClientRect().right}; })()"""
+    go("level", 390)
+    r = e(row)
+    check("390 px: no scrolling", r["over"], False)
+    check("390 px: no line beside the selected tab", r["lines"], [False, False, True, True, True])
+    if abs(r["first"] - r["gap"]) > 1.5:
+        bad.append(f"club swipe: the row isn't centred: {r}")
+    go("passport", 390)
+    check("390 px, Passport: lines", e(row)["lines"], [False, True, True, False, False])
+    go("level", 360)
+    check("360 px: fits", e(row)["over"], False)
+    go("level", 320)
+    pg.wait_for_timeout(500)
+    r = e(row)
+    check("320 px: scrolls", r["over"], True)
+    check("320 px: no name cut", r["cut"], False)
+    if not (r["left"] < 1 and 0 <= r["first"] <= 6):
+        bad.append(f"club swipe: 320 px, the first tab is cut off: {r}")
+    go("cards", 320)
+    pg.wait_for_timeout(600)
+    check("320 px: the last tab in view", e(row)["lit"], True)
+    ctx.close()
 
 
 def card_sound_checks(browser, bad):

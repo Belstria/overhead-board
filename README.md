@@ -861,7 +861,7 @@ Five buttons along the bottom:
   new types and the CSV. While a search is on, its results replace the page.
   The app's bottom bar is **Now, Logbook, Club, Radar, Settings** (1.120; without a game, four keys). The Logbook key opens on the
   **Today** plate. The **filter icon** opens the filters, this place or all places and **Saved places** under the plates (a dot on
-  the icon: a filter or a saved place is on). A sideways swipe off the plates and rows goes Logbook, Club. The search row and the Club's tabs
+  the icon: a filter or a saved place is on). A swipe to the left off the plates and rows goes from the Logbook to the Club, on Level. In the Club a sideways swipe goes to the next or previous section (Level, League, Hangar, Passport, Frequent flyer) and stops at both ends. Start it away from the screen's sides, where the phone's own back gesture lives. A swipe on something that moves by itself (the cards, the shelves, the map) stays with that, and back still goes to Now in one step. The search row and the Club's tabs
   **stay at the top**, under the header, while a page scrolls, and
   whatever opens has a chevron in a small ring: Saved places, the categories (turned up, the ring amber, while one is
   open) and the Favourites & hidden list picker. Since 1.113 a tap on a row of **Aircraft types** or **Airlines** opens its

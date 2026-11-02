@@ -6359,17 +6359,61 @@ function gHitDo(){
   el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit");
 }
 document.addEventListener("click", e => { if (e.target.closest && e.target.closest("#t-game .gGoB")) { audioInit(); ctlSound.click(); gGoLive(); } });
-// 1.123 (to-do #241): a sideways swipe goes Logbook, Club, but never on the plates (they scroll sideways themselves), a plane's
-// row (it has its own swipes) or anything else that scrolls sideways.
-for (const id of ["t-logbook", "t-game"]) { let sw = null;
-  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .lbStrip, .bingo, .hgRow, .lyCar, .lyIdx, .ppMap, .tline li.open") || swipeRow(e.target) ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
-  $(id).addEventListener("touchend", e => {
+// 1.129.8 (to-dos #241, #277): in the Club a sideways swipe goes to the next or previous section, as a tap on its tab would (no
+// history entry, so one back still means Now), and stops at Level and at Frequent flyer; a leftward one on the Logbook goes to
+// the Club, on Level (showTab's rule for every way in), and nothing swipes back: Dave's call. Never ours: a touch
+// starting within SWIPE_EDGE of a screen's side (the system's back gesture, whose zone grows with its sensitivity setting), a
+// second finger, selected text, an open card or Sky view, or whatever already takes the touch: the plates, a plane's row, the
+// carousel and its index, the map, any part that scrolls sideways or sets its own touch-action. The first 12 px decide, for
+// good: sideways only if dx > 2 x dy. Listeners are passive and the CSS says pan-y, so a scroll and its momentum stay the
+// browser's. A touchcancel counts as the end: a browser may take over a touch and never send touchend.
+{ const SWIPE_EDGE = 48, root = document.documentElement;
+  const page = t => tab === "game" ? $("t-game") : tab === "logbook" ? $("t-logbook") : null;
+  // also the empty page under a short section (Passport, Frequent flyer)
+  const onPage = (t, box) => box.contains(t) || t === document.body || t === root || t.matches("main, main > .brandline");
+  const claimed = (t, box) => {
+    if (t.closest("input, select, textarea, .seg, .lbStrip, .hgRow, .lyCar, .lyIdx, .ppMap, .tline li.open") || swipeRow(t)) return true;
+    for (let el = t; el && el !== box && el !== root; el = el.parentElement) {
+      const c = getComputedStyle(el);
+      if (c.touchAction !== "auto" && c.touchAction !== "manipulation") return true;
+      if (/auto|scroll/.test(c.overflowX) && el.scrollWidth > el.clientWidth) return true;
+    }
+    return false;
+  };
+  const picked = () => { const g = getSelection(); return !!g && !g.isCollapsed; };
+  // One step: the tab's click, and the new page slides in once from the side the finger came from.
+  const step = d => {
+    const ks = [...$("gSubSeg").children].map(b => b.dataset.gs), to = tab === "logbook" ? (d > 0 && gameOk() ? "game" : "") : ks[ks.indexOf(gSub) + d];
+    if (!to) return;
+    ctlSound.nav();
+    if (to === "game") showTab(to); else gSubGo(to);
+    if (!REDUCED) page().animate([{transform: `translateX(${d * 28}px)`, opacity: .4}, {transform: "none", opacity: 1}], {duration: 180, easing: "ease-out"});
+  };
+  let sw = null;
+  document.addEventListener("touchstart", e => {
+    const t = e.touches[0], box = page(), el = e.target;
+    sw = !box || e.touches.length > 1 || t.clientX < SWIPE_EDGE || t.clientX > innerWidth - SWIPE_EDGE || cardOpenNow() || arOn || picked() || !el.closest || !onPage(el, box) || claimed(el, box) ? null
+      : {x: t.clientX, y: t.clientY, lx: t.clientX, ly: t.clientY, t0: e.timeStamp, on: false};
+  }, {passive: true});
+  document.addEventListener("touchmove", e => {
     if (!sw) return;
-    const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y; sw = null;
-    if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * .6) return;
-    if (tab === "logbook" && dx < 0 && gameOk()) showTab("game");
-    else if (tab === "game" && dx > 0) showTab("today");
-  }, {passive: true}); }
+    if (e.touches.length > 1) { sw = null; return; }
+    const t = e.touches[0];
+    sw.lx = t.clientX; sw.ly = t.clientY;
+    if (sw.on) return;
+    const ax = Math.abs(t.clientX - sw.x), ay = Math.abs(t.clientY - sw.y);
+    if (Math.max(ax, ay) < 12) return;
+    if (ax > 2 * ay) sw.on = true; else sw = null;                         // a scroll stays a scroll
+  }, {passive: true});
+  const end = e => {
+    if (!sw) return;
+    const t = e.type === "touchend" ? e.changedTouches[0] : null, dx = (t ? t.clientX : sw.lx) - sw.x, dy = (t ? t.clientY : sw.ly) - sw.y, ms = e.timeStamp - sw.t0, ax = Math.abs(dx), on = sw.on;
+    sw = null;
+    if (on && !picked() && Math.abs(dy) <= ax * .6 && (ax >= 60 || (ax >= 30 && ax / Math.max(1, ms) > .5))) step(dx < 0 ? 1 : -1);     // far enough, or a flick
+  };
+  document.addEventListener("touchend", end, {passive: true});
+  document.addEventListener("touchcancel", end, {passive: true});
+}
 // 1.73.2: a notice goes when swiped to the right (a finger, or a mouse); a short swipe springs back. 1.113 (to-do #183):
 // to the left too.
 { let sw = null;
