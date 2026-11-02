@@ -592,11 +592,11 @@ changelog: route|lookup|source|demo|update every|position
 test/index.html: USE_API apiWanted apiOffAt API_PAUSE_MS apiOn apiOff apiLookup liveryLine liveryShort +edgeKm
     marketedBy categoryBadge +recentInfo API_NOTE
 tools/app/main.js: API_NOTE +statusCard
-relay/serve.py: FR24_API FR24_FILE FR24_KEEP_S FR24_GAP_S FR24_BUDGET FR24_REUSE_S FR24_EDGE FILL_AWAY_KM FILL_KM
+relay/serve.py: FR24_API FR24_FILE FR24_KEEP_S FR24_GAP_S FR24_BUDGET FR24_REUSE_S ROUTE_UNPAID FR24_LATE_CAP FR24_LATE_COST FR24_LATE_GAP_S FR24_LATE_WAIT_S FR24_LATE_BACK_S FR24_LATE_AHEAD_S FR24_LATE_SLACK_S FR24_LATE_BAD FR24_EDGE FILL_AWAY_KM FILL_KM
     FILL_FT FILL_EVERY_S FILL_FAST_S FILL_SLOW_S FILL_MAX FILL_SHARE _fr24 _fr24_q _fr24_queued _fr24_cv _fr24_order
     _fr24_state fr24_key fr24_on _fr24_data _fr24_prune _fr24_reset_day fr24_period _fr24_usage _fr24_base_budget
     _fr24_promo _fr24_budget fr24_paced fr24_info _fr24_saved fr24_want _fr24_lookup _fr24_slot_lock _fr24_next
-    fr24_slot fr24_spent _fr24_worker _fr24_same_flight fr24_keep _fr24_keep_cached fr24_status fr24_overlay _fill
+    _fr24_row_time _fr24_row_spans fr24_slot fr24_spent _fr24_worker _fr24_same_flight fr24_keep _fr24_keep_cached _fr24_late_wants _fr24_late_report _fr24_late_end _fr24_late_write _fr24_late_run _fr24_late_all fr24_status fr24_overlay _fill
     _fill_cv fill_home fill_for fill_want fill_merge _fill_ask _fill_worker FR24_DAY_GUEST FR24_DAY_ACCOUNT fr24_limit
     fr24_use guest_fr24 fr24_admin_html /flightinfo /admin/fr24plan /admin/fr24 +main +Spot.__init__ +Spot.day_entries
     +Spot.day_changed +Spot.files +_days_of
