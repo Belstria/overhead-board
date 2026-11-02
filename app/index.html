@@ -13306,6 +13306,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.129.10", date: "2026-11-02", notes: [
+    "The daily streak's plane now rolls to today without a sound.",
+  ]},
   {v: "1.129.9", date: "2026-11-02", notes: [
     "The owner's page shows a map of where boards are.",
   ]},
@@ -16658,7 +16661,7 @@ function gScanPops(r, onPass){
 }
 /* 1.126 (to-do #252, Dave's pick: round 3's A, "the strip on paper"): the day's first scan brings a paper pop-up, a twin of the
    card's, the passport's and the medal's (never in a ticket design): the plane on an airstrip printed on the paper, the week's
-   letters under it. It rolls from the last streak day's mark to today's and stops, with a thud and a buzz. Day 7 of the streak
+   letters under it. It rolls from the last streak day's mark to today's and stops, with a buzz and no sound (1.129.10). Day 7 of the streak
    (always a Sunday; a streak begun on a Tuesday reaches Sunday on day 6 and stops) doesn't stop: it lifts with a shadow, flies off
    the paper's corner leaving a dashed trail, and the letters turn to gold foil with one beam. A tap opens the Streak panel, over
    Sky view. It stands in the line (gLine). Reduced motion: nothing moves; day 7 is the plane in the air, its trail, gold letters. */
@@ -16717,7 +16720,7 @@ function stkNew(stk, {t, week}){
     sp.forEach((s, i) => { s.innerHTML = nwWord(s.textContent); s.querySelectorAll("u").forEach(u => u.style.setProperty("--t", i * 70 + "ms")); });
     el.classList.add("beam");
   };
-  const land = () => { sp[t].classList.add("now"); fsThud(); try { navigator.vibrate && navigator.vibrate(30); } catch {} };
+  const land = () => { sp[t].classList.add("now"); try { navigator.vibrate && navigator.vibrate(30); } catch {} };
   const from = stk.n > 1 && t > 0 ? X(t - 1) : 14, to = X(t);     // the last streak day's mark; day 1: the threshold
   if (still) {
     if (full) { trail(); put(to + 8, y0 - 8, 74, 1.25, 12); foil(); } else put(to);

@@ -2780,6 +2780,10 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   on a Vienna box and `fitBounds` grows it to every pin; the dots are `circleMarker`s with `interactive:false`. One pin for
   a profile, not for each device (the devices share its settings). Only numbers go into the `/admin` response: no log,
   `event()`, file or other route. Test: flows.py "the admin map"; the test relay has Anna, Ben, Dora, Clara and Demo guest.
+- 1.129.10 (to-do #279; app only, no relay change; Dave: "when the plane moves forward when scanning on a new day, it makes a sound. Remove this sound"):
+  **The daily streak's plane rolls to today without a sound.** `land()` in `stkNew` (main.js) no longer calls `fsThud()`; the short phone vibration stays
+  (a buzz is not a sound). `fsThud` and its other callers (the passport stamp, the mission stamp, the map ink) are unchanged. Nothing else in the pop-up's
+  path (`gAwsBox`, `gTixStack`, `gAwTimer`, `gAwTap`, `gLineAdd`) plays a sound; the scan's own pass before it has its coins and tear sound.
 
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
