@@ -5143,10 +5143,11 @@ function setListRender(){
   if (!box || tab !== "settings") return;
   const row = id => { const p = PLATES.find(x => x.id === id) || VIEW_PLATES.find(x => x.id === id);
     if (id === "favs" ? !listsOk() : !p) return "";
-    return `<li><button type="button" data-set="${id}"><span class="sIco" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${SET_ICO[id] || ""}</svg></span>` +
-      `<b>${escH(id === "favs" ? T("Favourites & hidden") : T(p.title))}</b><small>${escH(setLine(id))}</small><i aria-hidden="true">›</i></button></li>`; };
-  const html = `<p class="idxH">${escH(T("The board"))}</p><ul class="idx">${["loc", "traffic", "display", "flaps", "night", "favs"].map(row).join("")}</ul>` +
-    `<p class="idxH">${escH(T("You and this phone"))}</p><ul class="idx">${["account", "push", "device", "about"].map(row).join("")}</ul>`;
+    return `<button type="button" data-set="${id}"><span class="sMark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${SET_ICO[id] || ""}</svg></span>` +
+      `<b>${escH(id === "favs" ? T("Favourites & hidden") : T(p.title))}</b><span class="sVal">${escH(setLine(id))}</span><i aria-hidden="true">›</i></button>`; };
+  // 1.129.7 (to-do #272, Dave's pick C): each group on a metal plate as the Club's (secPlate, gRows), a stamped mark for each row
+  const grp = (title, ids) => secPlate(T(title), `<div class="gRows">${ids.map(row).join("")}</div>`, "setPlate");
+  const html = grp("The board", ["loc", "traffic", "display", "flaps", "night", "favs"]) + grp("You and this phone", ["account", "push", "device", "about"]);
   if (box.dataset.h === html) return;
   box.dataset.h = html; box.innerHTML = html;
   for (const b of box.querySelectorAll("[data-set]")) b.onclick = () => setOpen(b.dataset.set);

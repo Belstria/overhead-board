@@ -2757,6 +2757,7 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 - Behind a proxy on the same computer, the relay (14+) takes a screen's address from `X-Forwarded-For`.
 - It serves the published boards from GitHub Pages (refreshed at most once a minute), so pushing to `main` reaches
   the screens a minute or two later, when they reload. `--local-root <repo>` serves a local checkout instead.
+- 1.129.7 (to-do #272; app only, no relay change; Dave's pick C of the Settings looks): **Settings' rows on Club plates.** `setListRender` (main.js) draws each group as `secPlate(..., "setPlate")` holding a `.gRows` of buttons (`.sMark` stamped mark, `b` name, `.sVal` value, amber `i` arrow); the `.idx` rows, `.sIco` tiles and `.idxH` headings went. Only `.sMark` is new CSS (head.html, scoped to `#setList`); values use the plate's engraved colour (`rgba(214,208,194,.72)`), not `--muted`. The test board has no Settings list (the cockpit is its Settings), so it shows only the new patch note. `flows.py` "settings rows open their panels".
 
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
