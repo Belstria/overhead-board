@@ -823,7 +823,7 @@ Five buttons along the bottom:
   under it is gone since 1.36; tap the flaps for cards and Favourite / Hide), and the
   latest planes spotted. The photo and the **Sky view row** (the key, the scan, which way to look, the compass) are one card under the board
   (1.115, 1.128). **Recent flights** (1.95) is a timeline: a line down the left with a dot for each plane in the
-  colour of its remark, each plane in its own box (1.103.1), since 1.115 **one line a plane**: time, flight, route and
+  colour of its remark, since 1.129.12 on **one metal plate** like Settings' (screws, the planes between engraved lines, the line a groove with a lamp for each plane), since 1.115 **one line a plane**: time, flight, route and
   type, "8 in the last hour" at the top and "All 64 planes today ›" at the end, which goes to Today. A flight's status
   is a coloured pill on Recent flights (every status word since 1.122: ARRIVING, DEPARTING, SUPERJUMBO ...); at the end of the
   row, always in this order, Today's **target** for a plane you scanned, a **★** for a type or
@@ -855,7 +855,7 @@ Five buttons along the bottom:
   **Since 1.123 the Logbook is one screen**: the search and the filter icon, three plates you swipe sideways (**Today**, which stays at 0 on a day with no planes yet since 1.124.1,
   the period, such as "2026 in planes", and **All time**; in that order since 1.127), then the planes. Under Today, the day's, with its amber "Today" headline over the flights as under the others (1.129.1; none on a day with no planes yet). **Under the period and All time the list goes back across days
   (1.127, relay 105)**: the last 50 flights, newest first, then **Show more** at the bottom for the 50 before those, as far as the period's start or the logbook's beginning, with the filters and the chosen place
-  applied. Each day has an amber headline (Today, Yesterday, then the date) that stays under the search until the next day's pushes it away; Today's is there before the day's first flight too (not under a filter). Once more than 50 are loaded, a **Top** key with the
+  applied. Each day is its own metal plate (1.129.12), its amber headline (Today, Yesterday, then the date) engraved on it; the headline stays under the search, a strip of the plate with its screws, until the next day's pushes it away; Today's is there before the day's first flight too (not under a filter). Once more than 50 are loaded, a **Top** key with the
   day you're in shows while you scroll past the first screens, and stays at the very bottom; it fades when you stop and steps aside while Show more goes by. It goes back up to the plates. A new flight waits at the top while you're further down, so what you're reading doesn't move.
   A tap on All time's numbers opens their lists
   (Sightings: **Categories**, Aircraft: **Most seen aircraft**, Types: **Aircraft types**, Airlines: **Airlines**), with since when

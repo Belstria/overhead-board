@@ -2791,6 +2791,22 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   their size and the letters keep their 12 px bold type (baseline `H - 16`), which fit at 34 px. At 44 px nothing moves. `drawTape` has one caller (`drawLook`, the
   card's `#lookCv`); the loop variable is now `m` because `k` is the scale.
 
+- 1.129.12 (to-do #281; app only, no relay change; Dave: "make the today and logbook timelines blend in a bit more to the style of the app ... just focus
+  on the visual"; five looks, his pick B, Settings' metal plate): **Recent flights and the Logbook's days sit on metal plates.** Same rows, order, marks, taps
+  and swipes; only head.html's `.tline` rules and a few screws in the markup changed. The plate's metal is a token now, `--plate-bg` (test/index.html, `:root`
+  and `body.real`; `.plate` and `body.real .plate` use it, so Settings is unchanged), and the screw art is shared by `.plate>i` and `.scr`. Now: `#recentPl`
+  wraps `#recent` (four `.scr`; the landscape rule hides `#recentPl`). Logbook: each `li.lbDay` is the plate (`--plate-bg`, the plate's shadows as
+  `--pl-drop/-hi/-side/-lo`, plain and realistic); `lblHead` puts two `.scr` in `.lbDayH` (the top screws, so the stuck headline is a strip of plate:
+  `.lbDayH.stuck` gets the metal) and `lblDayLi` two between the headline and `ol.lbDayL` (bottom screws; `firstElementChild` is still the headline and
+  `lastElementChild` the list, which `lblStickyMark`, `lblAppend` and `lblNews` rely on). Rows: no box, an engraved line above each (`box-shadow`), the
+  rail a groove (`.flights.tline::before`, `.lbDayL::before`; `#svList::before` off), the dot a sunk lamp in `--node`. Empty lines: `tlState` and the two
+  "No planes yet" lines carry `SCR2`; in `#svList` a lone `li.tg` (or a `li.lbDay:has(+ li.st)`) is the plate's top piece and the `li.st` after it the
+  bottom piece, the metal sized 140 px and shifted 28 px so it runs on without a seam (`clip-path` cuts the bottom piece's shadow upwards); on Now
+  (`#recent .scr`) the pieces' screws are hidden, the plate has its own. Grey type on the plate is the plate's beige (`rgba(214,208,194,.72)`) instead of
+  `--muted`; in daylight the names, the times and the day titles keep the night's ink and amber (daylight's `--ink:#191919` is for the paper). Settings'
+  own plate has that daylight problem (its labels go dark on the metal): reported, not changed here. Show more spans the plate's width. 120 rows draw in
+  about 11 ms (headless). `.scr{overflow-anchor:none}`: Chrome's scroll anchoring picked a day's bottom screw (an absolute `<i>` before
+  the rows) and scrolled with it when Show more grew the plate (flows.py "Show more moved the row in view").
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 

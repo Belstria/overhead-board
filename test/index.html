@@ -239,7 +239,10 @@ body.idle #fx.lbHov{cursor:none}
 /* Settings: a cockpit panel. Plates with screws, rotary selectors, flip switches, thumbwheels and amber read-outs. */
 #cockpit{position:absolute;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.12fr);grid-template-rows:minmax(0,1.12fr) minmax(0,1fr);gap:calc(18px*var(--k));
   font-family:var(--f-board);color:#d8d3c6}
-.plate{--pt:calc(10px*var(--k));--px:calc(22px*var(--k));position:relative;min-width:0;overflow:hidden;background:linear-gradient(#28292c,#1a1b1d);border-radius:calc(8px*var(--k));padding:var(--pt) var(--px) calc(12px*var(--k));
+/* 1.129.12: the plate's metal as a token (--plate-bg), so the app's day plates are the same metal; the screw is .plate>i or .scr */
+:root{--plate-bg:linear-gradient(#28292c,#1a1b1d)}
+body.real{--plate-bg:repeating-linear-gradient(90deg,rgba(255,255,255,.016) 0 1px,rgba(0,0,0,.022) 1px 2px,rgba(255,255,255,0) 2px 4px),linear-gradient(#2e2f33,#1a1b1e)}
+.plate{--pt:calc(10px*var(--k));--px:calc(22px*var(--k));position:relative;min-width:0;overflow:hidden;background:var(--plate-bg);border-radius:calc(8px*var(--k));padding:var(--pt) var(--px) calc(12px*var(--k));
   box-shadow:0 calc(6px*var(--k)) calc(16px*var(--k)) rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.07),inset 0 -2px 4px rgba(0,0,0,.5);
   display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));align-content:start;align-items:stretch;gap:calc(8px*var(--k))}
 /* Realistic look (Settings → Display; body.real): brushed, bevelled plates, engraved labels, metal knob caps and glowing
@@ -248,7 +251,7 @@ body.idle #fx.lbHov{cursor:none}
 body.real #glass{display:block;background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0) 7%),
   linear-gradient(118deg,rgba(255,255,255,.05) 0%,rgba(255,255,255,.012) 33%,rgba(255,255,255,0) 33.3%),
   radial-gradient(ellipse 75% 70% at 50% 42%,rgba(0,0,0,0) 62%,rgba(0,0,0,.2) 100%)}
-body.real .plate{background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.016) 0 1px,rgba(0,0,0,.022) 1px 2px,rgba(255,255,255,0) 2px 4px),linear-gradient(#2e2f33,#1a1b1e);
+body.real .plate{background-image:var(--plate-bg);
   box-shadow:0 calc(6px*var(--k)) calc(16px*var(--k)) rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.12),inset 1px 0 0 rgba(255,255,255,.05),inset -1px 0 0 rgba(0,0,0,.45),inset 0 -2px 0 rgba(0,0,0,.65),inset 0 -6px 10px rgba(0,0,0,.35)}
 body.real .inst>span,body.real .plate h3{text-shadow:0 1px 0 rgba(255,255,255,.07),0 -1px 0 rgba(0,0,0,.95)}
 body.real .inst{box-shadow:inset 0 calc(2px*var(--k)) calc(4px*var(--k)) rgba(0,0,0,.75),inset 0 -1px 0 rgba(255,255,255,.04),0 1px 0 rgba(255,255,255,.06)}
@@ -256,7 +259,7 @@ body.real .rotary .knob::before{background:radial-gradient(circle at 36% 28%,rgb
   conic-gradient(#9a9ea5,#4b4e53,#a7abb1,#43464b,#9a9ea5,#4b4e53,#a7abb1,#43464b,#9a9ea5);box-shadow:0 1px 2px rgba(0,0,0,.8),inset 0 0 0 1px rgba(0,0,0,.35)}
 body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px rgba(246,197,74,.8);
   background-image:repeating-linear-gradient(rgba(0,0,0,.2) 0 1px,rgba(0,0,0,0) 1px 3px),linear-gradient(#0b0e09,#151b10)}
-.plate>i{position:absolute;width:calc(9px*var(--k));height:calc(9px*var(--k));border-radius:50%;
+.plate>i,.scr{position:absolute;width:calc(9px*var(--k));height:calc(9px*var(--k));border-radius:50%;
   background:linear-gradient(35deg,transparent 42%,rgba(0,0,0,.75) 42% 58%,transparent 58%),radial-gradient(circle at 35% 35%,#8d9095,#45474c 60%,#1b1c1f)}
 .plate>i:nth-of-type(1){left:calc(8px*var(--k));top:calc(8px*var(--k))}.plate>i:nth-of-type(2){right:calc(8px*var(--k));top:calc(8px*var(--k))}
 .plate>i:nth-of-type(3){left:calc(8px*var(--k));bottom:calc(8px*var(--k))}.plate>i:nth-of-type(4){right:calc(8px*var(--k));bottom:calc(8px*var(--k))}
@@ -7923,6 +7926,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.129.12", date: "2026-11-02", notes: [
+    "Recent flights and the Logbook's days now sit on metal plates, like Settings.",
+  ]},
   {v: "1.129.11", date: "2026-11-02", notes: [
     "The compass under the plane's picture is no longer squashed.",
   ]},
