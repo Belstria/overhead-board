@@ -26,7 +26,7 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 | `maxalt` | Ignore planes above this altitude in feet (Settings shows metres when the units are metric) | `maxalt=15000` |
 | `units` | `aviation` for feet and knots (default metres and km/h) | `units=aviation` |
 | `refresh` | Seconds between position updates (default 10) | `refresh=15` |
-| `speed` | Flap speed in percent: 100 is fastest, 10 is ten times slower (default 85) | `speed=50` |
+| `speed` | Flap speed, 10 to 100: 50 is full speed (the default), 10 ten times slower, 100 the blur that lands in about 1.5 seconds (the main board still has its old percent scale) | `speed=30` |
 | `hd` | Render at 4K even if the screen reports a lower resolution | `hd` |
 | `sound` | Flap sound on (`1`, the default) or off (`0`) | `sound=0` |
 | `theme` | `classic`, `frankfurt` or `blue` | `theme=frankfurt` |
@@ -251,9 +251,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   moved on along its track, and a new position is blended in over a second instead of a jump.
 - **Chimes**: a two-note chime when a special aircraft enters the spotting radius, three rising notes for a
   favourite, and a separate alert for emergencies. Needs a first click or key press, like the flap sound.
-  The chime for special planes is the **airport bell** by default (1.32): three soft notes rising, like the chime before
-  an announcement in a terminal. Settings → Flaps & sound → **Special bell** switches between AIRPORT and the old
-  CLASSIC chime, and plays the one you switch to.
+  The chime for special planes is the **airport bell** (1.32): three soft notes rising, like the chime before
+  an announcement in a terminal. Since 1.129.6 it is the only one: the Classic chime and the Special bell setting
+  are gone on the test board and in the app, and **Chimes** turns the bell, the other chimes and the new-plane ding on or off together.
 - **The day runs from 00:00 to 23:59**, for everything: Spotted today, the Logbook's days, the points limits, the streak, the standby, the league and bingo.
 - **Airtime limit**: a plane that hangs around (a police helicopter over an incident, a light aircraft circling) gets at
   most 3 minutes an hour on the top half while other planes are within the spotting radius, then gives them a turn.
@@ -390,8 +390,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   About's patch notes and legend move with **▲ ▼** buttons.
 - **New plane ding** (1.43): a soft, subtle cabin "ding" when the plane on top becomes overhead or approaching (since
   1.84; it used to ring for every new plane on top, mostly ones flying by), so you know when to look up
-  (not for special planes, which have their own chime; not at night; at most every 15 seconds). Settings → Traffic
-  (board) or Sounds (app) → **New plane ding**; switching it on plays it. Since 1.45 it is a recorded Airbus cabin
+  (not for special planes, which have their own chime; not at night; at most every 15 seconds). Since 1.129.6 it has no
+  setting of its own: it sounds whenever Settings → Flaps & sound → **Chimes** is on. Since 1.45 it is a recorded Airbus cabin
   chime (its first tone; both tones since 1.46), and it only sounds where the plane on top shows (the board without a view open, the app's
   Now), not in Settings, the radar or the lists; the chimes for special planes and favourites still sound everywhere.
   Achievements have their own short festive flourish (1.45).
@@ -749,8 +749,12 @@ country still to stamp** face down after your stamps, nearest first; regions wit
 - **Worn hardware**: modules sit very slightly out of line and the odd flap hesitates or catches, and the panel has
   some honest wear: fine scratches, polish marks, grime in the corners, paint rubbed off the edges, a few small dings.
   Can be turned off.
-- **Quick flaps** (Settings → Display, 1.14): every flap still turns through its letters and words, but as a blur,
-  and the whole board lands on the new text in about 1.5 seconds. Flap speed % doesn't apply while it is on.
+- **Flap speed** (Settings → Flaps & sound; 1.129.6 gave it one scale and took Quick flaps, 1.14, into it): 10 is ten
+  times slower than full speed, **50 is full speed and the default**, and from 50 to 100 the flaps turn faster and
+  faster, blurring through their letters and words until at 100 the whole board lands on the new text in about
+  1.5 seconds. Worn hardware's hesitations fade out on the way up. Settings saved before keep their real speed (an old
+  85 % shows as 43, Quick flaps on as 100). On a thumbwheel a finger dragging up or down turns the wheel, one step for
+  every 22 pixels, with a flick rolling on a little (not past its ends); the ▲ and ▼ keys still work, and a tap turns nothing.
 - **Night mode**: dims the board and mutes it between set times (22:30 to 07:00 by default; `?night=0` turns it off).
   In the app and the light version (1.57) it is quiet hours: no chimes, dings or flap sounds while the app is open
   (Settings → Night: Night mode, Quiet from, Until); the screen isn't dimmed.
