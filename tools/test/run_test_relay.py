@@ -60,6 +60,7 @@ def main():
     p.add_argument("--far", action="store_true", help="the landing starts 32 km out")
     p.add_argument("--ring", action="store_true", help="a plane coming within 15, then 10 km, and one passing 12 km out (both can be scanned)")
     p.add_argument("--fr24", action="store_true", help="pretend the relay has a Flightradar24 key")
+    p.add_argument("--late-routes", action="store_true", help="with --fr24: David has old sightings without a route and the route back-fill starts at once")
     p.add_argument("--gold", nargs="?", const="all", default="", help="golden tickets: all planes in the scan list, or HEX,HEX")
     p.add_argument("--logbook", choices=("dense", "quiet"), default="", help="saved days for the Logbook's list: dense, three weeks of 200 "
                    "flights a day (with a few from last December); quiet, a few flights a day")
@@ -122,6 +123,8 @@ def run(a, tmp, procs):
              ('PS_IMG = (', 'PS_IMG = ("http://127.0.0.1:", '), ("https://discovery.meethue.com", f"http://127.0.0.1:{a.port - 2}/discovery")]
     if not a.live_photos:
         swaps.append(("600, 1.0, 4.0, 1800", "600, 0.1, 4.0, 1800"))       # PS_GAP
+    if a.late_routes:                     # relay 107: no five minutes' wait, and quick steps
+        swaps += [("FR24_LATE_WAIT_S = 300", "FR24_LATE_WAIT_S = 3"), ("FR24_LATE_GAP_S = 15", "FR24_LATE_GAP_S = 1"), ("FR24_GAP_S = 6.5", "FR24_GAP_S = 0.5")]
     for real, fake in swaps:
         if real not in src:
             raise SystemExit(f"relay/serve.py no longer has {real}; update run_test_relay.py")
@@ -223,6 +226,18 @@ def run(a, tmp, procs):
                       "scanned": {"types": sorted(scans), "airlines": sorted(g_info)}, "scanTypes": scans,
                       "scanAirlines": {al: n for al, n in wal.items() if n}, "scanAirlineInfo": g_info,
                       "mastery": {"A320": 3, "B744": 2, "DH8D": 1, "E195": 2}}}), encoding="utf-8")
+    if a.late_routes:
+        # relay 107: the owner's saved days without routes (LTE0: found, LTE1: another aircraft, LTE2: no answer, ...), and the
+        # same callsign on the guest's day, which stays as it is
+        late = lambda i, b: {"id": f"late{i}", "hex": "lte000", "callsign": f"LTE{i}", "ts": int((now - 86400 * b) * 1000) - i * 60000, "time": "12:00",
+                             "typeCode": "A320", "aircraftType": "A320", "airlineName": "Late Air", "minDist": 6.2, "altAtMin": 9000, "looked": True}
+        own = tmp / "data" / "profiles" / "own00001"
+        own.mkdir(parents=True)
+        for b, ids in ((2, (0, 1, 2)), (5, (3, 4))):
+            (own / f"sightings-{time.strftime('%Y-%m-%d', time.localtime(now - 86400 * b))}.json").write_text(json.dumps([late(i, b) for i in ids]), encoding="utf-8")
+        (own / "logbook.json").write_text(json.dumps({"since": day, "startedTs": now - 86400 * 20, "sightings": 5, "types": {}, "airlines": {}, "regs": {},
+                                                      "vrsFill": {"v": 1}}), encoding="utf-8")
+        (tmp / "data" / "profiles" / "test0001" / f"sightings-{time.strftime('%Y-%m-%d', time.localtime(now - 86400 * 3))}.json").write_text(json.dumps([late(9, 3)]), encoding="utf-8")
     # ... and Flightradar24's answer about it, still in the cache: written into the sighting at start
     (tmp / "data" / "fr24.json").write_text(json.dumps({"usage": {}, "flights": {"4ca2b8|EIN1XY": {
         "t": now - 86400 + 300, "flight": "EI661", "callsign": "EIN1XY", "from": {"code": "DUB", "city": "Dublin"},

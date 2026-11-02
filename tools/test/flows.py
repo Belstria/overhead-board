@@ -1917,6 +1917,286 @@ def showcase_checks(expect):
     expect("the pins survive a restart", (codes(serve.showcase_json(g2)), serve.showcase_json(g2)["pins"][2]["route"]), (["A359", None, "B789"], ["DXB", "VIE"]))
 
 
+def route_backfill_checks(expect):
+    """Relay 107 (to-do #98): the one-off Flightradar24 route back-fill: asks around each sighting's own time, newest first,
+    the owner only, once; its routes pay nothing; it yields, stops on a refusal or at its cap and resumes after a restart."""
+    import calendar
+    import json as _j
+    import tempfile
+    import types
+    import urllib.parse
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    now = serve.time.time()
+    day_n = lambda n: serve.board_day(now - 86400 * n)
+    ts_n = lambda n, m=0: int((now - 86400 * n) * 1000) + m * 60000
+    ROW = {"flight": "XX1", "orig_iata": "FRA", "orig_icao": "EDDF", "dest_iata": "VIE", "dest_icao": "LOWW", "flight_ended": "true"}
+    keep = {k: getattr(serve, k) for k in ("ARGS", "fetch", "profiles", "event", "_fr24", "_fr24_state", "FR24_GAP_S", "FR24_LATE_CAP", "FR24_LATE_WAIT_S", "FR24_LATE_GAP_S",
+                                           "fr24_paced", "guest_spot", "DATA_DIR", "_airports", "_airports_ready", "_fr24_next")}
+    real_sleep = serve.time.sleep
+    logged, asked, script = [], [], {}
+
+    def fetch(url, timeout=10, headers=None, **k):
+        q = {a: b[0] for a, b in urllib.parse.parse_qs(urllib.parse.urlsplit(url).query).items()}
+        asked.append(q)
+        r = script.get(q["callsigns"], [])
+        if isinstance(r, int):
+            return r, "text/plain", b"no", {}
+        if isinstance(r, list) and r and isinstance(r[0], int):      # statuses in turn, then an empty answer
+            return (r.pop(0), "text/plain", b"no", {}) if r[0] != 200 else (r.pop(0) and 200, "application/json", b'{"data":[]}', {})
+        return 200, "application/json", _j.dumps({"data": r}).encode(), {}
+
+    def row(n, hx="abc", **more):
+        return [{**ROW, "hex": hx, "callsign": n, **more}]
+
+    def sighting(i, n, cs, hx="abc", m=0, **more):
+        return {"id": f"s{i}", "hex": hx, "callsign": cs, "ts": ts_n(n, m), "time": "12:00", **more}
+
+    def spot(*days):
+        folder = Path(tempfile.mkdtemp(prefix="fb-late-"))
+        sp = serve.Spot(folder, lambda: (48.2085, 16.3731), 15)
+        for n, rows in days:
+            (folder / f"sightings-{day_n(n)}.json").write_text(_j.dumps(rows))
+        with serve._data_lock:
+            sp.ensure_day()
+        return sp
+
+    def saved(sp, n):
+        with serve._data_lock:
+            for path, text in sp.files():
+                path.write_text(text)
+        return {e["id"]: e for e in _j.loads((sp.dir / f"sightings-{day_n(n)}.json").read_text())}
+
+    def fresh():
+        asked.clear(), script.clear(), logged.clear()
+        serve._fr24 = {"flights": {}, "usage": {}}
+        serve._fr24_q.clear()
+        serve._fr24_state.update(state="ok", error="")
+
+    def utc(text):
+        return calendar.timegm(serve.time.strptime(text, "%Y-%m-%dT%H:%M:%S"))
+    try:
+        serve.ARGS = types.SimpleNamespace(verbose=False, fr24_key="goodkey", fr24_budget=None, fr24_reset_day=1, fr24_promo_until=None, fr24_budget_promo=None)
+        serve.fetch = fetch
+        serve.event = lambda lvl, msg, **k: logged.append(msg)
+        serve.FR24_GAP_S = 0
+        serve._fr24_next = 0.0
+        serve._airports = {"iata": {}, "icao": {}}
+        profile = {"fr24": True, "name": "Owner"}
+        serve.profiles = lambda: {"profiles": {"own": profile}}
+        nap = lambda s: None
+
+        # who is asked, in what order, with what window; what is written
+        fresh()
+        route = {"from": {"code": "AAA"}, "to": {"code": "BBB"}}
+        sp = spot((2, [sighting(1, 2, "NOPE1"), sighting(2, 2, "OLDR1", m=5), sighting(3, 2, "HEX1", m=1), sighting(4, 2, "FLT1", m=2)]),
+                  (1, [sighting(5, 1, "NEWR1"), sighting(6, 1, "FILL1", routeSrc="vrs", **route), sighting(7, 1, "REAL1", routeSrc="fr24", **route),
+                       sighting(8, 1, "@@@@@"), sighting(9, 1, "PLAIN1", **route), {"id": "s10", "hex": "abc", "ts": ts_n(1)}]))
+        with serve._data_lock:
+            sp.entries.append({"id": "t1", "hex": "abc", "callsign": "TODAY1", "ts": ts_n(0)})
+            sp.changed("day")
+        script.update(NEWR1=row("NEWR1"), OLDR1=row("OLDR1"), HEX1=row("HEX1", hx="def"),
+                      FLT1=row("FLT1", first_seen=serve.time.strftime("%Y-%m-%dT%H:%M:%SZ", serve.time.gmtime(ts_n(2) / 1000 + 6 * 3600)),
+                               last_seen=serve.time.strftime("%Y-%m-%dT%H:%M:%SZ", serve.time.gmtime(ts_n(2) / 1000 + 8 * 3600))))
+        with serve._data_lock:
+            serve.game_book(sp.book())["points"] = 123
+            sp.book()["sightings"] = 7
+            sp.book()["records"] = {"farthest": {"v": 1}}
+            before = _j.dumps([sp.book()["sightings"], sp.book()["records"], serve.game_book(sp.book())], sort_keys=True)
+        serve._fr24_late_run(sp, nap)
+        expect("back-fill: only sightings without a route and with a usable callsign, past days only, newest first",
+               [q["callsigns"] for q in asked], ["NEWR1", "OLDR1", "FLT1", "HEX1", "NOPE1"])
+        q = asked[0]
+        expect("... the window is around the sighting's own time", (utc(q["flight_datetime_from"]) - ts_n(1) // 1000, utc(q["flight_datetime_to"]) - ts_n(1) // 1000),
+               (-16 * 3600, 900))
+        rows1, rows2 = saved(sp, 1), saved(sp, 2)
+        expect("... a found route is written with its mark, and only that",
+               ({k: rows1["s5"].get(k) for k in ("routeSrc", "flightIata", "divertedTo")}, rows1["s5"]["from"]["code"], rows1["s5"]["to"]["code"]),
+               ({"routeSrc": "fr24late", "flightIata": None, "divertedTo": None}, "FRA", "VIE"))
+        expect("... no answer, another aircraft and a flight at another time write nothing",
+               [rows2[k].get("from") for k in ("s1", "s3", "s4")], [None, None, None])
+        expect("... VRS's and real routes stay", (rows1["s6"]["routeSrc"], rows1["s7"]["routeSrc"], rows1["s9"].get("routeSrc")), ("vrs", "fr24", None))
+        with serve._data_lock:
+            after = _j.dumps([sp.book()["sightings"], sp.book()["records"], serve.game_book(sp.book())], sort_keys=True)
+        expect("... no total, record or point moved", after, before)
+        u = serve._fr24["usage"]
+        expect("... the report: counts and one date, nothing else",
+               u["routeBackfill"], {"state": "done", "why": "", "asked": 5, "found": 2, "noAnswer": 1, "otherAircraft": 1, "otherFlight": 1, "credits": 13, "oldest": day_n(2)})
+        expect("... the credits show who spent them, and no profile's limit", (u["by"]["Route back-fill"], u["credits"], profile.get("fr24Use")),
+               ({"credits": 13, "lookups": 5}, 13, None))
+        expect("... not in the live cache, one line in the log", (serve._fr24["flights"], len(logged)), ({}, 1))
+        n = len(asked)
+        serve._fr24_late_run(sp, nap)
+        expect("... runs once", len(asked), n)
+
+        # the mark pays nothing, and a real route still replaces it
+        e = dict(rows1["s5"], **{"from": {"code": "FRA", "lat": 1.0, "lon": 1.0}, "to": {"code": "VIE", "lat": 2.0, "lon": 2.0}})
+        book = {"records": {}}
+        serve.note_records(book, e, (48.2, 16.4))
+        expect("... no farthest record, no stamp", ((book["records"] or {}).get("farthest"), serve.route_countries(e, {"iata": {}})), (None, []))
+        profile_all = serve.all_spots
+        try:
+            s2 = spot((1, [dict(rows1["s5"])]))
+            serve.all_spots = lambda: [s2]
+            serve.profiles = lambda: {"profiles": {s2.dir.name: profile}}
+            hit = serve.fr24_keep(f"abc|NEWR1", {"t": ts_n(1) / 1000, "flight": "LH1", "from": {"code": "MUC"}, "to": {"code": "VIE"}}, spots=[s2])
+            r = saved(s2, 1)["s5"]
+            expect("... a real Flightradar24 route replaces it", (hit, r["routeSrc"], r["from"]["code"]), (1, "fr24", "MUC"))
+        finally:
+            serve.all_spots = profile_all
+
+        # a restart goes on where it was, without asking again
+        fresh()
+        sp = spot((1, [sighting(i, 1, f"RES{i}", m=-i) for i in range(1, 5)]))
+        stop = types.SimpleNamespace(left=2)
+
+        def crash(s):
+            stop.left -= 1
+            if not stop.left:
+                raise KeyError("restart")
+        try:
+            serve._fr24_late_run(sp, crash)
+        except KeyError:
+            pass
+        first = [q["callsigns"] for q in asked]
+        with serve._data_lock:
+            for path, text in sp.files():
+                path.write_text(text)
+        again = serve.Spot(sp.dir, sp.center, 15)
+        with serve._data_lock:
+            again.ensure_day()
+        serve._fr24_late_run(again, nap)
+        expect("a restart goes on without asking again", (first, [q["callsigns"] for q in asked][2:], serve._fr24["usage"]["routeBackfill"]["asked"]),
+               (["RES1", "RES2"], ["RES3", "RES4"], 4))
+
+        # the plan's limit: three refusals in a row end it, at no cost; a key refused ends it and leaves the live state alone
+        fresh()
+        sp = spot((1, [sighting(i, 1, f"BAD{i}", m=-i) for i in range(1, 6)]))
+        script.update({f"BAD{i}": 400 for i in range(1, 6)})
+        serve._fr24_late_run(sp, nap)
+        r = serve._fr24["usage"]["routeBackfill"]
+        expect("the plan's limit: three in a row stop it, no credits", (len(asked), r["state"], r["why"], r["credits"]),
+               (3, "stopped", "date range not allowed (HTTP 400)", 0))
+        n = len(asked)
+        serve._fr24_late_run(sp, nap)
+        expect("... and it stays stopped", len(asked), n)
+        fresh()
+        sp = spot((1, [sighting(1, 1, "KEY1"), sighting(2, 1, "KEY2", m=-1)]))
+        script.update(KEY1=403)
+        serve._fr24_late_run(sp, nap)
+        expect("a 403 stops it at once; live lookups keep their own state", (len(asked), serve._fr24["usage"]["routeBackfill"]["why"], serve._fr24_state["state"], serve.fr24_on()),
+               (1, "refused (HTTP 403)", "ok", True))
+
+        # 429 pauses; a network failure pauses, neither ends it nor costs anything
+        fresh()
+        sp = spot((1, [sighting(1, 1, "TMR1")]))
+        script.update(TMR1=[429, 502, 200])
+        naps = []
+        serve._fr24_next = 0.0
+        serve._fr24_late_run(sp, naps.append)
+        serve._fr24_next = 0.0
+        r = serve._fr24["usage"]["routeBackfill"]
+        expect("429 and an unreachable source pause and try again", (naps[:2], len(asked), r["state"], r["asked"], r["credits"]), ([60, 600], 3, "done", 1, 1))
+
+        # the cap: never passed
+        fresh()
+        sp = spot((1, [sighting(i, 1, f"CAP{i}", m=-i) for i in range(1, 6)]))
+        script.update({f"CAP{i}": row(f"CAP{i}") for i in range(1, 6)})
+        serve.FR24_LATE_CAP = 8
+        serve._fr24_late_run(sp, nap)
+        r = serve._fr24["usage"]["routeBackfill"]
+        expect("the cap: stops before an answer could pass it", (len(asked), r["credits"], r["state"], r["why"]), (2, 6, "stopped", "credit cap"))
+        serve.FR24_LATE_CAP = keep["FR24_LATE_CAP"]
+
+        # live goes first; the day's share and the budget hold it back
+        fresh()
+        sp = spot((1, [sighting(1, 1, "YLD1")]))
+        script.update(YLD1=row("YLD1"))
+        serve._fr24_q.append((0, 0, "abc|LIVE", "LIVE", "abc", "x", None))
+        seen = []
+
+        def live_done(s):
+            seen.append((len(asked), len(serve._fr24_q)))
+            serve._fr24_q.clear()
+        serve._fr24_late_run(sp, live_done)
+        expect("a queued live lookup goes first", seen[0], (0, 1))
+        fresh()
+        sp = spot((1, [sighting(1, 1, "PCE1")]))
+        script.update(PCE1=row("PCE1"))
+        parts, held = [], [True]
+
+        def paced(pr, part=1.0):
+            parts.append((pr, part))
+            return held[0]
+
+        def next_day(s):
+            seen.append(len(asked))
+            held[0] = False
+        seen.clear()
+        serve.fr24_paced = paced
+        serve._fr24_late_run(sp, next_day)
+        serve.fr24_paced = keep["fr24_paced"]
+        expect("the day's share holds it back until a later try, at half the share", (seen[0], parts[0], len(asked)), (0, (1, .5), 1))
+        fresh()
+        sp = spot((1, [sighting(1, 1, "BUD1")]))
+        script.update(BUD1=row("BUD1"))
+        seen.clear()
+        serve._fr24_usage()["credits"] = 27000
+
+        def month(s):
+            seen.append(len(asked))
+            serve._fr24_usage()["credits"] = 0
+        serve._fr24_late_run(sp, month)
+        expect("the month's budget holds it back too", (seen[0], len(asked)), (0, 1))
+        expect("half the day's share is less than a live lookup's", (serve.fr24_paced(1), serve.fr24_paced(1, 0)), (False, True))
+
+        # the owner only, after VRS's turn; the result outlives the month's counts
+        fresh()
+        root = Path(tempfile.mkdtemp(prefix="fb-late-all-"))
+        serve.DATA_DIR = root
+        spots = {}
+        for pid in ("own", "gst"):
+            d = root / "profiles" / pid
+            d.mkdir(parents=True)
+            (d / f"sightings-{day_n(1)}.json").write_text(_j.dumps([sighting(1, 1, "OWN1" if pid == "own" else "GST1")]))
+            spots[pid] = serve.Spot(d, lambda: (48.2085, 16.3731), 15)
+        serve.profiles = lambda: {"profiles": {"own": {"name": serve.HOME_OWNER, "fr24": True}, "gst": {"name": "Guest", "fr24": True}}}
+        serve.guest_spot = lambda pid: spots[pid]
+        serve._airports_ready = lambda: {"iata": {}}
+        serve.FR24_LATE_WAIT_S = serve.FR24_LATE_GAP_S = 0
+        script.update(OWN1=row("OWN1"), GST1=row("GST1"))
+        waits = []
+
+        def vrs_turn(s):
+            waits.append((s, len(asked)))
+            if s == 3600:
+                with serve._data_lock:
+                    spots["own"].book()["vrsFill"] = {"v": 1}
+        serve.time.sleep = vrs_turn
+        serve._fr24_late_all()
+        serve.time.sleep = real_sleep
+        expect("the owner's profile only, and after VRS's turn", (waits[1], [q["callsigns"] for q in asked]), ((3600, 0), ["OWN1"]))
+        expect("... a guest's sightings aren't touched", (saved(spots["gst"], 1)["s1"].get("from"), "fr24Late" in spots["gst"].book()), (None, False))
+        with serve._data_lock:
+            serve._fr24["usage"]["month"] = "2020-01-01"
+            u = serve._fr24_usage()
+        expect("... the result outlives the month's counts", (u["credits"], u["routeBackfill"]["found"]), (0, 1))
+
+        # a live lookup is as it was
+        fresh()
+        script.update(LIVE1=row("LIVE1"))
+        info, status, credits = serve._fr24_lookup("LIVE1", "abc")
+        q = asked[0]
+        expect("a live lookup still asks the last 20 hours", (round((utc(q["flight_datetime_to"]) - utc(q["flight_datetime_from"])) / 3600, 1), status, credits, info["from"]["code"]),
+               (20.0, 200, 3, "FRA"))
+    finally:
+        serve.time.sleep = real_sleep
+        for k, v in keep.items():
+            setattr(serve, k, v)
+        serve._fr24_q.clear()
+
+
 def vrs_route_checks(expect):
     """Relay 106 (to-do #262): a flight with no route gets Virtual Radar Server's, only when the position check really ran
     and accepts it, marked routeSrc "vrs": a stopover picks its leg, a real source arriving later wins, a failed download
@@ -2530,6 +2810,7 @@ def checks():
     mastery_checks(expect)
     loyalty_checks(expect)
     vrs_route_checks(expect)
+    route_backfill_checks(expect)
     import serve                    # relay 85: no flight school in the other checks (its +50s would change their totals)
     serve.school_pass = lambda *a, **k: None
     golden_checks(expect)
@@ -3072,18 +3353,20 @@ def logbook_list_checks(browser, bad):
         bad.append("the strip isn't Today, 2026, All time")
     if e('lbPlateOn') != "today":
         bad.append("the Logbook's key doesn't open on Today")
-    # 1.129.1 (to-do #264): Today's plate has the day's amber headline over its flights ("Today", 28 px, sticking), and none over an empty day;
+    # 1.129.1 (to-do #264): Today's plate has the day's amber headline over its flights ("Today", 28 px, sticking), also over an empty day (1.129.5, #271);
     # a first flight brings it; a filter that leaves nothing has none; the open card stays in its row
     e('window.__keep = todayList; todayList = () => []; svSig = ""; renderToday()')
     pg.wait_for_timeout(200)
-    if e('document.querySelectorAll("#svList .lbDayH").length') or not e('!!$("svList").querySelector(".st")'):
-        bad.append("an empty day on Today has a headline over nothing")
+    if e('[...document.querySelectorAll("#svList .lbDayH")].map(h => h.textContent).join()') != "Today" or not e('!!$("svList").querySelector(":scope > .st")') or e('document.querySelectorAll("#svList li.fl").length'):
+        bad.append("an empty day on Today has no headline, or no empty-state line under it (1.129.5)")
     e('window.__two = [fromRelay({id: "td-1", hex: "bb0001", ts: Date.now() - 60000, time: "11:59", callsign: "AUA1", typeCode: "A320", looked: true}), '
       'fromRelay({id: "td-2", hex: "bb0002", ts: Date.now() - 120000, time: "11:58", callsign: "AUA2", typeCode: "A320", looked: true})]; todayList = () => window.__two; svSig = ""; renderToday()')
     pg.wait_for_timeout(500)
     hd = e('[...document.querySelectorAll("#svList .lbDayH")].map(h => [h.textContent, Math.round(h.getBoundingClientRect().height), getComputedStyle(h).position, h.parentNode.parentNode === $("svList")])')
     if hd != [["Today", 28, "sticky", True]] or e('document.querySelectorAll("#svList li.fl").length') != 2:
         bad.append(f"Today's plate with flights: the headline is {hd}, not one sticky 28 px Today over two rows")
+    if e('document.querySelectorAll("#svList .st, #svList .lbGrow").length'):
+        bad.append("a first flight on an empty Today leaves the empty-state line or grows the headline again")
     e('svFilter = "special"; svSig = ""; renderToday()')
     pg.wait_for_timeout(200)
     if e('document.querySelectorAll("#svList .lbDayH").length'):
@@ -3173,6 +3456,113 @@ def logbook_list_checks(browser, bad):
     if e('document.querySelectorAll("#svList .lbDayH").length') > 1 or e('$("svList").querySelector(".lbMore")'):
         bad.append("an older relay should keep today's list, with only its own headline")
     ctx.close()
+
+
+def logbook_lead_checks(browser, bad):
+    """1.129.5 (to-do #271, #270): Today's amber headline stands at the top of the unfiltered Logbook lists with no flight
+    today (2026 and All time: an empty day, then Yesterday), once when the day's first flight comes, again at midnight,
+    and on an empty logbook with its one line after it; a filter has none; the Top key stays at the very bottom, clear
+    of Show more, however long you wait there."""
+    import datetime
+    now = datetime.datetime.now()
+
+    def run(n, body):
+        ctx = browser.new_context(viewport={"width": 360, "height": 740})
+        ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+
+        def hooked(route):
+            r = route.fetch()
+            t = r.text()
+            i = t.rindex("})();")
+            route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+        ctx.route("**/app/", hooked)
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: bad.append(f"logbook lead page error: {e}"))
+        pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
+        rows = []
+        for i in range(n):
+            d = now - datetime.timedelta(days=1 if i < 90 else 2 + (i - 90) // 10)
+            rows.append({"id": f"rw{i}", "hex": f"{i:06x}", "ts": int(d.timestamp() * 1000) - i * 1000, "time": "12:00", "callsign": f"AUA{i}", "typeCode": "A320", "reg": "OE-LBN",
+                         "minDist": 5.0, "altAtMin": 30000, "looked": True, "day": d.strftime("%Y-%m-%d")})
+
+        def flights(route):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(route.request.url).query)
+            start = int((q.get("before") or ["0~~"])[0].split("~")[1] or 0) if q.get("before") else 0
+            route.fulfill(status=200, content_type="application/json", body=json.dumps(
+                {"version": 105, "date": now.strftime("%Y-%m-%d"), "rev": 1, "entries": rows[start:start + 50], "cursor": f"x~{start + 50}~0", "more": start + 50 < len(rows)}))
+        pg.route("**/logbook/flights*", flights)
+        pg.goto(BASE + "/app/")
+        pg.wait_for_timeout(3500)
+        e = lambda code: pg.evaluate("c => __e(c)", code)      # noqa: E731
+        pg.evaluate("document.querySelector('[data-tab=logbook]').click()")
+        pg.wait_for_timeout(1200)
+        e('todayList = () => []; svSig = ""; renderToday()')
+        pg.wait_for_timeout(200)
+        body(pg, e)
+        ctx.close()
+    heads = 'JSON.stringify([...document.querySelectorAll("#svList .lbDayH")].map(h => h.textContent))'
+
+    def long_list(pg, e):
+        if e(heads) != '["Today"]' or not e('!!$("svList").querySelector(":scope > .st")'):
+            bad.append("no flights today: Today's plate isn't the headline and its one line")
+        e('lbPlateGo("all")')
+        pg.wait_for_timeout(1000)
+        h = json.loads(e(heads))
+        if h[:2] != ["Today", "Yesterday"] or len(h) != len(set(h)):
+            bad.append(f"All time with no flight today: the headlines are {h[:3]}, not Today then Yesterday")
+        if e('$("svList").querySelector(".lbDay").querySelectorAll("li.fl").length') or e('!!$("svList").querySelector(":scope > .st")'):
+            bad.append("the empty Today has a row, or a sentence under it while other days follow")
+        if e('$("svList").querySelector(".lbDayH").getBoundingClientRect().height') != 28:
+            bad.append("the empty Today's headline isn't 28 px")
+        # the day's first flight comes into that day, not under a second headline
+        e('window.__one = [fromRelay({id: "zz-new", hex: "aa0001", ts: Date.now(), time: "12:01", callsign: "AUA7", typeCode: "A320", looked: true})]; todayList = () => window.__one; renderToday()')
+        pg.wait_for_timeout(600)
+        h = json.loads(e(heads))
+        if h[:2] != ["Today", "Yesterday"] or len(h) != len(set(h)) or e('$("svList").querySelector(".lbDay").querySelectorAll("li.fl").length') != 1:
+            bad.append(f"a first flight of the day: the headlines are {h[:3]}, or it isn't the one row under Today")
+        e('todayList = () => []; renderToday()')
+        pg.wait_for_timeout(200)
+        # midnight: the relay's day moves on; Today's headline stands over what was Today
+        e('sightDay = lblIso(new Date(Date.now() + 864e5)); renderToday()')
+        pg.wait_for_timeout(400)
+        h = json.loads(e(heads))
+        if h[:2] != ["Today", "Yesterday"] or len(h) != len(set(h)):
+            bad.append(f"after midnight the headlines are {h[:3]}, not Today then Yesterday")
+        e('sightDay = null; renderToday()')
+        pg.wait_for_timeout(300)
+        # a filter that doesn't reach into an empty day has no headline of it
+        e('svFilter = "special"; renderToday()')
+        pg.wait_for_timeout(800)
+        if e('document.querySelectorAll("#svList .lbDayH").length'):
+            bad.append("a filter has an empty Today headline")
+        e('svFilter = "all"; renderToday()')
+        pg.wait_for_timeout(800)
+        # to-do #270: the Top key at the very bottom: kept, with Show more clear of it, also after 4 s
+        e('scrollTo(0, document.documentElement.scrollHeight)')
+        pg.wait_for_timeout(300)
+        pg.click(".lbMore button")
+        pg.wait_for_timeout(800)
+        e('scrollTo(0, document.documentElement.scrollHeight)')
+        pg.wait_for_timeout(4000)
+        k = e("""(() => { const k = $("lbTop"), m = document.querySelector("#svList > .lbMore"), a = k.getBoundingClientRect(), b = m.getBoundingClientRect();
+          return [k.hidden, k.classList.contains("rest"), Math.round(window.scrollY + innerHeight - document.documentElement.scrollHeight), b.bottom <= a.top, getComputedStyle(k).opacity]; })()""")
+        if k[0] or k[1] or k[2] < -2 or not k[3] or k[4] != "1":
+            bad.append(f"the Top key at the very bottom (hidden, resting, off by, clear of Show more, opacity): {k}")
+        for dy in (-3, 3, -2, 2, 0):        # a rubber band's scroll events back and forth
+            e(f'scrollBy(0, {dy}); window.dispatchEvent(new Event("scroll"))')
+            pg.wait_for_timeout(80)
+        pg.wait_for_timeout(300)
+        if e('$("lbTop").classList.contains("rest")'):
+            bad.append("the Top key flips to rest on scroll events at the very bottom")
+    run(140, long_list)
+
+    def empty(pg, e):
+        e('lbPlateGo("all")')
+        pg.wait_for_timeout(1000)
+        order = e('[...$("svList").children].map(x => x.className).join()')
+        if json.loads(e(heads)) != ["Today"] or not order.startswith("lbDay,st"):
+            bad.append(f"a new user's empty logbook: {json.loads(e(heads))}, {order}; wanted Today, then its one line")
+    run(0, empty)
 
 
 def sky_sizes_checks(browser, bad):
@@ -3733,6 +4123,7 @@ def browser_checks(browser):
         bad.append(f"the invite field didn't open this site's link: {pg.url[:60]}")
     ctx.close()
     logbook_list_checks(browser, bad)
+    logbook_lead_checks(browser, bad)
     demo_rows_checks(browser, bad)
     sky_sizes_checks(browser, bad)
     styles_cell_checks(browser, bad)

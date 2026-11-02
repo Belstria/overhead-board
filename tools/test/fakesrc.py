@@ -394,6 +394,12 @@ class H(BaseHTTPRequestHandler):
                        "SWR1514": ("LX1514", "ZRH", "LSZH", "VIE", "LOWW", "4B1814", "SWR", "SWR", "BCS3"),
                        "TST353": ("TS353", "TSA", "TTSA", "TSB", "TTSB", "46F001", "TST", "TST", "AT76")})
             CAT = {"WZZ4307": "Cargo", "SWR1514": "Business_jets"}
+            if cs.startswith("LTE"):       # relay 107: the route back-fill (run_test_relay.py --late-routes): the window is logged,
+                print("late-route", cs, q["flight_datetime_from"][0], q["flight_datetime_to"][0], flush=True)  # the odd number's found, then hex, then none
+                n = int(cs[3:]) % 3
+                data = [] if n == 2 else [{"flight": "LT" + cs[3:], "callsign": cs, "orig_iata": "FRA", "orig_icao": "EDDF", "dest_iata": "VIE", "dest_icao": "LOWW",
+                                           "hex": "ffffff" if n == 1 else cs[:3].lower() + "000", "flight_ended": "true"}]
+                return self.send(200, "application/json", json.dumps({"data": data}).encode())
             r = FR.get(cs)
             data = [] if not r else [{"fr24_id": "3c0ffee", "flight": r[0], "callsign": cs, "operated_as": r[6], "painted_as": r[7], "type": r[8],
                      "reg": {"TST353": "TS-TST"}.get(cs, ""),

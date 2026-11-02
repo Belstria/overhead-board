@@ -855,8 +855,8 @@ Five buttons along the bottom:
   **Since 1.123 the Logbook is one screen**: the search and the filter icon, three plates you swipe sideways (**Today**, which stays at 0 on a day with no planes yet since 1.124.1,
   the period, such as "2026 in planes", and **All time**; in that order since 1.127), then the planes. Under Today, the day's, with its amber "Today" headline over the flights as under the others (1.129.1; none on a day with no planes yet). **Under the period and All time the list goes back across days
   (1.127, relay 105)**: the last 50 flights, newest first, then **Show more** at the bottom for the 50 before those, as far as the period's start or the logbook's beginning, with the filters and the chosen place
-  applied. Each day has an amber headline (Today, Yesterday, then the date) that stays under the search until the next day's pushes it away. Once more than 50 are loaded, a **Top** key with the
-  day you're in shows while you scroll past the first screens; it goes back up to the plates. A new flight waits at the top while you're further down, so what you're reading doesn't move.
+  applied. Each day has an amber headline (Today, Yesterday, then the date) that stays under the search until the next day's pushes it away; Today's is there before the day's first flight too (not under a filter). Once more than 50 are loaded, a **Top** key with the
+  day you're in shows while you scroll past the first screens, and stays at the very bottom; it fades when you stop and steps aside while Show more goes by. It goes back up to the plates. A new flight waits at the top while you're further down, so what you're reading doesn't move.
   A tap on All time's numbers opens their lists
   (Sightings: **Categories**, Aircraft: **Most seen aircraft**, Types: **Aircraft types**, Airlines: **Airlines**), with since when
   it counts as a footnote; with a saved place on, its name and numbers are that place's. Each list rises from below as
@@ -1113,6 +1113,12 @@ asking by airline code only, and keeps it in `data/vrs-routes/` for a week; a fa
 routes show like any other, but about 1 in 9 listed routes is wrong before the check, so they don't stamp the passport,
 pay at a scan or set the farthest record, and any other source's route replaces one. Saved days are caught up once in
 the background, and the log says what came of it per profile ("Routes: N filled, M refused by position, ...").
+
+Late routes (relay 107): once, the relay asks Flightradar24 for the routes still missing from the owner's saved days,
+newest first, each around the sighting's own time and only for the same aircraft, at most 1,500 credits and only while
+today's lookups have credits to spare. These routes show like any other and, like the filled-in ones, pay and stamp
+nothing and set no record. The admin page's credits list them as "Route back-fill". It stops by itself if Flightradar24
+refuses the requests (the plan's history may not reach that far), and the log gives the result.
 
 Airline names (relay 68): the route database names the airline only together with a route, so the relay also keeps
 Virtual Radar Server's airline list (public domain) in `data/airlines.json`, downloaded at start and refreshed weekly
