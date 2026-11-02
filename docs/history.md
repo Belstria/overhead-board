@@ -2815,6 +2815,13 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   replaces 1.129.12's own daylight colours for the lists (same result). Checked in daylight with Realistic look on and off: Settings, its ten sheets, the
   Club, About, the Radar, the Logbook (pixel diffs: only the dark-on-dark text changed; Location, Display, Favourites & hidden, the Flight school's
   record and the Logbook unchanged). Not on a plate and left as it was: the Club's segmented tabs (the active one is dark on dark in daylight).
+- 1.129.14 (to-do #283; app only, no relay change; found while building 1.129.13): **The Club's tabs are easier to read in daylight.** Off a plate a
+  segmented row (`.seg`: the Club's `jumpSeg`, the Logbook filter's `svFilters`, `svPlaces`, `lbViews`) kept its dark selected key (`#2c2e33`) and a
+  `rgba(0,0,0,.35)` track that turns grey on the cream page, while daylight's `--ink:#191919` and `--muted` made the selected label dark on dark and the
+  others grey on grey. In daylight the selected key takes the night's `--ink` (as the plates do, 1.129.13) and the track is a light groove
+  (`rgba(0,0,0,.1)`); a row on a plate (`gSeg`, `trSeg`, `lbPer`, `catSeg`, `logSeg`) keeps the night track. The `:is(.plate,#recentPl,#svList>li)` restore
+  carries an id's weight, so the connection log's row on its sheet also loses the cream border `#cardBox .cardIn *` gave it. Checked in daylight with
+  Realistic look on and off (every `.seg` row); night is untouched (the rules are daylight-only).
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 
