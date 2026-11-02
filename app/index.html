@@ -58,7 +58,10 @@ body.no-lite .cap[aria-current=page],body.no-lite .cap[aria-pressed=true]{animat
 /* Settings: a cockpit panel. Plates with screws, rotary selectors, flip switches, thumbwheels and amber read-outs. */
 #cockpit{position:absolute;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.12fr);grid-template-rows:minmax(0,1.12fr) minmax(0,1fr);gap:calc(18px*var(--k));
   font-family:var(--f-board);color:#d8d3c6}
-.plate{--pt:calc(10px*var(--k));--px:calc(22px*var(--k));position:relative;min-width:0;overflow:hidden;background:linear-gradient(#28292c,#1a1b1d);border-radius:calc(8px*var(--k));padding:var(--pt) var(--px) calc(12px*var(--k));
+/* 1.129.12: the plate's metal as a token (--plate-bg), so the app's day plates are the same metal; the screw is .plate>i or .scr */
+:root{--plate-bg:linear-gradient(#28292c,#1a1b1d)}
+body.real{--plate-bg:repeating-linear-gradient(90deg,rgba(255,255,255,.016) 0 1px,rgba(0,0,0,.022) 1px 2px,rgba(255,255,255,0) 2px 4px),linear-gradient(#2e2f33,#1a1b1e)}
+.plate{--pt:calc(10px*var(--k));--px:calc(22px*var(--k));position:relative;min-width:0;overflow:hidden;background:var(--plate-bg);border-radius:calc(8px*var(--k));padding:var(--pt) var(--px) calc(12px*var(--k));
   box-shadow:0 calc(6px*var(--k)) calc(16px*var(--k)) rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.07),inset 0 -2px 4px rgba(0,0,0,.5);
   display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));align-content:start;align-items:stretch;gap:calc(8px*var(--k))}
 /* Realistic look (Settings → Display; body.real): brushed, bevelled plates, engraved labels, metal knob caps and glowing
@@ -67,7 +70,7 @@ body.no-lite .cap[aria-current=page],body.no-lite .cap[aria-pressed=true]{animat
 body.real #glass{display:block;background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0) 7%),
   linear-gradient(118deg,rgba(255,255,255,.05) 0%,rgba(255,255,255,.012) 33%,rgba(255,255,255,0) 33.3%),
   radial-gradient(ellipse 75% 70% at 50% 42%,rgba(0,0,0,0) 62%,rgba(0,0,0,.2) 100%)}
-body.real .plate{background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.016) 0 1px,rgba(0,0,0,.022) 1px 2px,rgba(255,255,255,0) 2px 4px),linear-gradient(#2e2f33,#1a1b1e);
+body.real .plate{background-image:var(--plate-bg);
   box-shadow:0 calc(6px*var(--k)) calc(16px*var(--k)) rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.12),inset 1px 0 0 rgba(255,255,255,.05),inset -1px 0 0 rgba(0,0,0,.45),inset 0 -2px 0 rgba(0,0,0,.65),inset 0 -6px 10px rgba(0,0,0,.35)}
 body.real .inst>span,body.real .plate h3{text-shadow:0 1px 0 rgba(255,255,255,.07),0 -1px 0 rgba(0,0,0,.95)}
 body.real .inst{box-shadow:inset 0 calc(2px*var(--k)) calc(4px*var(--k)) rgba(0,0,0,.75),inset 0 -1px 0 rgba(255,255,255,.04),0 1px 0 rgba(255,255,255,.06)}
@@ -75,7 +78,7 @@ body.real .rotary .knob::before{background:radial-gradient(circle at 36% 28%,rgb
   conic-gradient(#9a9ea5,#4b4e53,#a7abb1,#43464b,#9a9ea5,#4b4e53,#a7abb1,#43464b,#9a9ea5);box-shadow:0 1px 2px rgba(0,0,0,.8),inset 0 0 0 1px rgba(0,0,0,.35)}
 body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px rgba(246,197,74,.8);
   background-image:repeating-linear-gradient(rgba(0,0,0,.2) 0 1px,rgba(0,0,0,0) 1px 3px),linear-gradient(#0b0e09,#151b10)}
-.plate>i{position:absolute;width:calc(9px*var(--k));height:calc(9px*var(--k));border-radius:50%;
+.plate>i,.scr{position:absolute;width:calc(9px*var(--k));height:calc(9px*var(--k));border-radius:50%;
   background:linear-gradient(35deg,transparent 42%,rgba(0,0,0,.75) 42% 58%,transparent 58%),radial-gradient(circle at 35% 35%,#8d9095,#45474c 60%,#1b1c1f)}
 .plate>i:nth-of-type(1){left:calc(8px*var(--k));top:calc(8px*var(--k))}.plate>i:nth-of-type(2){right:calc(8px*var(--k));top:calc(8px*var(--k))}
 .plate>i:nth-of-type(3){left:calc(8px*var(--k));bottom:calc(8px*var(--k))}.plate>i:nth-of-type(4){right:calc(8px*var(--k));bottom:calc(8px*var(--k))}
@@ -974,16 +977,26 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
    card (the board's .cardish .cInfo rules); the empty list and live location's wait say so on the rail. */
 .tlHead{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 .tlHead span{font:600 var(--fs-s)/1 var(--f-board);color:var(--muted);white-space:nowrap}
-.flights.tline{position:relative;margin:4px 0 0;padding:0}
-.flights.tline::before{content:"";position:absolute;left:6px;top:8px;bottom:14px;width:2px;border-radius:1px;background:linear-gradient(var(--amber),rgba(240,180,41,.15) 30%,#2c2e33)}
+/* 1.129.12 (to-do #281, Dave's pick B): the lists sit on Settings' metal plate (.plate, --plate-bg, the screws .scr):
+   Recent flights is one plate (#recentPl), each Logbook day one (li.lbDay); the rows lie between engraved lines, the
+   rail is a groove with sunk lamps in the rows' colours. On the plate the grey type is the plate's (daylight too). */
+.flights.tline{position:relative;margin:0;padding:0}
+:root{--pl-drop:0 6px 16px rgba(0,0,0,.55);--pl-hi:inset 0 1px 0 rgba(255,255,255,.07);--pl-side:0 0 transparent;--pl-lo:inset 0 -2px 4px rgba(0,0,0,.5)}
+body.real{--pl-hi:inset 0 1px 0 rgba(255,255,255,.12);--pl-side:inset 1px 0 0 rgba(255,255,255,.05),inset -1px 0 0 rgba(0,0,0,.45);--pl-lo:inset 0 -2px 0 rgba(0,0,0,.65),inset 0 -6px 10px rgba(0,0,0,.35)}
+#recentPl{position:relative;margin:10px 0 0;padding:12px 14px 20px;border-radius:8px;background:var(--plate-bg);box-shadow:var(--pl-drop),var(--pl-hi),var(--pl-side),var(--pl-lo)}
+#recentPl>.scr:nth-of-type(1){left:8px;top:8px}#recentPl>.scr:nth-of-type(2){right:8px;top:8px}#recentPl>.scr:nth-of-type(3){left:8px;bottom:8px}#recentPl>.scr:nth-of-type(4){right:8px;bottom:8px}
+.flights.tline::before,.lbDayL::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:3px;border-radius:2px;background:#0d0e10;box-shadow:inset 1px 1px 1px rgba(0,0,0,.9),1px 1px 0 rgba(255,255,255,.07)}
+#svList::before{display:none}
 .tline li{border:0;box-shadow:none}
-.tline li.tg{margin:14px 0 6px;padding:0 0 0 22px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--label2)}
-.tline li.tg:first-child{margin-top:4px}
-.tline li.tg b{color:var(--muted);font-weight:600}
-.tline li.fl{display:block;position:relative;margin:0 0 8px 22px;padding:9px 12px 10px;border-radius:12px;background:var(--box-bg);border:var(--box-bd);cursor:pointer}
-.tline li.fl::before{content:"";position:absolute;left:-20px;top:15px;width:10px;height:10px;border-radius:50%;background:var(--node);box-shadow:0 0 0 3px #111214,0 0 8px var(--node)}
-.tline li.fl::after{content:"";position:absolute;left:-10px;top:19px;width:10px;height:2px;background:var(--node);opacity:.55}
-.tline li.fl:active{background:linear-gradient(rgba(255,255,255,.07),rgba(255,255,255,.07)),var(--box-bg)}
+.tline li.tg{display:flex;align-items:center;gap:10px;margin:0 9px 6px;padding:0;font:600 var(--fs-s)/1 var(--f-board);letter-spacing:.22em;text-transform:uppercase;color:var(--amber);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+.tline li.tg::before,.tline li.tg::after,.lbDayH::before,.lbDayH::after{content:"";flex:1;min-width:8px;height:1px;background:rgba(214,208,194,.25)}
+#recent li.tg{margin:-6px 9px 4px}
+.tline li.tg b{color:inherit;font-weight:600}
+#recent .scr{display:none}
+.tline li.fl{display:block;position:relative;margin:0 0 0 22px;padding:12px 4px;cursor:pointer;box-shadow:0 -1px 0 rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06)}
+.tline li.fl:first-child,.tline li.open+li.fl{box-shadow:none}
+.tline li.fl::before{content:"";position:absolute;left:-20px;top:18px;width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(255,255,255,.35),rgba(255,255,255,0) 50%),var(--node);box-shadow:0 0 0 2px #0d0e10,0 1px 0 2px rgba(255,255,255,.06)}
+.tline li.fl:active{background:rgba(255,255,255,.04)}
 .tline li.fl:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
 /* 1.115 (to-do #206, Dave's pick B): one line a plane; the status a pill, the marks (★ new, ⚑ unusual, ♥ favourite) at the end */
 .tline .l1{display:flex;align-items:center;gap:8px;min-height:22px}
@@ -991,8 +1004,8 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .tline .l1 .f{flex:none;min-width:58px;max-width:40%;font:700 var(--fs-base)/1.1 var(--f-board);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tline .l1 .rt{flex:1;min-width:0;font:700 var(--fs-base)/1.1 var(--f-board);color:#e9e5da;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tline .l1 .rt b{margin:0;color:inherit}
-.tline .l1 .rt i{font-style:normal;color:var(--muted);margin:0 .3em;letter-spacing:0}
-.tline .l1 .rt .ty{font-weight:500;color:var(--muted);letter-spacing:0}
+.tline .l1 .rt i{font-style:normal;margin:0 .3em;letter-spacing:0}
+.tline .l1 .rt .ty{font-weight:500;letter-spacing:0}
 .tline .l1 .chip{flex:none;min-width:0;height:19px;padding:0 6px;font-size:var(--fs-tag);letter-spacing:.1em}
 .tline .l1 .mk{flex:none;display:flex;align-items:center;gap:5px}
 .tline .l1 .mk i{font-style:normal;display:grid;place-items:center;width:15px;height:15px;font:700 var(--fs-m)/1 var(--f-board)}
@@ -1002,16 +1015,19 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .tline .l1 .mNew{color:var(--amber)}
 .tline .l1 .mFlag svg{width:15px;height:15px;display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.6))}
 .tline .l1 .mFav{color:#e0679f}
-.tline li.st{position:relative;margin:0 0 2px 22px;padding:12px;border-radius:12px;background:var(--box-bg);border:var(--box-bd);font:500 var(--fs-m)/1.4 var(--f-board);color:var(--muted)}
-.tline li.st::before{content:"";position:absolute;left:-20px;top:17px;width:10px;height:10px;border-radius:50%;background:#3d3f44;box-shadow:0 0 0 3px #111214}
-.tline li.st.find::before{background:var(--amber);box-shadow:0 0 0 3px #111214,0 0 10px var(--amber)}
+.tline .l1 .rt i,.tline .l1 .rt .ty{color:rgba(214,208,194,.72)}
+.tline li.st{position:relative;margin:0 0 0 22px;padding:12px 4px;font:500 var(--fs-m)/1.4 var(--f-board);color:rgba(214,208,194,.72)}
+.tline li.st::before{content:"";position:absolute;left:-20px;top:18px;width:9px;height:9px;border-radius:50%;background:#3d3f44;box-shadow:0 0 0 2px #0d0e10,0 1px 0 2px rgba(255,255,255,.06)}
+.tline li.st.find::before{background:var(--amber);box-shadow:0 0 0 2px #0d0e10,0 0 10px var(--amber)}
 .tline li.st b{display:block;color:var(--ink);font-size:var(--fs-base)}
+/* daylight's dark ink and deep amber are for the paper; the plate stays metal, with the night's colours */
+html.daylight .tline .l1 .f,html.daylight .tline li.st b{color:#f3f0e8}
+html.daylight .tline .l1 time,html.daylight .tline li.tg,html.daylight .lbDayH{color:#f0b429}
 .tlFoot{display:flex;justify-content:center;margin:8px 0 0}
 /* the card in place: the gold-edged box of a page's highlight, when and how long ago, ⌃ (the chevron of what opens,
    turned up) to fold it; a smaller photo than a card's; while it opens, the row's copy, the gliding texts, the old card */
-.tline li.fl.open{padding:0;margin:4px 0 10px 22px;border:0;cursor:default;background:none}
-.tline li.fl.open::before{top:17px}
-.tline li.fl.open::after{display:none}
+.tline li.fl.open{padding:0;margin:8px 0 10px 22px;border:0;cursor:default;background:none;box-shadow:none}
+.tline li.fl.open::before{top:18px}
 .tline li.fl.tlAnim{overflow:hidden}
 .tlCard{position:relative;padding:10px 12px 12px;border-radius:14px}
 .tlBg{position:absolute;inset:0;border-radius:14px;background:var(--box-bg);border:1px solid rgba(240,180,41,.35);pointer-events:none}
@@ -1511,7 +1527,7 @@ html:has(#t-game:not([hidden]),#t-logbook:not([hidden])){overscroll-behavior-x:n
   #t-now .rcol .groove,#t-now #acSec h2,#t-now #recentSec h2,#t-now .status{display:none}
   /* the pages are flaps, like the board's lower half: the text lists and facts are for upright */
   #t-now .lsOnly{display:block}
-  #t-now #recent,#t-now .tlHead,#t-now .tlFoot,#t-now #apSub,#t-now .ptOnly{display:none}
+  #t-now #recentPl,#t-now .tlHead,#t-now .tlFoot,#t-now #apSub,#t-now .ptOnly{display:none}
   #t-now .pageEmpty:not([hidden]){display:block;margin:22px 0 8px;color:var(--muted);font-size:var(--fs-l);font-weight:600}
   #t-now .pageEmpty small{display:block;margin-top:4px;font-size:var(--fs-m);font-weight:500}
   #t-now #acSec:not([hidden]){display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:18px;align-items:start}
@@ -1531,19 +1547,30 @@ html:has(#t-game:not([hidden]),#t-logbook:not([hidden])){overscroll-behavior-x:n
 }
 #svList.wait{opacity:.55;transition:opacity .2s}
 /* 1.127 (to-do #254): the list across days. A day is its own li, so its sticky headline holds only within that day and
-   the next one pushes it away. The band is the search's own metal across the full width, with the rail drawn on it. */
-.flights.tline li.lbDay{padding:0;margin:0;position:static}
-.lbDayL{list-style:none;margin:0;padding:0}
-.lbDayH{position:sticky;top:calc(var(--topH,0px) + var(--lbSegH,58px));z-index:3;display:flex;align-items:center;gap:10px;box-sizing:border-box;height:28px;margin:0 calc(-1 * var(--gut)) 6px;padding:0 var(--gut) 0 calc(var(--gut) + 22px);
-  background:linear-gradient(rgba(240,180,41,.4),rgba(240,180,41,.4)) calc(var(--gut) + 6px) 0/2px 100% no-repeat,var(--metal-img,none) 0 0/600px 600px,var(--metal);font:600 var(--fs-s)/1 var(--f-board);letter-spacing:.22em;text-transform:uppercase;color:var(--amber);text-shadow:0 -1px 0 rgba(0,0,0,.8);white-space:nowrap}
-.lbDayH::before,.lbDayH::after{content:"";flex:1;min-width:8px;height:1px;background:rgba(240,180,41,.3)}
-.lbDayH.stuck{box-shadow:0 5px 8px -5px rgba(0,0,0,.8)}
+   the next one pushes it away. */
+/* 1.129.12 (to-do #281): each day its own plate; its headline the engraved title between the top screws, and while it
+   sticks a strip of the plate with them. An empty day and the list's other empty lines are a plate in two pieces
+   (the title, then the line): the metal sized to run on across both. */
+.flights.tline li.lbDay{position:relative;margin:0 0 12px;padding:0 14px 18px;border-radius:8px;background:var(--plate-bg);box-shadow:var(--pl-drop),var(--pl-hi),var(--pl-side),var(--pl-lo)}
+.lbDayL{position:relative;list-style:none;margin:0;padding:0}
+.lbDayH{position:sticky;top:calc(var(--topH,0px) + var(--lbSegH,58px));z-index:3;display:flex;align-items:center;gap:10px;box-sizing:border-box;height:28px;margin:0 -14px;padding:0 23px;border-radius:8px 8px 0 0;
+  font:600 var(--fs-s)/1 var(--f-board);letter-spacing:.22em;text-transform:uppercase;color:var(--amber);text-shadow:0 -1px 0 rgba(0,0,0,.8);white-space:nowrap}
+.lbDayH.stuck{border-radius:0;background:var(--plate-bg);background-size:100% 600px;box-shadow:0 5px 8px -5px rgba(0,0,0,.8)}
+.lbDayH>.scr,#svList>li.tg>.scr{top:9.5px}
+.lbDay>.scr,#svList>li.st>.scr{bottom:8px}
+.tline .scr:nth-of-type(1){left:8px}.tline .scr:nth-of-type(2){right:8px}
+#svList>li.tg{position:relative;height:28px;margin:0;padding:0 23px;border-radius:8px 8px 0 0}
+#svList>li.tg,#svList>li.lbDay:has(+ li.st){background:var(--plate-bg);background-size:100% 140px;background-repeat:no-repeat;background-color:#1a1b1d;box-shadow:var(--pl-drop),var(--pl-hi),var(--pl-side)}
+#svList>li.lbDay:has(+ li.st){margin-bottom:0;padding-bottom:0;border-radius:8px 8px 0 0}
+#svList>li.lbDay:has(+ li.st)>.scr{display:none}
+#svList>li.lbDay+li.st,#svList>li.tg+li.st{margin:0 0 12px;padding:12px 14px 22px 36px;border-radius:0 0 8px 8px;background:var(--plate-bg);background-position:0 -28px;background-size:100% 140px;background-repeat:no-repeat;background-color:#1a1b1d;
+  box-shadow:var(--pl-drop),var(--pl-side),var(--pl-lo);clip-path:inset(0 -30px -30px -30px)}
+#svList>li.st::before{left:16px}
 .lbDayH.lbGrow{animation:lbGrow .28s ease-out both;overflow:hidden}
-@keyframes lbGrow{from{height:0;margin-bottom:0;opacity:0}to{height:28px;margin-bottom:6px;opacity:1}}
+@keyframes lbGrow{from{height:0;opacity:0}to{height:28px;opacity:1}}
 .lbIn{animation:lbIn .3s ease-out both}
 @keyframes lbIn{from{opacity:0}to{opacity:1}}
-.flights.tline.lbHasMore::before{bottom:64px}
-.flights.tline li.lbMore{padding:0;margin:10px 0 8px 22px}
+.flights.tline li.lbMore{padding:0;margin:0 0 8px}
 .lbMore.lbFold{overflow:hidden;margin-top:0;margin-bottom:0}
 .lbMore button{all:unset;box-sizing:border-box;position:relative;display:block;width:100%;padding:17px 0 15px;text-align:center;cursor:pointer;border-radius:8px;
   background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.016) 0 1px,rgba(0,0,0,.022) 1px 2px,rgba(255,255,255,0) 2px 4px),linear-gradient(#2e2f33,#1a1b1e);box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 2px 0 #000,0 3px 6px rgba(0,0,0,.5)}
@@ -2587,7 +2614,7 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
       <div id="recentSec">
         <div class="groove"></div>
         <div class="tlHead"><h2 data-t="Recent flights">Recent flights</h2><span id="recentN"></span></div>
-        <ol class="flights tline" id="recent"></ol>
+        <div id="recentPl"><i class="scr"></i><i class="scr"></i><i class="scr"></i><i class="scr"></i><ol class="flights tline" id="recent"></ol></div>
         <p class="tlFoot" id="recentFoot" hidden><button class="lnk" type="button" id="recentAll"></button></p>
         <div class="panel lsOnly" id="recentP" role="img" aria-label="Recent flights"></div>
       </div>
@@ -7869,8 +7896,10 @@ const cardLi = (e, now) => `<li class="fl open" data-more="${escH(tlKey(e))}" st
 // 1.115 (Dave's pick B): the rows one after another, newest first; the quarter-hour and hour headings went (every
 // row has its time).
 const tlHtml = (list, open, now) => list.map(e => open && tlKey(e) === open ? cardLi(e, now) : rowHtml(e, now)).join("");
+// 1.129.12: a pair of the plate's screws (.scr), for the Logbook's day plates and its empty lines' pieces (hidden on Now's plate)
+const SCR2 = '<i class="scr"></i><i class="scr"></i>';
 // The empty list: why, on the rail (the newest-first line it will be)
-const tlState = (head, title, text, find) => `<li class="tg"><b>${escH(head)}</b></li><li class="st${find ? " find" : ""}">${title ? `<b>${escH(title)}</b>` : ""}${escH(text)}</li>`;
+const tlState = (head, title, text, find) => `<li class="tg">${SCR2}<b>${escH(head)}</b></li><li class="st${find ? " find" : ""}">${SCR2}${title ? `<b>${escH(title)}</b>` : ""}${escH(text)}</li>`;
 const tlFinding = () => tlState(T("Now"), T("Finding where you are …"), T("The planes show once live location has found you."), true);
 const tlNothing = () => tlState(T("Today"), T("Nothing spotted yet"), T("Every plane that comes within {n} km joins this line, the newest on top.", {n: +S.radiusKm || 15}));
 const tlOpenId = {recent: "", svList: ""};      // each list's open card (one at a time)
@@ -8252,7 +8281,7 @@ function renderToday(){
   const head = !waiting && (d.rows.length > 0 || bare), grow = head && !!L.querySelector(":scope > .st") && !L.querySelector(":scope > .lbDay");
   if (head) lblSegH();
   tlFill(L, waiting ? tlState(T("Today"), "", T("Loading …")) : d.rows.length ? lblDayLi(lblToday(), tlHtml(d.rows, tlOpenId.svList), grow)
-    : liveWaiting() && !allPlaces ? tlFinding() : bare ? lblDayLi(lblToday(), "", grow) + `<li class="st">${escH(T("No planes yet today"))}</li>` : tlState(T("Today"), "", T("None of today's planes match this filter yet.")), open);
+    : liveWaiting() && !allPlaces ? tlFinding() : bare ? lblDayLi(lblToday(), "", grow) + `<li class="st">${SCR2}${escH(T("No planes yet today"))}</li>` : tlState(T("Today"), "", T("None of today's planes match this filter yet.")), open);
   if (head) lblStickyMark(L);
 }
 /* 1.127 (to-do #254, relay 105, Dave's pick B, amber, with the day sticking as in C): under 2026 and All time the list
@@ -8307,8 +8336,8 @@ function lblWord(d, tight, today = lblToday()){
   lblWords.set(k, w);
   return w;
 }
-const lblHead = (d, grow) => `<div class="lbDayH${grow ? " lbGrow" : ""}" role="heading" aria-level="3"><span>${escH(lblWord(d))}</span></div>`;
-const lblDayLi = (d, inner, grow) => `<li class="lbDay" data-d="${escH(d)}">${lblHead(d, grow)}<ol class="lbDayL">${inner}</ol></li>`;
+const lblHead = (d, grow) => `<div class="lbDayH${grow ? " lbGrow" : ""}" role="heading" aria-level="3">${SCR2}<span>${escH(lblWord(d))}</span></div>`;
+const lblDayLi = (d, inner, grow) => `<li class="lbDay" data-d="${escH(d)}">${lblHead(d, grow)}${SCR2}<ol class="lbDayL">${inner}</ol></li>`;
 function lblHtml(rows, open, grow){
   let out = "", day = null, inner = "";
   for (const e of rows) {
@@ -8355,7 +8384,7 @@ function lblEmpty(){
   const L = $("svList"), st = L.querySelector(":scope > .st"), none = !lbl.busy && !lbl.err && lblEnded() && !lblShown().length;
   if (st && !none) st.remove();
   else if (none && !st) {
-    const html = `<li class="st">${escH(T(svFilter === "all" ? "No planes yet" : "No planes match this filter"))}</li>`, lead = L.querySelector(":scope > .lbDay");
+    const html = `<li class="st">${SCR2}${escH(T(svFilter === "all" ? "No planes yet" : "No planes match this filter"))}</li>`, lead = L.querySelector(":scope > .lbDay");
     if (lead) lead.insertAdjacentHTML("afterend", html); else L.insertAdjacentHTML("afterbegin", html);
   }
 }
@@ -13307,6 +13336,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.129.12", date: "2026-11-02", notes: [
+    "Recent flights and the Logbook's days now sit on metal plates, like Settings.",
+  ]},
   {v: "1.129.11", date: "2026-11-02", notes: [
     "The compass under the plane's picture is no longer squashed.",
   ]},

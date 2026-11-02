@@ -604,8 +604,10 @@ const cardLi = (e, now) => `<li class="fl open" data-more="${escH(tlKey(e))}" st
 // 1.115 (Dave's pick B): the rows one after another, newest first; the quarter-hour and hour headings went (every
 // row has its time).
 const tlHtml = (list, open, now) => list.map(e => open && tlKey(e) === open ? cardLi(e, now) : rowHtml(e, now)).join("");
+// 1.129.12: a pair of the plate's screws (.scr), for the Logbook's day plates and its empty lines' pieces (hidden on Now's plate)
+const SCR2 = '<i class="scr"></i><i class="scr"></i>';
 // The empty list: why, on the rail (the newest-first line it will be)
-const tlState = (head, title, text, find) => `<li class="tg"><b>${escH(head)}</b></li><li class="st${find ? " find" : ""}">${title ? `<b>${escH(title)}</b>` : ""}${escH(text)}</li>`;
+const tlState = (head, title, text, find) => `<li class="tg">${SCR2}<b>${escH(head)}</b></li><li class="st${find ? " find" : ""}">${SCR2}${title ? `<b>${escH(title)}</b>` : ""}${escH(text)}</li>`;
 const tlFinding = () => tlState(T("Now"), T("Finding where you are …"), T("The planes show once live location has found you."), true);
 const tlNothing = () => tlState(T("Today"), T("Nothing spotted yet"), T("Every plane that comes within {n} km joins this line, the newest on top.", {n: +S.radiusKm || 15}));
 const tlOpenId = {recent: "", svList: ""};      // each list's open card (one at a time)
@@ -920,7 +922,7 @@ function renderToday(){
   const head = !waiting && (d.rows.length > 0 || bare), grow = head && !!L.querySelector(":scope > .st") && !L.querySelector(":scope > .lbDay");
   if (head) lblSegH();
   tlFill(L, waiting ? tlState(T("Today"), "", T("Loading …")) : d.rows.length ? lblDayLi(lblToday(), tlHtml(d.rows, tlOpenId.svList), grow)
-    : liveWaiting() && !allPlaces ? tlFinding() : bare ? lblDayLi(lblToday(), "", grow) + `<li class="st">${escH(T("No planes yet today"))}</li>` : tlState(T("Today"), "", T("None of today's planes match this filter yet.")), open);
+    : liveWaiting() && !allPlaces ? tlFinding() : bare ? lblDayLi(lblToday(), "", grow) + `<li class="st">${SCR2}${escH(T("No planes yet today"))}</li>` : tlState(T("Today"), "", T("None of today's planes match this filter yet.")), open);
   if (head) lblStickyMark(L);
 }
 /* 1.127 (to-do #254, relay 105, Dave's pick B, amber, with the day sticking as in C): under 2026 and All time the list
@@ -975,8 +977,8 @@ function lblWord(d, tight, today = lblToday()){
   lblWords.set(k, w);
   return w;
 }
-const lblHead = (d, grow) => `<div class="lbDayH${grow ? " lbGrow" : ""}" role="heading" aria-level="3"><span>${escH(lblWord(d))}</span></div>`;
-const lblDayLi = (d, inner, grow) => `<li class="lbDay" data-d="${escH(d)}">${lblHead(d, grow)}<ol class="lbDayL">${inner}</ol></li>`;
+const lblHead = (d, grow) => `<div class="lbDayH${grow ? " lbGrow" : ""}" role="heading" aria-level="3">${SCR2}<span>${escH(lblWord(d))}</span></div>`;
+const lblDayLi = (d, inner, grow) => `<li class="lbDay" data-d="${escH(d)}">${lblHead(d, grow)}${SCR2}<ol class="lbDayL">${inner}</ol></li>`;
 function lblHtml(rows, open, grow){
   let out = "", day = null, inner = "";
   for (const e of rows) {
@@ -1023,7 +1025,7 @@ function lblEmpty(){
   const L = $("svList"), st = L.querySelector(":scope > .st"), none = !lbl.busy && !lbl.err && lblEnded() && !lblShown().length;
   if (st && !none) st.remove();
   else if (none && !st) {
-    const html = `<li class="st">${escH(T(svFilter === "all" ? "No planes yet" : "No planes match this filter"))}</li>`, lead = L.querySelector(":scope > .lbDay");
+    const html = `<li class="st">${SCR2}${escH(T(svFilter === "all" ? "No planes yet" : "No planes match this filter"))}</li>`, lead = L.querySelector(":scope > .lbDay");
     if (lead) lead.insertAdjacentHTML("afterend", html); else L.insertAdjacentHTML("afterbegin", html);
   }
 }
