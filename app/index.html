@@ -8225,10 +8225,12 @@ function renderToday(){
   L.classList.remove("wait");
   if (!waiting) L.style.minHeight = "";
   // 1.129.1 (to-do #264): the day's amber headline over Today's rows too, as under 2026; none over an empty day, a first flight brings it
-  const head = !waiting && d.rows.length > 0, grow = head && !!L.querySelector(":scope > .st");
+  // 1.129.5 (to-do #271): the headline is there on an empty, unfiltered day too, the one empty-state line under it; a filter that leaves nothing has none
+  const bare = svFilter === "all" && !svQuery && !(liveWaiting() && !allPlaces);
+  const head = !waiting && (d.rows.length > 0 || bare), grow = head && !!L.querySelector(":scope > .st") && !L.querySelector(":scope > .lbDay");
   if (head) lblSegH();
   tlFill(L, waiting ? tlState(T("Today"), "", T("Loading …")) : d.rows.length ? lblDayLi(lblToday(), tlHtml(d.rows, tlOpenId.svList), grow)
-    : liveWaiting() && !allPlaces ? tlFinding() : svFilter === "all" && !svQuery ? `<li class="st">${escH(T("No planes yet today"))}</li>` : tlState(T("Today"), "", T("None of today's planes match this filter yet.")), open);
+    : liveWaiting() && !allPlaces ? tlFinding() : bare ? lblDayLi(lblToday(), "", grow) + `<li class="st">${escH(T("No planes yet today"))}</li>` : tlState(T("Today"), "", T("None of today's planes match this filter yet.")), open);
   if (head) lblStickyMark(L);
 }
 /* 1.127 (to-do #254, relay 105, Dave's pick B, amber, with the day sticking as in C): under 2026 and All time the list
@@ -8293,6 +8295,8 @@ function lblHtml(rows, open, grow){
   }
   return day === null ? "" : out + lblDayLi(day, inner, grow && !out);
 }
+// 1.129.5 (to-do #271): an unfiltered list that reaches today starts with Today's headline, also before today's first flight (that one comes into it)
+const lblLead = rows => svFilter === "all" && !lblSpan(lblToday())[1] && (!rows.length || rows[0].day !== lblToday());
 const lblStop = () => lblSpan(lblToday())[0];
 const lblShown = () => { const stop = lblStop(); return stop ? lbl.rows.filter(e => e.day >= stop) : lbl.rows; };
 function lblEnded(){
@@ -8328,7 +8332,10 @@ function lblMoreSync(){
 function lblEmpty(){
   const L = $("svList"), st = L.querySelector(":scope > .st"), none = !lbl.busy && !lbl.err && lblEnded() && !lblShown().length;
   if (st && !none) st.remove();
-  else if (none && !st) L.insertAdjacentHTML("afterbegin", `<li class="st">${escH(T(svFilter === "all" ? "No planes yet" : "No planes match this filter"))}</li>`);
+  else if (none && !st) {
+    const html = `<li class="st">${escH(T(svFilter === "all" ? "No planes yet" : "No planes match this filter"))}</li>`, lead = L.querySelector(":scope > .lbDay");
+    if (lead) lead.insertAdjacentHTML("afterend", html); else L.insertAdjacentHTML("afterbegin", html);
+  }
 }
 const lblSegH = () => { const h = document.querySelector(".lbSeg").offsetHeight; if (h) document.documentElement.style.setProperty("--lbSegH", h + "px"); };   // where the sticky headline holds
 function lblDraw(grow){
@@ -8338,7 +8345,8 @@ function lblDraw(grow){
   L.style.minHeight = "";
   L.classList.add("lbBack");
   lblSegH();
-  tlFill(L, lblHtml(rows, tlOpenId.svList, grow), open);
+  const lead = lblLead(rows);
+  tlFill(L, (lead ? lblDayLi(lblToday(), "", grow) : "") + lblHtml(rows, tlOpenId.svList, grow && !lead), open);
   lbl.drawn = true; lbl.shown = rows.length;
   lblMoreSync();
 }
@@ -8484,6 +8492,10 @@ function lblSync(d){
         const w = lblWord(g.parentNode.parentNode.dataset.d);
         if (g.textContent !== w) g.textContent = w;
       }
+      const first = L.querySelector(":scope > .lbDay");           // midnight: the new day's headline stands over yesterday's
+      if (lbl.drawn && lblLead(lbl.rows) && (!first || first.dataset.d !== today)) {
+        if (first) first.insertAdjacentHTML("beforebegin", lblDayLi(today, "", false)); else lbl.drawn = false;
+      }
     }
   }
   if (tlBusy()) { tlAgain = true; return; }
@@ -8575,11 +8587,13 @@ function lblScrolled(){
   const small = k.querySelector("small"), w = lblWord(cur.dataset.d, true);
   if (small.textContent !== w) small.textContent = w;
   // Never over Show more: it steps aside while the plate goes by
-  const more = L.querySelector(":scope > .lbMore"), kr = k.getBoundingClientRect(), mr = more && more.getBoundingClientRect();
-  if (mr && mr.top < kr.bottom + 6 && mr.bottom > kr.top - 6) return lblTopRest();
+  // 1.129.5 (to-do #270): measured where the key stands, not where its rest transform has pushed it (that flipped it every other scroll
+  // event at the very bottom, where Show more clears it by a few px); and at the very bottom it stays, as nothing is left to scroll to wake it
+  const more = L.querySelector(":scope > .lbMore"), kb = innerHeight - (parseFloat(k.style.bottom) || 0), kt = kb - k.offsetHeight, mr = more && more.getBoundingClientRect();
+  if (mr && mr.top < kb && mr.bottom > kt) return lblTopRest();
   k.classList.remove("rest");
   clearTimeout(lblRestT);
-  lblRestT = setTimeout(() => lblTopRest(), 2500);
+  if (scrollY + innerHeight < document.documentElement.scrollHeight - 2) lblRestT = setTimeout(() => lblTopRest(), 2500);
 }
 addEventListener("scroll", () => { if (!lblRaf && tab === "logbook" && $("svList").firstElementChild && $("svList").firstElementChild.classList.contains("lbDay")) lblRaf = requestAnimationFrame(lblScrolled); }, {passive: true});
 $("lbTop").onclick = () => {
@@ -13221,6 +13235,10 @@ setInterval(() => {
 const CHANGELOG = [
   {v: "1.129.7", date: "2026-11-02", notes: [
     "Settings: the rows sit on metal plates like the Club's, with stamped marks and amber arrows.",
+  ]},
+  {v: "1.129.5", date: "2026-11-02", notes: [
+    "The Logbook's Top key stays at the very bottom of the list instead of vanishing.",
+    "Today's headline stands at the top of the Logbook's lists even before the day's first flight.",
   ]},
   {v: "1.129.4", date: "2026-11-02", notes: [
     "Older Logbook flights gain routes that were missing.",
