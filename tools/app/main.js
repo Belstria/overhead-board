@@ -4446,7 +4446,7 @@ function cardSheetClose(b){
     if (!d || d.beside || !d.on) return;
     dragged = Date.now();
     $("cardBox").classList.remove("drag");
-    if (d.dy > 90 || (d.v > .5 && d.dy > 20)) { ctlSound.click(); cardClose(); }
+    if (d.dy > 90 || (d.v > .5 && d.dy > 20)) cardClose();
     else d.ci.style.transform = "";                  // springs back
   };
   document.addEventListener("touchend", end); document.addEventListener("touchcancel", end);

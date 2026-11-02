@@ -4151,6 +4151,7 @@ def browser_checks(browser):
     settings_plate_checks(browser, bad)
     tab_after_audio_checks(browser, bad)
     card_sound_checks(browser, bad)
+    card_close_checks(browser, bad)
     flaps_settings_checks(browser, bad)
     club_swipe_checks(browser, bad)
     sky_row_checks(browser, bad)
@@ -5060,6 +5061,54 @@ def card_sound_checks(browser, bad):
     e("nightOn = false; S.sound = true; S.chimes = true; 1")
     ctx.close()
     print("the card sound holds" if not [b for b in bad if b.startswith("card sound")] else "card sound check(s) failed")
+
+
+def card_close_checks(browser, bad):
+    """To-do #285: closing the info card plays nothing, whichever way (a swipe down, a tap beside it, Escape, Android's back).
+    The spy counts every ctlSound call after the card is open (the board behind may clatter meanwhile; that isn't counted).
+    Opening is untouched: the tap that opens a card plays its own tick."""
+    def hooked(route):
+        r = route.fetch()
+        t = r.text()
+        i = t.rindex("})();")
+        route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+    ctx = browser.new_context(viewport={"width": 390, "height": 844}, has_touch=True)
+    ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+    ctx.route("**/app/", hooked)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: bad.append(f"card close page error: {e}"))
+    pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
+    pg.goto(BASE + "/app/")
+    pg.wait_for_function("!!window.__e", timeout=20000)
+    pg.wait_for_timeout(4000)
+    e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
+    e("nightOn = false; S.sound = true; S.chimes = true; audioInit(); 1")
+    e("window.__S = []; for (const k of Object.keys(ctlSound)) { const o = ctlSound[k]; ctlSound[k] = (...a) => { window.__S.push(k); return o(...a); }; } 1")
+
+    def shut(name, how):
+        e("cardOpen('<div><p>hello</p></div>'); 1")
+        pg.wait_for_timeout(500)
+        e("window.__S.length = 0; 1")
+        how()
+        pg.wait_for_timeout(700)
+        if e("cardOpenNow()"):
+            bad.append(f"card close: {name} didn't close the card")
+        s = e("window.__S")
+        if s:
+            bad.append(f"card close: closing with {name} played {s}")
+
+    def swipe():
+        pg.evaluate("""() => { const ci = document.querySelector('#cardBox .cardIn'), r = ci.getBoundingClientRect();
+            const mk = y => new Touch({identifier: 1, target: ci, clientX: 200, clientY: y});
+            const f = (type, y) => ci.dispatchEvent(new TouchEvent(type, {bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : [mk(y)], changedTouches: [mk(y)]}));
+            f('touchstart', r.top + 20); for (let i = 1; i <= 8; i++) f('touchmove', r.top + 20 + i * 20); f('touchend', r.top + 180); }""")
+
+    shut("a swipe down", swipe)
+    shut("a tap beside the card", lambda: pg.mouse.click(195, 8))
+    shut("Escape", lambda: pg.keyboard.press("Escape"))
+    shut("Android's back", lambda: e("backStep()(); 1"))
+    ctx.close()
+    print("the card close is silent" if not [b for b in bad if b.startswith("card close")] else "card close checks failed")
 
 
 def demo_rows_checks(browser, bad):
