@@ -704,7 +704,7 @@ changelog: screens
 
 [relay-admin] The owner's admin page and the relay's health watch; installing and updating the relay
 relay/serve.py: +STYLE_GRANTS +style_grants +relay_panel_json _made +HOME_OWNER _ago PAGE_CSS plain_page WORDMARK
-    COPY_JS ADMIN_CSS _pform admin_stats admin_html save_config HEALTH_FILE HEALTH_REPEAT_S HEALTH_SOURCES_S
+    COPY_JS ADMIN_CSS _pform admin_stats LEAFLET_URL LEAFLET_SRI MAP_CSS admin_pins admin_map_html admin_html save_config HEALTH_FILE HEALTH_REPEAT_S HEALTH_SOURCES_S
     HEALTH_DISK _health_seen _health HEALTH_TEXT _owner_push _health_say _health_set _health_alive health_check
     _health_watch ADMIN_PATHS Handler.admin_post /admin /admin/invite /admin/link /admin/limit /admin/styles
     /admin/username /admin/password /admin/device /admin/resetaccount /admin/remove +Handler.owner_ok +Handler.at_home

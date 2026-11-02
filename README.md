@@ -1182,6 +1182,10 @@ empty field is automatic; type a number to set it), and under **Account**: creat
 password, and **Reset sign-in** (removes passkeys and password). **Remove** deletes a profile with its sightings.
 Flightradar24 per profile and day: 500 credits for a guest, 2,000 with an account (a fallback against a bug or a lost
 device, not a limit anyone should reach); past it their boards still show what has already been looked up.
+Above the people, **Where boards are** (relay 108) is a map of Vienna with one amber dot for each profile that has a place: the
+one its board uses now (a phone on live location keeps it up to date). The dots carry no names and are in no fixed order; the
+demo and test profiles and those without a place are left out. A dot far from Vienna widens the map to hold it. The map is
+Leaflet with OpenStreetMap's tiles, so it needs the internet.
 **Hue lights (relay 47, a test, the owner's only).** When a special plane or a favourite is about to pass the
 owner's place (the moments the "worth going to the window" alerts ring for), chosen Philips Hue lamps glow for about
 four seconds in the airline's colour (amber for others) and then go back to how they were (brightness, colour, off

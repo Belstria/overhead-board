@@ -2772,6 +2772,15 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   the screens a minute or two later, when they reload. `--local-root <repo>` serves a local checkout instead.
 - 1.129.7 (to-do #272; app only, no relay change; Dave's pick C of the Settings looks): **Settings' rows on Club plates.** `setListRender` (main.js) draws each group as `secPlate(..., "setPlate")` holding a `.gRows` of buttons (`.sMark` stamped mark, `b` name, `.sVal` value, amber `i` arrow); the `.idx` rows, `.sIco` tiles and `.idxH` headings went. Only `.sMark` is new CSS (head.html, scoped to `#setList`); values use the plate's engraved colour (`rgba(214,208,194,.72)`), not `--muted`. The test board has no Settings list (the cockpit is its Settings), so it shows only the new patch note. `flows.py` "settings rows open their panels". Also: `sfxOut` no longer reuses a sound output built on an earlier audio context (`audioInit` drops `actx` when it throws; a stale bus threw inside `ctlSound.press`, before `showTab`); `tab_after_audio_checks` covers that and a key right after a wheel drag. The 1.129.6 flaps check had kept its fake `actx` after restoring (`__was` was taken after the stub went in), which is what made the radar key step fail in CI; fixed. `levelup_checks`'s reloads try twice (CI aborted one).
 
+- Relay 108 / 1.129.9 (to-do #278; Dave's choices: exact pins, no names, owner-only admin page, privacy note unchanged): **the admin
+  page's map.** `admin_pins(profs)` takes one `[lat, lon]` per profile whose settings are `located` (the settings hold what
+  its board uses now: a phone on live location syncs its fix through `meSend`/`locSet`), skips `settings.demo` and names
+  starting with test or demo, and shuffles; `admin_map_html(pins)` draws it with Leaflet 1.9.4 from cdnjs (`LEAFLET_URL`,
+  `LEAFLET_SRI`) and OpenStreetMap tiles (credit; tiles carry `referrerPolicy`, the page's own is `same-origin`). It starts
+  on a Vienna box and `fitBounds` grows it to every pin; the dots are `circleMarker`s with `interactive:false`. One pin for
+  a profile, not for each device (the devices share its settings). Only numbers go into the `/admin` response: no log,
+  `event()`, file or other route. Test: flows.py "the admin map"; the test relay has Anna, Ben, Dora, Clara and Demo guest.
+
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 
