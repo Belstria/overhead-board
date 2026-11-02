@@ -4128,6 +4128,7 @@ def browser_checks(browser):
     sky_sizes_checks(browser, bad)
     styles_cell_checks(browser, bad)
     settings_plate_checks(browser, bad)
+    tab_after_audio_checks(browser, bad)
     card_sound_checks(browser, bad)
     flaps_settings_checks(browser, bad)
     sky_row_checks(browser, bad)
@@ -4420,10 +4421,10 @@ def flaps_settings_checks(browser, bad):
     if any(k in allk.split() for k in ("ding", "bell", "quick", "speedPct")):
         bad.append(f"flaps settings: an old setting is still in Settings: {allk}")
     # Chimes: the ding and the special bell follow it
-    e("""window.__bells = 0; airportBell = () => { window.__bells++; };
-        const stub = () => ({gain: {value: 0, setValueAtTime(){}, linearRampToValueAtTime(){}, exponentialRampToValueAtTime(){}}, frequency: {value: 0, setValueAtTime(){}}, buffer: null, playbackRate: {value: 1}, connect(){ return this; }, disconnect(){}, start(){}, stop(){}});
+    e("""window.__was = [actx, sfxOut, airportBell, onMainPage, nightOn];      // before the stubs go in: the real ones come back
+        window.__bells = 0; airportBell = () => { window.__bells++; };
+        const stub = () => ({gain: {value: 0, setValueAtTime(){}, linearRampToValueAtTime(){}, exponentialRampToValueAtTime(){}}, frequency: {value: 0, setValueAtTime(){}}, buffer: null, playbackRate: {value: 1}, Q: {value: 0}, connect(){ return this; }, disconnect(){}, start(){}, stop(){}});
         actx = {state: 'running', currentTime: 10, destination: {}, createGain: stub, createBufferSource: stub, createOscillator: stub, createBiquadFilter: stub};
-        window.__was = [actx, sfxOut, airportBell, onMainPage, nightOn];
         sfxOut = () => ({}); nightOn = false; onMainPage = () => true; 1""")
     for chimes, want in ((False, 0), (True, 1)):
         e(f"S.chimes = {'true' if chimes else 'false'}; window.__bells = 0; dingAt = 0; chime('special'); 1")
@@ -4631,6 +4632,65 @@ def settings_plate_checks(browser, bad):
             pg.wait_for_timeout(250)
         ctx.close()
     print("the Settings rows open their panels" if not [b for b in bad if b.startswith("settings plate")] else "settings plate check(s) failed")
+
+
+def tab_after_audio_checks(browser, bad):
+    """1.129.7: a bottom-bar key still switches the tab after the audio context was dropped and made again (a failed
+    audioInit sets actx to null): the sound output built on the old context is not reused (it threw "cannot connect to an
+    AudioNode belonging to a different audio context" inside the key's click, before the tab changed); and straight after
+    a touch drag on a thumbwheel a key still works."""
+    def hooked(route):
+        r = route.fetch()
+        t = r.text()
+        i = t.rindex("})();")
+        route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+    ctx = browser.new_context(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True)
+    ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+    ctx.route("**/app/", hooked)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: bad.append(f"tab after audio page error: {e}"))
+    pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
+    pg.goto(BASE + "/app/")
+    pg.wait_for_function("!!window.__e", timeout=20000)
+    pg.wait_for_timeout(3000)
+    e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
+    r = e("""(() => { try {
+        soundForced = true; audioInit(); SND.tstAudio = [actx.createBuffer(1, 64, 44100)];
+        sample('tstAudio', actx.currentTime, .05);
+        actx = null; audioInit(); sample('tstAudio', actx.currentTime, .05);
+        return 'ok'; } catch (x) { return String(x); } })()""")
+    if r != "ok":
+        bad.append(f"tab after audio: a sound after a new audio context threw: {r}")
+    for k in ("radar", "now"):
+        pg.click(f"[data-tab={k}]")
+        pg.wait_for_timeout(300)
+        if e("tab") != k:
+            bad.append(f"tab after audio: a tap on the {k} key left the tab at {e('tab')}")
+    # a touch drag on a thumbwheel, then a key
+    e("showTab(\"settings\"); 1")            # not by the key: this part is about the wheel
+    pg.click("[data-set=flaps]")
+    pg.wait_for_timeout(600)
+    cdp = ctx.new_cdp_session(pg)
+    b = pg.locator("#cockpit .wheel[data-k=flapSpeed]").bounding_box()
+    if not b:
+        bad.append("tab after audio: the Flap speed wheel isn't there")
+        ctx.close()
+        return
+    x, y0 = b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+    cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": x, "y": y0}]})
+    for i in range(1, 9):
+        cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x, "y": y0 - 8 * i}]})
+        pg.wait_for_timeout(20)
+    cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+    pg.wait_for_timeout(600)
+    e("cockpitCancel(); cardClose(); 1")
+    pg.wait_for_timeout(500)
+    pg.click("[data-tab=radar]")
+    pg.wait_for_timeout(300)
+    if e("tab") != "radar":
+        bad.append(f"tab after audio: a key right after a wheel drag left the tab at {e('tab')}")
+    ctx.close()
+    print("a key still works after a new audio context and a wheel drag" if not [b_ for b_ in bad if b_.startswith("tab after audio")] else "tab after audio check(s) failed")
 
 
 def card_sound_checks(browser, bad):

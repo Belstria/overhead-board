@@ -5723,6 +5723,7 @@ function audioInit(){
     try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch {}
     if (!actx) {
       actx = new (window.AudioContext || window.webkitAudioContext)();
+      sfxBus = sfxHall = null;                        // 1.129.7: the output was built on the context before (a failed start drops it)
       const len = Math.floor(actx.sampleRate * .012);
       noise = actx.createBuffer(1, len, actx.sampleRate);
       const d = noise.getChannelData(0);
@@ -5738,7 +5739,8 @@ function audioInit(){
 // up to 20 kHz). The limiter keeps overlapping clicks from distorting.
 let sfxBus = null, sfxHall = null;
 function sfxOut(){
-  if (sfxBus) return sfxBus;
+  if (sfxBus && sfxBus.context === actx) return sfxBus;     // 1.129.7: a bus of another context throws on connect, and a tap on a key died with it
+  sfxBus = sfxHall = null;
   try {
     const sr = actx.sampleRate, hp = actx.createBiquadFilter(), lim = actx.createDynamicsCompressor(), trim = actx.createGain();
     hp.type = "highpass"; hp.frequency.value = 110; hp.Q.value = .7;
