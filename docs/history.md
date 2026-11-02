@@ -2805,7 +2805,8 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   (`#recent .scr`) the pieces' screws are hidden, the plate has its own. Grey type on the plate is the plate's beige (`rgba(214,208,194,.72)`) instead of
   `--muted`; in daylight the names, the times and the day titles keep the night's ink and amber (daylight's `--ink:#191919` is for the paper). Settings'
   own plate has that daylight problem (its labels go dark on the metal): reported, not changed here. Show more spans the plate's width. 120 rows draw in
-  about 11 ms (headless).
+  about 11 ms (headless). `.scr{overflow-anchor:none}`: Chrome's scroll anchoring picked a day's bottom screw (an absolute `<i>` before
+  the rows) and scrolled with it when Show more grew the plate (flows.py "Show more moved the row in view").
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 

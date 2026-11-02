@@ -185,7 +185,7 @@ test/index.html: SV_ROWS DAY_START_H boardDay todayKey loadLog saveLog SAME_PASS
     todayList fillEntry svFilter svPageNo svLegend svSig spottedSummary TIER_ORDER reviewTime dayHighlights svQuery spotMatch svFindHtml svFindWire lampOf
     altNum svPart svSignature renderSpottedBoard fitText SV_X drawSpottedTable svStep setLegend legendGroups
     legendChip drawLegend SV_TOOLS .svFind +renderSpotted +recentShown
-tools/app/head.html: .flights .fl .chip .legend #recentPl css:body.real .flights.tline .lbDay .lbDayL .lbDayH .lbDayH.stuck .lbDayH.lbGrow @lbGrow .lbIn @lbIn .lbMore.lbFold .lbMore @lbScrew .cap.lbTop .cap.lbTop.rest .lbTop .lbTopT .lbTopProbe #svList.wait #svList #svSum #svTools #todayFacts .dayFacts #todayP
+tools/app/head.html: .flights .fl .chip .legend #recentPl .scr css:body.real .flights.tline .lbDay .lbDayL .lbDayH .lbDayH.stuck .lbDayH.lbGrow @lbGrow .lbIn @lbIn .lbMore.lbFold .lbMore @lbScrew .cap.lbTop .cap.lbTop.rest .lbTop .lbTopT .lbTopProbe #svList.wait #svList #svSum #svTools #todayFacts .dayFacts #todayP
     #todayTop .tdFil .lbSeg .tlHead .tline .tlFoot .tlCard .tlBg .tlK .tlX .tlWas .tlGone #recentN #recentFoot #recentAll
 tools/app/main.js: TODAYP SCR2 spotted logDay rollDay syncSightings fullDay loadFullDay dayList chip distText altText
     rowHtml rowSig svFilter svSig todayList svData SV_TOOLS buildSvTools legendHtml todayNumbers

@@ -1559,6 +1559,8 @@ html:has(#t-game:not([hidden]),#t-logbook:not([hidden])){overscroll-behavior-x:n
 .lbDayH>.scr,#svList>li.tg>.scr{top:9.5px}
 .lbDay>.scr,#svList>li.st>.scr{bottom:8px}
 .tline .scr:nth-of-type(1){left:8px}.tline .scr:nth-of-type(2){right:8px}
+/* a screw is never what the page keeps in place: a day's bottom screws come before its rows, and Show more would scroll with them */
+.scr{overflow-anchor:none}
 #svList>li.tg{position:relative;height:28px;margin:0;padding:0 23px;border-radius:8px 8px 0 0}
 #svList>li.tg,#svList>li.lbDay:has(+ li.st){background:var(--plate-bg);background-size:100% 140px;background-repeat:no-repeat;background-color:#1a1b1d;box-shadow:var(--pl-drop),var(--pl-hi),var(--pl-side)}
 #svList>li.lbDay:has(+ li.st){margin-bottom:0;padding-bottom:0;border-radius:8px 8px 0 0}
