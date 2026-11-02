@@ -3353,18 +3353,20 @@ def logbook_list_checks(browser, bad):
         bad.append("the strip isn't Today, 2026, All time")
     if e('lbPlateOn') != "today":
         bad.append("the Logbook's key doesn't open on Today")
-    # 1.129.1 (to-do #264): Today's plate has the day's amber headline over its flights ("Today", 28 px, sticking), and none over an empty day;
+    # 1.129.1 (to-do #264): Today's plate has the day's amber headline over its flights ("Today", 28 px, sticking), also over an empty day (1.129.5, #271);
     # a first flight brings it; a filter that leaves nothing has none; the open card stays in its row
     e('window.__keep = todayList; todayList = () => []; svSig = ""; renderToday()')
     pg.wait_for_timeout(200)
-    if e('document.querySelectorAll("#svList .lbDayH").length') or not e('!!$("svList").querySelector(".st")'):
-        bad.append("an empty day on Today has a headline over nothing")
+    if e('[...document.querySelectorAll("#svList .lbDayH")].map(h => h.textContent).join()') != "Today" or not e('!!$("svList").querySelector(":scope > .st")') or e('document.querySelectorAll("#svList li.fl").length'):
+        bad.append("an empty day on Today has no headline, or no empty-state line under it (1.129.5)")
     e('window.__two = [fromRelay({id: "td-1", hex: "bb0001", ts: Date.now() - 60000, time: "11:59", callsign: "AUA1", typeCode: "A320", looked: true}), '
       'fromRelay({id: "td-2", hex: "bb0002", ts: Date.now() - 120000, time: "11:58", callsign: "AUA2", typeCode: "A320", looked: true})]; todayList = () => window.__two; svSig = ""; renderToday()')
     pg.wait_for_timeout(500)
     hd = e('[...document.querySelectorAll("#svList .lbDayH")].map(h => [h.textContent, Math.round(h.getBoundingClientRect().height), getComputedStyle(h).position, h.parentNode.parentNode === $("svList")])')
     if hd != [["Today", 28, "sticky", True]] or e('document.querySelectorAll("#svList li.fl").length') != 2:
         bad.append(f"Today's plate with flights: the headline is {hd}, not one sticky 28 px Today over two rows")
+    if e('document.querySelectorAll("#svList .st, #svList .lbGrow").length'):
+        bad.append("a first flight on an empty Today leaves the empty-state line or grows the headline again")
     e('svFilter = "special"; svSig = ""; renderToday()')
     pg.wait_for_timeout(200)
     if e('document.querySelectorAll("#svList .lbDayH").length'):
@@ -3454,6 +3456,113 @@ def logbook_list_checks(browser, bad):
     if e('document.querySelectorAll("#svList .lbDayH").length') > 1 or e('$("svList").querySelector(".lbMore")'):
         bad.append("an older relay should keep today's list, with only its own headline")
     ctx.close()
+
+
+def logbook_lead_checks(browser, bad):
+    """1.129.5 (to-do #271, #270): Today's amber headline stands at the top of the unfiltered Logbook lists with no flight
+    today (2026 and All time: an empty day, then Yesterday), once when the day's first flight comes, again at midnight,
+    and on an empty logbook with its one line after it; a filter has none; the Top key stays at the very bottom, clear
+    of Show more, however long you wait there."""
+    import datetime
+    now = datetime.datetime.now()
+
+    def run(n, body):
+        ctx = browser.new_context(viewport={"width": 360, "height": 740})
+        ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+
+        def hooked(route):
+            r = route.fetch()
+            t = r.text()
+            i = t.rindex("})();")
+            route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+        ctx.route("**/app/", hooked)
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: bad.append(f"logbook lead page error: {e}"))
+        pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
+        rows = []
+        for i in range(n):
+            d = now - datetime.timedelta(days=1 if i < 90 else 2 + (i - 90) // 10)
+            rows.append({"id": f"rw{i}", "hex": f"{i:06x}", "ts": int(d.timestamp() * 1000) - i * 1000, "time": "12:00", "callsign": f"AUA{i}", "typeCode": "A320", "reg": "OE-LBN",
+                         "minDist": 5.0, "altAtMin": 30000, "looked": True, "day": d.strftime("%Y-%m-%d")})
+
+        def flights(route):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(route.request.url).query)
+            start = int((q.get("before") or ["0~~"])[0].split("~")[1] or 0) if q.get("before") else 0
+            route.fulfill(status=200, content_type="application/json", body=json.dumps(
+                {"version": 105, "date": now.strftime("%Y-%m-%d"), "rev": 1, "entries": rows[start:start + 50], "cursor": f"x~{start + 50}~0", "more": start + 50 < len(rows)}))
+        pg.route("**/logbook/flights*", flights)
+        pg.goto(BASE + "/app/")
+        pg.wait_for_timeout(3500)
+        e = lambda code: pg.evaluate("c => __e(c)", code)      # noqa: E731
+        pg.evaluate("document.querySelector('[data-tab=logbook]').click()")
+        pg.wait_for_timeout(1200)
+        e('todayList = () => []; svSig = ""; renderToday()')
+        pg.wait_for_timeout(200)
+        body(pg, e)
+        ctx.close()
+    heads = 'JSON.stringify([...document.querySelectorAll("#svList .lbDayH")].map(h => h.textContent))'
+
+    def long_list(pg, e):
+        if e(heads) != '["Today"]' or not e('!!$("svList").querySelector(":scope > .st")'):
+            bad.append("no flights today: Today's plate isn't the headline and its one line")
+        e('lbPlateGo("all")')
+        pg.wait_for_timeout(1000)
+        h = json.loads(e(heads))
+        if h[:2] != ["Today", "Yesterday"] or len(h) != len(set(h)):
+            bad.append(f"All time with no flight today: the headlines are {h[:3]}, not Today then Yesterday")
+        if e('$("svList").querySelector(".lbDay").querySelectorAll("li.fl").length') or e('!!$("svList").querySelector(":scope > .st")'):
+            bad.append("the empty Today has a row, or a sentence under it while other days follow")
+        if e('$("svList").querySelector(".lbDayH").getBoundingClientRect().height') != 28:
+            bad.append("the empty Today's headline isn't 28 px")
+        # the day's first flight comes into that day, not under a second headline
+        e('window.__one = [fromRelay({id: "zz-new", hex: "aa0001", ts: Date.now(), time: "12:01", callsign: "AUA7", typeCode: "A320", looked: true})]; todayList = () => window.__one; renderToday()')
+        pg.wait_for_timeout(600)
+        h = json.loads(e(heads))
+        if h[:2] != ["Today", "Yesterday"] or len(h) != len(set(h)) or e('$("svList").querySelector(".lbDay").querySelectorAll("li.fl").length') != 1:
+            bad.append(f"a first flight of the day: the headlines are {h[:3]}, or it isn't the one row under Today")
+        e('todayList = () => []; renderToday()')
+        pg.wait_for_timeout(200)
+        # midnight: the relay's day moves on; Today's headline stands over what was Today
+        e('sightDay = lblIso(new Date(Date.now() + 864e5)); renderToday()')
+        pg.wait_for_timeout(400)
+        h = json.loads(e(heads))
+        if h[:2] != ["Today", "Yesterday"] or len(h) != len(set(h)):
+            bad.append(f"after midnight the headlines are {h[:3]}, not Today then Yesterday")
+        e('sightDay = null; renderToday()')
+        pg.wait_for_timeout(300)
+        # a filter that doesn't reach into an empty day has no headline of it
+        e('svFilter = "special"; renderToday()')
+        pg.wait_for_timeout(800)
+        if e('document.querySelectorAll("#svList .lbDayH").length'):
+            bad.append("a filter has an empty Today headline")
+        e('svFilter = "all"; renderToday()')
+        pg.wait_for_timeout(800)
+        # to-do #270: the Top key at the very bottom: kept, with Show more clear of it, also after 4 s
+        e('scrollTo(0, document.documentElement.scrollHeight)')
+        pg.wait_for_timeout(300)
+        pg.click(".lbMore button")
+        pg.wait_for_timeout(800)
+        e('scrollTo(0, document.documentElement.scrollHeight)')
+        pg.wait_for_timeout(4000)
+        k = e("""(() => { const k = $("lbTop"), m = document.querySelector("#svList > .lbMore"), a = k.getBoundingClientRect(), b = m.getBoundingClientRect();
+          return [k.hidden, k.classList.contains("rest"), Math.round(window.scrollY + innerHeight - document.documentElement.scrollHeight), b.bottom <= a.top, getComputedStyle(k).opacity]; })()""")
+        if k[0] or k[1] or k[2] < -2 or not k[3] or k[4] != "1":
+            bad.append(f"the Top key at the very bottom (hidden, resting, off by, clear of Show more, opacity): {k}")
+        for dy in (-3, 3, -2, 2, 0):        # a rubber band's scroll events back and forth
+            e(f'scrollBy(0, {dy}); window.dispatchEvent(new Event("scroll"))')
+            pg.wait_for_timeout(80)
+        pg.wait_for_timeout(300)
+        if e('$("lbTop").classList.contains("rest")'):
+            bad.append("the Top key flips to rest on scroll events at the very bottom")
+    run(140, long_list)
+
+    def empty(pg, e):
+        e('lbPlateGo("all")')
+        pg.wait_for_timeout(1000)
+        order = e('[...$("svList").children].map(x => x.className).join()')
+        if json.loads(e(heads)) != ["Today"] or not order.startswith("lbDay,st"):
+            bad.append(f"a new user's empty logbook: {json.loads(e(heads))}, {order}; wanted Today, then its one line")
+    run(0, empty)
 
 
 def sky_sizes_checks(browser, bad):
@@ -4014,6 +4123,7 @@ def browser_checks(browser):
         bad.append(f"the invite field didn't open this site's link: {pg.url[:60]}")
     ctx.close()
     logbook_list_checks(browser, bad)
+    logbook_lead_checks(browser, bad)
     demo_rows_checks(browser, bad)
     sky_sizes_checks(browser, bad)
     styles_cell_checks(browser, bad)
