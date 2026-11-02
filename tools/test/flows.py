@@ -3887,8 +3887,8 @@ def browser_checks(browser):
     if a["x"] > 16:
         bad.append(f"day 1's plane starts at {a['x']}, not at the threshold")
     pg.wait_for_timeout(2300)
-    if e("document.querySelector('.stkNew .ls span').className") != "now" or e("window.__thud") != 1:
-        bad.append(f"day 1: the plane landed without today's letter or its one thud ({e('window.__thud')})")
+    if e("document.querySelector('.stkNew .ls span').className") != "now" or e("window.__thud") != 0:
+        bad.append(f"day 1: the plane landed without today's letter, or it still thudded ({e('window.__thud')})")
     e(clear)
     # the week comes from the relay's answer; from before today's start it isn't used (a Monday's scan on Sunday's data)
     got = e("""(() => { const was = [gme.standby, gme.resets], out = []; gme.standby = {...was[0], week: ['s', 'b', 's', '', '', '', ''], today: 3}; gme.resets = Date.now() + 36e5; out.push(stkWeek());
@@ -3906,10 +3906,10 @@ def browser_checks(browser):
     pg.wait_for_timeout(3600)
     if e("[!!document.querySelector('.stkTr'), document.querySelectorAll('.stkNew em.nw').length, document.querySelector('.stkPl.pl').hidden, document.querySelector('.stkNew').classList.contains('beam')]") != [True, 7, True, True]:
         bad.append("day 7 didn't take off, leave a trail and turn the letters gold")
-    if e("window.__thud") != 2:
-        bad.append(f"thuds on day 6 and 7: {e('window.__thud')}, not one each")
+    if e("window.__thud") != 0:
+        bad.append(f"the plane thudded on day 6 or 7: {e('window.__thud')}, it should be silent")
     e(clear)
-    # gone mid-roll: no thud after it
+    # gone mid-roll: no thud at all
     e("window.__thud = 0; stkNew({n: 4, p: 100}, {t: 3, week: ['s', 's', 's', 's', '', '', '']}).out(); 1")
     pg.wait_for_timeout(2200)
     if e("window.__thud"):

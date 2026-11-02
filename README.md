@@ -542,7 +542,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   while their plane is still around. In Sky view the tickets sit at its bottom. **At the scan** the
   plane's ticket, if it is still up, becomes the scan's ticket (what the scan really gave) and tears; it stays **3 seconds after its stub is off**.
   **The daily streak** (1.126) is a paper pop-up at the day's first scan: a plane on a runway printed on the paper, the week's letters under it. It rolls from
-  the last streak day to today and stops with a thud; a Standby day is a hatched stretch marked SBY, and on **day 7** of a streak it takes off the paper's corner and
+  the last streak day to today and stops with a buzz and no sound; a Standby day is a hatched stretch marked SBY, and on **day 7** of a streak it takes off the paper's corner and
   the letters turn gold. A tap opens the Streak panel. **One thing at a time** (1.124): all a scan brings comes one after the other in the same place: the scan's
   ticket, the streak's pop-up, the passport's pop-up, the new card's pop-up. Swipe or tap one away and the next rises (a pop-up waits for a panel to close); a pop-up
   stays 6.5 seconds. Other planes' tickets step aside for all of this, their time stopped, and come back after. A swipe past 40% of the width or a flick
