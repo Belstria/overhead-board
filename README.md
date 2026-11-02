@@ -957,7 +957,7 @@ Five buttons along the bottom:
   quiet hours.
 - **Daylight** (1.66; app and light version, Settings → Display): a cream page with black flaps and white letters, dark
   text and darker labels, easier to read outdoors in the sun; the metal plates (Settings, the Club, the lists) stay dark with light
-  text, as at night (1.129.13). Each phone keeps its own choice (not shared with the
+  text, as at night (1.129.13); a selected key in a row of tabs is dark with light text (1.129.14). Each phone keeps its own choice (not shared with the
   profile); the boards on the TVs don't have it.
 - **Search the logbook** (1.65, relay 55): the field at the top of the Logbook tab searches every sighting since the
   start, by registration, flight, type or airline (several words narrow it). Each match says how often and when it was
