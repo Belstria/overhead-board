@@ -4589,7 +4589,7 @@ def settings_plate_checks(browser, bad):
         pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
         pg.goto(BASE + "/app/")
         pg.wait_for_function("!!window.__e", timeout=20000)
-        pg.wait_for_timeout(4500)
+        pg.wait_for_timeout(3000)
         e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
         pg.click("[data-tab=settings]")
         pg.wait_for_timeout(600)
@@ -4614,7 +4614,7 @@ def settings_plate_checks(browser, bad):
         for rid in ids:
             e("window.scrollTo(0, 0); 1")
             pg.click(f"#setList [data-set={rid}]")
-            pg.wait_for_timeout(700)
+            pg.wait_for_timeout(450)
             if rid == "about":
                 ok = e("!$('t-about').hidden")
                 e("aboutHide(); 1")
@@ -4628,7 +4628,7 @@ def settings_plate_checks(browser, bad):
                     e("setAsking = false; cardClose(); 1")
             if not ok:
                 bad.append(f"settings plate {w}: the {rid} row doesn't open its panel")
-            pg.wait_for_timeout(400)
+            pg.wait_for_timeout(250)
         ctx.close()
     print("the Settings rows open their panels" if not [b for b in bad if b.startswith("settings plate")] else "settings plate check(s) failed")
 
@@ -4974,13 +4974,20 @@ def levelup_checks(browser):
     # closing the app with one pending: the next start shows it, once
     lv[0] = 11
     pg.wait_for_timeout(500)
-    pg.reload()
+
+    def reload():                           # a reload that meets a navigation under way ends ERR_ABORTED (CI): once more
+        try:
+            pg.reload()
+        except Exception:
+            pg.wait_for_timeout(1500)
+            pg.reload()
+    reload()
     pg.wait_for_function("window.__e && __e('!!gme')", timeout=20000)
     if "Arrived at" not in card(14):
         bad.append("a level-up missed while the app was shut wasn't shown on the next start")
     pg.wait_for_timeout(500)
     shut()
-    pg.reload()
+    reload()
     pg.wait_for_function("window.__e && __e('!!gme')", timeout=20000)
     pg.wait_for_timeout(5000)
     if e(TOP):
