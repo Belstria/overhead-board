@@ -851,8 +851,8 @@ Five buttons along the bottom:
   **Since 1.123 the Logbook is one screen**: the search and the filter icon, three plates you swipe sideways (**Today**, which stays at 0 on a day with no planes yet since 1.124.1,
   the period, such as "2026 in planes", and **All time**; in that order since 1.127), then the planes. Under Today, the day's, with its amber "Today" headline over the flights as under the others (1.129.1; none on a day with no planes yet). **Under the period and All time the list goes back across days
   (1.127, relay 105)**: the last 50 flights, newest first, then **Show more** at the bottom for the 50 before those, as far as the period's start or the logbook's beginning, with the filters and the chosen place
-  applied. Each day has an amber headline (Today, Yesterday, then the date) that stays under the search until the next day's pushes it away. Once more than 50 are loaded, a **Top** key with the
-  day you're in shows while you scroll past the first screens; it goes back up to the plates. A new flight waits at the top while you're further down, so what you're reading doesn't move.
+  applied. Each day has an amber headline (Today, Yesterday, then the date) that stays under the search until the next day's pushes it away; Today's is there before the day's first flight too (not under a filter). Once more than 50 are loaded, a **Top** key with the
+  day you're in shows while you scroll past the first screens, and stays at the very bottom; it fades when you stop and steps aside while Show more goes by. It goes back up to the plates. A new flight waits at the top while you're further down, so what you're reading doesn't move.
   A tap on All time's numbers opens their lists
   (Sightings: **Categories**, Aircraft: **Most seen aircraft**, Types: **Aircraft types**, Airlines: **Airlines**), with since when
   it counts as a footnote; with a saved place on, its name and numbers are that place's. Each list rises from below as
