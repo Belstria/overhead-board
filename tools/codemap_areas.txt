@@ -192,7 +192,7 @@ tools/app/main.js: TODAYP spotted logDay rollDay syncSightings fullDay loadFullD
     TD_PLATE TD_FACTS todayFactsSig tdSig renderTodayNumbers tdOpen $("tdPlate").onclick tdFilter tdFilDot $("tdFil").onclick todayJump renderToday renderLists
     tlKey plainCode noFlightNo rowName noRoute tlNode rowTier rowMarks FLAG_SVG rowInner tlPic tlCardSig tlAsking tlAhead tlAgo tlCardHtml cardLi
     tlHtml tlState tlFinding tlNothing tlOpenId tlTok tlRunning tlCap tlAgain tlBusy tlFill tlWire tlLate tlDone
-    LBL_PAGE lbl lblPlate lblOn lblIso lblSpan lblToday lblPlaces lblKey lblLive lblPass lblUrl lblWords lblWord lblHead lblDayLi lblHtml lblStop lblShown lblEnded lblLine lblMoreSync lblEmpty lblDraw lblAppend lblAdd lblLoad lblFirst lblPatch lblReset lblNews lblFlush lblSync lblLeave lblTopLang lblRaf lblRestT lblTopFit lblTopPlace lblTopRest lblScrolled $("lbTop").onclick lblSegH lblStickyMark
+    LBL_PAGE lbl lblPlate lblOn lblIso lblSpan lblToday lblPlaces lblKey lblLive lblPass lblUrl lblWords lblWord lblHead lblDayLi lblHtml lblLead lblStop lblShown lblEnded lblLine lblMoreSync lblEmpty lblDraw lblAppend lblAdd lblLoad lblFirst lblPatch lblReset lblNews lblFlush lblSync lblLeave lblTopLang lblRaf lblRestT lblTopFit lblTopPlace lblTopRest lblScrolled $("lbTop").onclick lblSegH lblStickyMark
     tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd tlTap tlOpen tlFold tlScroll sightPlane
 relay/serve.py: day_stats same_spot sightings_json /sightings +Spot.day_entries FLIGHTS_PAGE FLIGHTS_DAYS SPECIAL_TYPE_CODES _list_sq _flight_test _flight_hidden flights_json /logbook/flights
 README.md: "- **Spotted today** (press" "- **Today, This place | All places**" "- **Today** (1.123)"

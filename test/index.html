@@ -7908,6 +7908,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.129.5", date: "2026-11-02", notes: [
+    "The Logbook's Top key stays at the very bottom of the list instead of vanishing.",
+    "Today's headline stands at the top of the Logbook's lists even before the day's first flight.",
+  ]},
   {v: "1.129.3", date: "2026-11-02", notes: [
     "Frequent flyer cards tick as each one passes under your thumb or a flick, in place of the click when they settle.",
   ]},
