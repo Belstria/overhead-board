@@ -10358,25 +10358,26 @@ $("skyLk").onclick = () => skyOpen("look");
 // The heading tape (1.73.1): the directions around c, the gold line where you face (bright with the compass), and the
 // plane d degrees off (an arrow at the end when it is off the tape; none when d is null: 1.77, the no-plane card).
 function drawTape(cv, c, on, d){
-  const px = Math.min(3, devicePixelRatio || 1), W = cv.clientWidth || 300, H = 44;
-  if (cv.width !== Math.round(W * px)) { cv.width = Math.round(W * px); cv.height = H * px; }
+  const px = Math.min(3, devicePixelRatio || 1), W = cv.clientWidth || 300, H = cv.clientHeight || 44, k = H / 44;
+  if (cv.width !== Math.round(W * px) || cv.height !== Math.round(H * px)) { cv.width = Math.round(W * px); cv.height = Math.round(H * px); }
   const g = cv.getContext("2d"), ppd = W / 120, X = deg => W / 2 + deg * ppd;
   g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, W, H);
   g.fillStyle = "#0c0d0e"; rr(g, 0, 0, W, H, 8); g.fill();
   g.textAlign = "center"; g.textBaseline = "alphabetic";
   const NAMES = {0: "N", 45: "NE", 90: "E", 135: "SE", 180: "S", 225: "SW", 270: "W", 315: "NW"};
-  for (let k = Math.ceil((c - 66) / 5) * 5; k <= c + 66; k += 5) {
-    const deg = (k + 360) % 360, x = X(k - c), big = deg % 45 === 0;
+  for (let m = Math.ceil((c - 66) / 5) * 5; m <= c + 66; m += 5) {
+    const deg = (m + 360) % 360, x = X(m - c), big = deg % 45 === 0;
     g.fillStyle = big ? "rgba(255,255,255,.55)" : "rgba(255,255,255,.22)";
     g.fillRect(x - .75, H - (big ? 12 : deg % 15 === 0 ? 8 : 5), 1.5, big ? 12 : deg % 15 === 0 ? 8 : 5);
     if (big) { g.fillStyle = deg === 0 ? "#e0372c" : "#c9c3b4"; g.font = `700 12px ${FONT}`; g.fillText(NAMES[deg], x, H - 16); }
   }
   g.fillStyle = on ? "#f0b429" : "rgba(240,180,41,.35)"; g.fillRect(W / 2 - 1, 0, 2, H);      // where you face
   if (d == null) return;
-  if (Math.abs(d) <= 58) drawPlane(g, X(d), 13, 18, "#f0b429");
+  const y = 13 * k;                                              // 1.129.11: the plane and the arrow are drawn for the height shown
+  if (Math.abs(d) <= 58) drawPlane(g, X(d), y, 18 * k, "#f0b429");
   else {                                                         // off the tape: an arrow at its end, pointing the way
     const x = d > 0 ? W - 10 : 10, s = d > 0 ? 1 : -1;
-    g.fillStyle = "#f0b429"; g.beginPath(); g.moveTo(x + 6 * s, 13); g.lineTo(x - 5 * s, 6); g.lineTo(x - 5 * s, 20); g.closePath(); g.fill();
+    g.fillStyle = "#f0b429"; g.beginPath(); g.moveTo(x + 6 * k * s, y); g.lineTo(x - 5 * k * s, y - 7 * k); g.lineTo(x - 5 * k * s, y + 7 * k); g.closePath(); g.fill();
   }
 }
 // 1.95.0.2: not while Sky view covers it (it drew on every compass reading, on the thread Sky view needs); after it, at once
@@ -13306,6 +13307,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.129.11", date: "2026-11-02", notes: [
+    "The compass under the plane's picture is no longer squashed.",
+  ]},
   {v: "1.129.10", date: "2026-11-02", notes: [
     "The daily streak's plane now rolls to today without a sound.",
   ]},

@@ -2784,6 +2784,12 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   **The daily streak's plane rolls to today without a sound.** `land()` in `stkNew` (main.js) no longer calls `fsThud()`; the short phone vibration stays
   (a buzz is not a sound). `fsThud` and its other callers (the passport stamp, the mission stamp, the map ink) are unchanged. Nothing else in the pop-up's
   path (`gAwsBox`, `gTixStack`, `gAwTimer`, `gAwTap`, `gLineAdd`) plays a sound; the scan's own pass before it has its coins and tear sound.
+- 1.129.11 (to-do #280; app only, no relay change; Dave, on a screenshot of Now's card: "The compass looks squished down"; his pick A, redraw at 34 px):
+  **The compass under the plane's picture is no longer squashed.** `drawTape` (main.js) had a fixed height of 44 but `#acSec #look canvas` shows it 34 px tall (since 1.115), so
+  everything was squeezed to 77%. It now takes its height from the canvas as shown (`cv.clientHeight`, 44 as fallback) and redraws the backing store when the width or the
+  height changes. With `k = H / 44` the plane (`drawPlane` size `18k`, centre `13k`) and the off-tape arrow are scaled to the height; ticks stay anchored to the bottom at
+  their size and the letters keep their 12 px bold type (baseline `H - 16`), which fit at 34 px. At 44 px nothing moves. `drawTape` has one caller (`drawLook`, the
+  card's `#lookCv`); the loop variable is now `m` because `k` is the scale.
 
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
