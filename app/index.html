@@ -153,7 +153,7 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 /* thumbwheel: a ridged drum with a number in a window */
 .wheels{display:flex;align-items:center;gap:calc(4px*var(--k))}
 .wheels>em{font:700 calc(26px*var(--k))/1 var(--f-board);font-style:normal;color:#d8d3c6}
-.wheel{display:flex;flex-direction:column;align-items:center;outline:none}
+.wheel{display:flex;flex-direction:column;align-items:center;outline:none;touch-action:none;-webkit-user-select:none;user-select:none}      /* 1.129.6: a finger turns it (wheelFinger), never scrolls the page */
 .wheel button{width:calc(52px*var(--k));height:calc(18px*var(--k));padding:0;border:0;border-radius:calc(3px*var(--k));font-size:calc(9px*var(--k));color:rgba(214,208,194,.6);
   background:repeating-linear-gradient(#3c3e43 0 calc(2px*var(--k)),#1a1b1e calc(2px*var(--k)) calc(4px*var(--k)));box-shadow:0 0 0 calc(2px*var(--k)) #0b0b0c}
 .wheel button:hover{color:#f6c54a}
@@ -2933,17 +2933,24 @@ const REMARK_LOOK = {
 // from the relay instead of the home location, and their settings go back to it, so their other devices know them.
 const LIGHT = false;                  // the light version (tools/light/build.py): the same app without the split flaps
 const GUEST = window.OVERHEAD_GUEST || null;
-const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:5,
-  logos:true, overKm:1, demo:false, daylight:false, theme:"classic", palette:"", finish:"", badge:"", ticket:"", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto",
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", real:true, flapSpeed:50, refreshS:5,
+  logos:true, overKm:1, demo:false, daylight:false, theme:"classic", palette:"", finish:"", badge:"", ticket:"", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto",
   night:true, nightFrom:"22:30", nightTo:"07:00"};
 const SKEY = (LIGHT ? "od.light.settings" : "od.app.settings") + (GUEST ? ".g." + GUEST.id : "");   // each guest's own, in a shared browser
 // The light version has no flaps: these stay fixed there, and aren't sent to the profile (the app and the board keep theirs).
-const LIGHT_FIXED = {real: false, imperfect: false, quick: false, theme: "classic", finish: "", soundSet: "recorded"};
+const LIGHT_FIXED = {real: false, imperfect: false, theme: "classic", finish: "", soundSet: "recorded"};
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SKEY) || "{}") || {}; } catch {}
   const {mode, live, livePrev, daylight, ...shared} = GUEST && GUEST.settings || {};      // the style (1.40) and Daylight (1.66) stay this device's own
-  return overRule({...DEFAULTS, ...shared, ...saved, ...(LIGHT ? LIGHT_FIXED : {})});
+  return flapSpeedRule(overRule({...DEFAULTS, ...shared, ...saved, ...(LIGHT ? LIGHT_FIXED : {})}), {...shared, ...saved});
+}
+// 1.129.6: Flap speed has one scale: 10 = the old 10, 50 = the old 100 (and the default), 100 = the old Quick flaps. It
+// lives under a new key (flapSpeed), so the old ones (speedPct, quick) are only read while flapSpeed has never been
+// saved: the move happens once, and never twice. Nothing saved: 50. An old device keeps its own old keys.
+function flapSpeedRule(s, own){
+  if (own.flapSpeed == null) s.flapSpeed = own.quick ? 100 : own.speedPct == null ? 50 : Math.round(10 + (Math.min(100, Math.max(10, +own.speedPct || 85)) - 10) * 40 / 90);
+  return s;
 }
 // 1.84: OVERHEAD became within 1 km at any height or 45° up; settings saved with the old 3 km move to 1 km, once.
 function overRule(s){ if (s.overRule == null) { if (+s.overKm === 3) s.overKm = 1; s.overRule = 2; } return s; }
@@ -5423,11 +5430,11 @@ function frame(now){
     if (c.queue.length) {
       active = true;
       if (now >= c.next) {
-        if (S.imperfect && !c.qdur && !c.hes && Math.random() < .012) { c.hes = true; c.next = now + 90 + Math.random() * 260; continue; }
+        if (S.imperfect && !c.hes && Math.random() < .012 * (1 - blur())) { c.hes = true; c.next = now + 90 + Math.random() * 260; continue; }
         c.hes = false;
         c.anim = {from: c.cur, to: c.queue.shift(), t0: now - (c.qdur ? c.over || 0 : 0), dur: c.qdur || c.f.dur * pace() * (.9 + Math.random() * .2), quick: !!c.qdur};
         if (c.slowEnd && c.queue.length < 4) c.anim.dur *= [3.4, 2.3, 1.6, 1.2][c.queue.length];   // a drum coasting to a stop
-        if (S.imperfect && !c.qdur && Math.random() < .01) c.anim.stall = {at: .18 + Math.random() * .2, ms: 110 + Math.random() * 240};
+        if (S.imperfect && Math.random() < .01 * (1 - blur())) c.anim.stall = {at: .18 + Math.random() * .2, ms: 110 + Math.random() * 240};
         drawCell(c, 0); if (!c.f.pageOff || c.f.leaving) starts++;
       }
     }
@@ -5446,8 +5453,13 @@ function path(drum, from, to){
   return out;
 }
 let snapping = false;     // set while a new page is drawn straight onto the board, without flipping each flap
-// Flap speed as a percentage of full speed (100% = fastest, 10% = ten times slower).
-const pace = () => 100 / Math.min(100, Math.max(10, +S.speedPct || 85));
+// Flap speed (Settings, 1.129.6): 10 = ten times slower than full speed, 50 = full speed, 100 = the blur that was Quick
+// flaps. Up to 50 the flaps turn slower in a straight line; from 50 to 100 `blur()` rises from 0 to 1 and moves flap
+// time, stagger, clatter and the worn-hardware slips from the normal values towards the blur's.
+const flapSpeed = () => Math.min(100, Math.max(10, +S.flapSpeed || 50));
+const pace = () => { const v = flapSpeed(); return v >= 50 ? 1 : 100 / (10 + (v - 10) * 90 / 40); };
+const blur = () => Math.max(0, (flapSpeed() - 50) / 50);
+const lerp = (a, b, t) => a + (b - a) * t;
 const QUICK_MS = 1350;                         // with the stagger and frame timing, about 1.5 s in all
 function retarget(c, value, delay){
   if (value === c.target) return;
@@ -5471,10 +5483,11 @@ function retarget(c, value, delay){
   }
   if (REDUCED || snapping || c.f.panel.off || flapsHeld) { c.queue = []; c.anim = null; c.cur = value; drawCell(c); return; }
   const now = performance.now();
-  if (!c.queue.length && !c.anim) { c.next = now + (S.quick ? Math.min(delay, 1200) * .25 : delay * pace()); c.over = 0; }
-  // Quick flaps (Settings): the whole run, A to Z and every word on the drum, takes about 1.5 s, the flaps a blur on the
-  // way; the stagger between the flaps is shortened too.
-  c.qdur = S.quick ? Math.max(6, Math.min(c.f.dur, (QUICK_MS - Math.max(0, c.next - now)) / q.length)) : 0;
+  const bl = blur();
+  if (!c.queue.length && !c.anim) { c.next = now + lerp(delay * pace(), Math.min(delay, 1200) * .25, bl); c.over = 0; }
+  // The blur (Flap speed above 50, the old Quick flaps at 100): the whole run, A to Z and every word on the drum, takes
+  // about 1.5 s, the flaps a blur on the way; the stagger between the flaps is shortened too.
+  c.qdur = bl ? lerp(c.f.dur, Math.max(6, Math.min(c.f.dur, (QUICK_MS - Math.max(0, c.next - now)) / q.length)), bl) : 0;
   c.queue = q;
   kick();
 }
@@ -5748,7 +5761,7 @@ function sfxOut(){
 }
 function clack(n){
   if ((!S.sound && !soundForced) || (nightOn && !soundForced) || !actx || actx.state !== "running") return;
-  const t = actx.currentTime; if (t - lastClack < (S.quick ? .035 : .014)) return; lastClack = t;    // quick flaps whirr, not buzz
+  const t = actx.currentTime; if (t - lastClack < lerp(.014, .035, blur())) return; lastClack = t;    // the blur whirrs, not buzzes
   // The flaps always clack synthesised (chosen over the recording); the recordings are for the controls.
   const src = actx.createBufferSource(); src.buffer = noise; src.playbackRate.value = .7 + Math.random() * .5;
   const fl = actx.createBiquadFilter(); fl.type = "bandpass"; fl.frequency.value = 1400 + Math.random() * 1800; fl.Q.value = 1;
@@ -5775,12 +5788,12 @@ function airportBell(out, t0){
   }
 }
 // The chime for a kind of plane; `opts.force` plays it even with chimes off or at night (a preview), `opts.set` picks
-// the bell (Settings → Special bell) before it is saved.
+// a bell before it is saved (the special bell is always the Airport one since 1.129.6).
 function chime(kind, opts = {}){
   if ((!opts.force && (!S.chimes || nightOn)) || !actx || actx.state !== "running") return;
   const t0 = actx.currentTime + .03, out = actx.createGain();
   out.gain.value = .55; out.connect(sfxOut());
-  if (kind === "special" && (opts.set || S.bell || "airport") === "airport") return airportBell(out, t0);
+  if (kind === "special") return airportBell(out, t0);
   const notes = kind === "fav" ? [[523.25, 0], [659.25, .17], [783.99, .34]] : kind === "emergency" ? [[587.33, 0], [440, .32], [587.33, .64], [440, .96]] : [[659.25, 0], [523.25, .55]];
   for (const [freq, dt] of notes) {
     for (const [mult, amp] of [[1, .26], [2.01, .07], [3.02, .035], [4.2, .015]]) {
@@ -5816,7 +5829,7 @@ function fanfare(){
 // main page, and the recorded Airbus cabin chime, both notes since 1.46, with the synthesised one until it is decoded).
 let dingAt = 0;
 function seatbeltDing(force){
-  if (!force && (!S.ding || nightOn || document.hidden || !onMainPage() || performance.now() < 8000 || Date.now() - dingAt < 15000)) return;
+  if (!force && (!S.chimes || nightOn || document.hidden || !onMainPage() || performance.now() < 8000 || Date.now() - dingAt < 15000)) return;
   if (!actx || actx.state !== "running") return;
   dingAt = Date.now();
   const t = actx.currentTime + .02, out = actx.createGain(), rec = SND.ding && SND.ding[0];
@@ -12190,7 +12203,6 @@ const COCKPIT = [
     {k: "refreshS", type: "rotary", label: "Update every", opts: [[5, "5"], [10, "10"], [15, "15"], [30, "30 S"]], for: "tv"},
     {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
     {k: "favs", type: "favs", label: "Favourites", for: "tv"},
-    {k: "ding", type: "switch", label: "New plane ding", phone: {plate: "flaps", before: "bell"}},
     {k: "statsPage", type: "switch", label: "Today in numbers", upText: "EVERY 10TH", downText: "OFF", for: "tv"}]},
   {id: "display", title: "Display", cols: 4, items: [
     ...(LANG_CHOICE ? [{k: "lang", type: "rotary", label: "Language", opts: LANGS, light: {span: 2}}] : []),
@@ -12201,13 +12213,11 @@ const COCKPIT = [
     {k: "real", type: "switch", label: "Realistic look", flaps: true},
     {k: "daylight", type: "switch", label: "Daylight", for: "phone"},      // 1.66
     {k: "demo", type: "switch", label: "Demo mode", guard: true}]},
-  {id: "flaps", title: "Flaps & sound", cols: 3, light: {title: "Sounds"}, items: [
-    {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5, flaps: true},
-    {k: "quick", type: "switch", label: "Quick flaps", flaps: true},
+  {id: "flaps", title: "Flaps & sound", cols: 2, light: {title: "Sounds"}, items: [
+    {k: "flapSpeed", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5, dflt: 50, flaps: true},
     {k: "imperfect", type: "switch", label: "Worn hardware", flaps: true},
     {k: "sound", type: "switch", label: "Flap sound", light: {label: "Button sounds"}},
-    {k: "chimes", type: "switch", label: "Chimes"},
-    {k: "bell", type: "switch", label: "Special bell", on: "airport", off: "classic", upText: "AIRPORT", downText: "CLASSIC", light: {span: 2}}]},
+    {k: "chimes", type: "switch", label: "Chimes"}]},
   {id: "control", title: "Control", actions: true, for: "tv"},
   // 1.57 (#47 step 4): on a phone Night mode is quiet hours only (no sounds while the app is open); dimming a phone in
   // your hand and the night view are the board's
@@ -12275,14 +12285,12 @@ const HINTS = {
   quality: "Lower it if the board stutters on a TV.",
   rotateS: "How long each page stays before the next one turns.",
   statsPage: "Today in numbers comes round every tenth turn of the pages; off: only when you pick it.",
-  ding: "A soft cabin ding when a new plane comes on top, so you know when to look up.",
   units: "Metres and km/h, or feet and knots.",
   real: "Printed flaps, glass and brushed metal, like a real board.",
   daylight: "A light page with black flaps, easier to read outdoors in the sun. Just this phone.",
   imperfect: "Slightly uneven modules and the odd hesitating flap, like a well-used board.",
   demo: "Sample flights instead of live data.",
-  speedPct: "How fast each flap turns.",
-  quick: "Flaps blur through their letters and land in about 1.5 seconds.",
+  flapSpeed: "How fast the flaps turn: 10 is slow, 50 is full speed, 100 a blur that lands in about 1.5 seconds.",
   sound: "The clatter of the flaps.",
   soundSet: "RECORDED real switches and knobs, or CLASSIC synthesised sounds.",
   chimes: "A chime for special planes and favourites.",
@@ -12460,13 +12468,70 @@ function wheelStep(it, part, d){
     const [h, m] = String(draft[it.k] || "00:00").split(":").map(Number);
     const nh = part === "h" ? (h + d + 24) % 24 : h, nm = part === "m" ? (Math.round(m / 5) * 5 + d * 5 + 60) % 60 : m;
     draft[it.k] = `${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`;
-  } else draft[it.k] = Math.min(it.max, Math.max(it.min, Math.round((+draft[it.k] || it.min) / it.step) * it.step + d * it.step));
+  } else {                         // 1.129.6: a value between two steps (a migrated 43) goes to the next step in the direction pressed
+    const v = (+draft[it.k] || it.min) / it.step;
+    draft[it.k] = Math.min(it.max, Math.max(it.min, (d > 0 ? Math.floor(v + 1e-9) + 1 : Math.ceil(v - 1e-9) - 1) * it.step));
+  }
 }
 // What Settings start from: the settings as they are, with the value a control shows for one never set (`dflt`).
 function cockpitDraft(){
   const d = {...S};
   for (const it of ITEMS) if (it.dflt != null) d[it.k] = S[it.k] || it.dflt;
   return d;
+}
+// 1.129.6 (#275): a finger dragging up or down on a thumbwheel turns it, one step for every 22 px, as the ▲ and ▼ keys do.
+// The direction is the roll of the keys: the finger moves the numbers, so a drag up brings the next higher number up
+// from below (▲), a drag down the lower one. A flick keeps rolling and slows down; the limits stop it (no wrapping,
+// except for a clock's hours and minutes, which wrap on the keys too). A tap (under 6 px) turns nothing and still
+// presses a key. `step(d, quiet)` turns one step (+1 = ▲) and says whether it moved; `quiet` asks it to skip the
+// ratchet sound when the last one was under 55 ms ago. Pointer capture and `touch-action: none` (CSS) keep the page
+// and the sheets from scrolling or dragging along.
+function wheelFinger(el, step){
+  const PX = 22, SLOP = 6, FRICTION = .008;
+  let g = null, raf = 0, lastSnd = 0, endAt = 0;
+  const go = d => { const now = performance.now(), quiet = now - lastSnd < 55, moved = step(d, quiet); if (moved && !quiet) lastSnd = now; return moved; };
+  const stop = () => { if (raf) cancelAnimationFrame(raf); raf = 0; };
+  for (const t of ["touchstart", "touchmove"]) el.addEventListener(t, e => e.stopPropagation(), {passive: true});      // no swipe or card drag of the page sees a finger on a wheel
+  el.addEventListener("pointerdown", e => {
+    if (e.pointerType === "mouse" || (g && g.id !== e.pointerId)) return;
+    stop(); g = {id: e.pointerId, y0: e.clientY, ya: e.clientY, on: false, pts: [[e.clientY, e.timeStamp]]};
+  });
+  el.addEventListener("pointermove", e => {
+    if (!g || e.pointerId !== g.id) return;
+    const y = e.clientY;
+    if (!g.on) { if (Math.abs(y - g.y0) < SLOP) return; g.on = true; try { el.setPointerCapture(e.pointerId); } catch {} }
+    g.pts.push([y, e.timeStamp]); if (g.pts.length > 12) g.pts.shift();
+    while (Math.abs(y - g.ya) >= PX) {
+      const d = y < g.ya ? 1 : -1;
+      if (!go(d)) { g.ya = y; break; }                  // at a limit: nothing piles up, turning back answers at once
+      g.ya -= d * PX;
+    }
+  });
+  const end = e => {
+    if (!g || e.pointerId !== g.id) return;
+    const was = g; g = null;
+    if (!was.on) return;
+    endAt = performance.now();
+    const recent = was.pts.filter(p => e.timeStamp - p[1] < 90), a = recent[0], b = recent[recent.length - 1];
+    let v = e.type === "pointerup" && a && b && b[1] > a[1] ? (b[0] - a[0]) / (b[1] - a[1]) : 0;      // px per ms, up is negative
+    if (Math.abs(v) < .4) return;
+    v = Math.max(-2.2, Math.min(2.2, v));
+    let ya = 0, t0 = performance.now();
+    const tick = now => {
+      const dt = Math.min(50, now - t0); t0 = now;
+      v *= Math.exp(-FRICTION * dt); ya += v * dt;
+      if (Math.abs(v) < .06) { raf = 0; return; }
+      while (Math.abs(ya) >= PX) {
+        const d = ya < 0 ? 1 : -1;
+        if (!go(d)) { raf = 0; return; }
+        ya += d * PX;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+  };
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+  el.addEventListener("click", e => { if (performance.now() - endAt < 150) { e.stopPropagation(); e.preventDefault(); } }, true);      // the end of a drag is no key press
 }
 // The controls' handlers, the same on every screen. On the board a mouse wheel turns the knobs and thumbwheels (its
 // Settings never scroll); on a phone it scrolls the page.
@@ -12482,11 +12547,10 @@ function wireCockpit(box){
       el.onkeydown = e => { const d = /Right|Up/.test(e.key) ? 1 : /Left|Down/.test(e.key) ? -1 : 0; if (d) { e.preventDefault(); const j = rotaryIndex(it) + d; if (j >= 0 && j < it.opts.length) turn(j); } };
     } else if (el.classList.contains("toggle")) el.onclick = () => {
       draft[it.k] = it.on ? (draft[it.k] === it.on ? it.off : it.on) : !draft[it.k]; cockpitShow(); ctlSound.toggle(el.getAttribute("aria-pressed") === "true");
-      if (it.k === "bell") { audioInit(); setTimeout(() => chime("special", {force: true, set: draft.bell}), 250); }   // hear it
-      if (it.k === "ding" && draft.ding) { audioInit(); setTimeout(() => seatbeltDing(true), 250); }
     };
     else if (el.classList.contains("wheel")) {
-      const roll = d => { const was = draft[it.k]; wheelStep(it, el.dataset.part, d); cockpitShow(el, d); if (draft[it.k] !== was) ctlSound.wheel(); };
+      const roll = (d, quiet) => { const was = draft[it.k]; wheelStep(it, el.dataset.part, d); cockpitShow(el, d); const moved = draft[it.k] !== was; if (moved && !quiet) ctlSound.wheel(); return moved; };
+      wheelFinger(el, roll);
       el.querySelector(".inc").onclick = () => roll(1);
       el.querySelector(".dec").onclick = () => roll(-1);
       if (turnByWheel) el.onwheel = e => { e.preventDefault(); roll(e.deltaY < 0 ? 1 : -1); };
@@ -13226,6 +13290,11 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.129.6", date: "2026-11-02", notes: [
+    "Chimes turns the new-plane ding and the special bell on or off with the others; the bell is always the airport one.",
+    "Flap speed has one scale: 50 is full speed, 10 is slow and 100 is the blur Quick flaps used to be. Saved speeds keep their real speed.",
+    "Thumbwheels turn with a finger: drag up or down, or flick.",
+  ]},
   {v: "1.129.5", date: "2026-11-02", notes: [
     "The Logbook's Top key stays at the very bottom of the list instead of vanishing.",
     "Today's headline stands at the top of the Logbook's lists even before the day's first flight.",
@@ -14726,15 +14795,18 @@ $("dot").onclick = statusCard;
 $("rvMap").onclick = () => { radarMapSet(!radarMapOn); ctlSound.toggle(radarMapOn); buildRadarLegend(); };
 for (const [id, d] of [["rvZoomOut", -1], ["rvZoomIn", 1]]) $(id).onclick = () => radarZoomTo(d);
 $("rvReset").onclick = () => { ctlSound.click(); radarZoomTo(0); };
+wheelFinger($("rvWheel"), (d, quiet) => radarZoomTo(-d, quiet));      // 1.129.6: ▲ is zoom out (a bigger number), a drag up the same
 $("rvWheel").onkeydown = e => { const d = {ArrowUp: -1, ArrowRight: -1, ArrowDown: 1, ArrowLeft: 1}[e.key]; if (d) { e.preventDefault(); radarZoomTo(d); } };
 // d: steps closer (+) or wider (-); 0 (1.82.2, the radar's ⟲; a push button beside the wheel since 1.83.2): back to the
 // usual range for the radius, and the middle.
-function radarZoomTo(d){
+function radarZoomTo(d, quiet){
   const was = radarZoom;
   if (d) radarZoomStep(d); else radarZoomSet(0);
-  if (radarZoom === was) return;
-  ctlSound.wheel(); buildRadarLegend(); rvSig = ""; renderRadarList();
+  if (radarZoom === was) return false;
+  if (!quiet) ctlSound.wheel();
+  buildRadarLegend(); rvSig = ""; renderRadarList();
   const b = $("rvZoomKm"); b.className = ""; void b.offsetWidth; b.className = d > 0 ? "down" : "up";     // the wheel rolls, as in Settings
+  return true;
 }
 // 1.65: pinch the radar to zoom; 1.68.1: really zoom: the range follows the fingers (radar.live, the map stretched
 // meanwhile), and stays where they let go (the map is then drawn afresh for it). One finger still scrolls the page.
@@ -15146,7 +15218,7 @@ function applySettings(n){
     lon: isFinite(lon) && Math.abs(lon) <= 180 ? lon : S.lon,
     radiusKm: Math.min(20, Math.max(1, num(n.radiusKm) || 15)),
     home: clean(n.home).slice(0, 3), favs: String(n.favs || "").trim(),
-    maxAltFt: +n.maxAltFt, airtimeMin: +n.airtimeMin, speedPct: +n.speedPct || 85, overKm: +n.overKm || 1};
+    maxAltFt: +n.maxAltFt, airtimeMin: +n.airtimeMin, flapSpeed: +n.flapSpeed || 50, overKm: +n.overKm || 1};
   const langWas = LANG;
   if (GUEST) S.located = true;                               // a guest who saved Settings has chosen their place
   saveSettings(); audioInit(); nightCheck();
@@ -15727,7 +15799,7 @@ document.addEventListener("click", e => { if (e.target.closest && e.target.close
 // 1.123 (to-do #241): a sideways swipe goes Logbook, Club, but never on the plates (they scroll sideways themselves), a plane's
 // row (it has its own swipes) or anything else that scrolls sideways.
 for (const id of ["t-logbook", "t-game"]) { let sw = null;
-  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .lbStrip, .bingo, .hgRow, .lyCar, .lyIdx, .ppMap, .tline li.open") || swipeRow(e.target) ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
+  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .wheel, .seg, .lbStrip, .bingo, .hgRow, .lyCar, .lyIdx, .ppMap, .tline li.open") || swipeRow(e.target) ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
   $(id).addEventListener("touchend", e => {
     if (!sw) return;
     const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y; sw = null;

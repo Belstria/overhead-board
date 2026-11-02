@@ -4128,6 +4128,7 @@ def browser_checks(browser):
     sky_sizes_checks(browser, bad)
     styles_cell_checks(browser, bad)
     card_sound_checks(browser, bad)
+    flaps_settings_checks(browser, bad)
     sky_row_checks(browser, bad)
     for b_ in bad:
         print("flow:", b_)
@@ -4382,6 +4383,191 @@ def styles_cell_checks(browser, bad):
         pg.wait_for_timeout(1500)
         ctx.close()
     print("the Styles cell holds" if not [b for b in bad if b.startswith("styles cell")] else "styles cell check(s) failed")
+
+
+def flaps_settings_checks(browser, bad):
+    """To-dos #273-275: Settings → Flaps & sound holds Flap speed, Worn hardware, Flap sound and Chimes only (no New plane
+    ding, Special bell or Quick flaps anywhere); Chimes off silences the ding and the bell, on plays them; old speeds move
+    once to the new scale (85 → 43, 10 → 10, 100 → 50, Quick flaps on → 100, nothing saved → 50) and never twice; 10, 50
+    and 100 turn the flaps at the old real speeds; a finger drag on a thumbwheel (touch events) turns it a step for each
+    22 px, keeps the limits, plays the ratchet less often than it turns, scrolls nothing, and a tap or the ▲ ▼ keys
+    behave; the radar's range wheel follows the same finger."""
+    def hooked(route):
+        r = route.fetch()
+        t = r.text()
+        i = t.rindex("})();")
+        route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+    ctx = browser.new_context(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True)
+    ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+    ctx.route("**/app/", hooked)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: bad.append(f"flaps settings page error: {e}"))
+    pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
+    pg.goto(BASE + "/app/")
+    pg.wait_for_function("!!window.__e", timeout=20000)
+    pg.wait_for_timeout(9000)
+    e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
+    fails = len(bad)
+    # the cells
+    pg.click("[data-tab=settings]")
+    pg.click("[data-set=flaps]")
+    pg.wait_for_timeout(600)
+    names = e("[...document.querySelectorAll('#cockpit .plate[data-pid=flaps] .inst > span')].map(s => s.textContent.trim())")
+    if sorted(names) != sorted(["Flap speed %", "Worn hardware", "Flap sound", "Chimes"]):
+        bad.append(f"flaps settings: the Flaps & sound cells are {names}")
+    allk = e("ITEMS.map(it => it.k).join(' ')")
+    if any(k in allk.split() for k in ("ding", "bell", "quick", "speedPct")):
+        bad.append(f"flaps settings: an old setting is still in Settings: {allk}")
+    # Chimes: the ding and the special bell follow it
+    e("""window.__bells = 0; airportBell = () => { window.__bells++; };
+        const stub = () => ({gain: {value: 0, setValueAtTime(){}, linearRampToValueAtTime(){}, exponentialRampToValueAtTime(){}}, frequency: {value: 0, setValueAtTime(){}}, buffer: null, playbackRate: {value: 1}, connect(){ return this; }, disconnect(){}, start(){}, stop(){}});
+        actx = {state: 'running', currentTime: 10, destination: {}, createGain: stub, createBufferSource: stub, createOscillator: stub, createBiquadFilter: stub};
+        window.__was = [actx, sfxOut, airportBell, onMainPage, nightOn];
+        sfxOut = () => ({}); nightOn = false; onMainPage = () => true; 1""")
+    for chimes, want in ((False, 0), (True, 1)):
+        e(f"S.chimes = {'true' if chimes else 'false'}; window.__bells = 0; dingAt = 0; chime('special'); 1")
+        bells = e("window.__bells")
+        e("try { seatbeltDing(); } catch {} 1")
+        dinged = e("dingAt") != 0
+        if bells != want or dinged != bool(want):
+            bad.append(f"flaps settings: Chimes {'on' if chimes else 'off'}: bell {bells}x, ding {dinged}")
+    e("S.chimes = true; [actx, sfxOut, airportBell, onMainPage, nightOn] = window.__was; 1")
+    # the move to the new scale
+    cases = [({"speedPct": 85}, 43), ({"speedPct": 10}, 10), ({"speedPct": 100}, 50), ({"speedPct": 30, "quick": True}, 100),
+             ({"quick": True}, 100), ({}, 50), ({"flapSpeed": 43, "speedPct": 85}, 43), ({"flapSpeed": 70, "quick": True}, 70)]
+    for own, want in cases:
+        got = e(f"flapSpeedRule({{flapSpeed: {json.dumps(own.get('flapSpeed'))}}}, {json.dumps(own)}).flapSpeed")
+        if got != want:
+            bad.append(f"flaps settings: saved {own} became {got}, not {want}")
+    e("window.__gs = GUEST && GUEST.settings; window.__ls = localStorage.getItem(SKEY); if (GUEST) GUEST.settings = {}; localStorage.setItem(SKEY, JSON.stringify({v: 2, speedPct: 85, quick: false})); 1")      # the profile on the relay may know a speed by now
+    first = e("loadSettings().flapSpeed")
+    e("localStorage.setItem(SKEY, JSON.stringify({v: 2, speedPct: 85, flapSpeed: %d})); 1" % first)
+    again = e("loadSettings().flapSpeed")
+    if first != 43 or again != 43:
+        bad.append(f"flaps settings: a saved 85 loads as {first} and, after the move, as {again}")
+    e("if (GUEST) GUEST.settings = window.__gs; window.__ls == null ? localStorage.removeItem(SKEY) : localStorage.setItem(SKEY, window.__ls); 1")
+    # the speeds: pace and blur, then what a retarget makes of them
+    for v, want_pace, want_blur in ((10, 10, 0), (30, 100 / 55, 0), (50, 1, 0), (75, 1, .5), (100, 1, 1)):
+        got = e(f"S.flapSpeed = {v}; [pace(), blur()]")
+        if abs(got[0] - want_pace) > 1e-6 or abs(got[1] - want_blur) > 1e-6:
+            bad.append(f"flaps settings: speed {v} gives pace/blur {got}, not {[want_pace, want_blur]}")
+    for v in (10, 50, 100):
+        r = e(f"""(() => {{ S.flapSpeed = {v}; S.imperfect = false; const c = fields.flight.cells[2], held = [flapsHeld, c.f.panel.off]; flapsHeld = false; c.f.panel.off = false;
+          const now = performance.now(); c.queue = []; c.anim = null; c.target = null; c.cur = ' '; retarget(c, 'Z', 400);
+          const out = {{wait: c.next - now, qdur: c.qdur, len: c.queue.length, dur: c.f.dur}}; c.queue = []; c.anim = null; [flapsHeld, c.f.panel.off] = held; return out; }})()""")
+        if v == 10 and not (3900 < r["wait"] < 4100 and r["qdur"] == 0):
+            bad.append(f"flaps settings: speed 10 isn't the old 10: {r}")
+        if v == 50 and not (390 < r["wait"] < 410 and r["qdur"] == 0):
+            bad.append(f"flaps settings: speed 50 isn't the old 100: {r}")
+        if v == 100 and not (90 < r["wait"] < 110 and abs(r["qdur"] - max(6, min(r["dur"], (1350 - max(0, r["wait"])) / r["len"]))) < 3):
+            bad.append(f"flaps settings: speed 100 isn't the old Quick flaps: {r}")
+    e("S.flapSpeed = 50; S.imperfect = true; 1")
+    # a finger on the wheel
+    cdp = ctx.new_cdp_session(pg)
+    pos = {}
+
+    def touch(kind, y):
+        cdp.send("Input.dispatchTouchEvent", {"type": kind, "touchPoints": [] if kind == "touchEnd" else [{"x": pos["x"], "y": y}]})
+
+    def drag(sel, dy, steps=10, pause=0):
+        b = pg.locator(sel).bounding_box()
+        pos["x"], y0 = b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+        touch("touchStart", y0)
+        for i in range(1, steps + 1):
+            touch("touchMove", y0 + dy * i / steps)
+            if pause:
+                pg.wait_for_timeout(pause)
+        touch("touchEnd", y0 + dy)
+        pg.wait_for_timeout(120)
+    pg.wait_for_timeout(500)
+    W = "#cockpit .wheel[data-k=flapSpeed]"
+    e("window.__snd = 0; ctlSound.wheel = () => { window.__snd++; }; 1")
+    state = "[$('cardBox') && $('cardBox').className, document.scrollingElement.scrollTop, [...document.querySelectorAll('#cockpit, .cardIn')].map(x => x.scrollTop)]"
+    sc0 = e(state)
+    val = lambda: e("draft.flapSpeed")                           # noqa: E731
+    drag(W, -50, pause=30)
+    if val() != 60:
+        bad.append(f"flaps settings: a slow 50 px drag up turned Flap speed to {val()}, not 60")
+    drag(W, 45, pause=30)
+    if val() != 50:
+        bad.append(f"flaps settings: a 45 px drag down turned Flap speed to {val()}, not 50")
+    drag(W, 0, steps=1)
+    drag(W, 3, steps=2)
+    if val() != 50:
+        bad.append(f"flaps settings: a tap moved Flap speed to {val()}")
+    # a fast drag, its events all within a few milliseconds: the wheel turns to the limit, the ratchet sounds less often
+    e("window.__snd = 0; draft.flapSpeed = 20; cockpitShow(); 1")
+    pg.evaluate("""() => { const w = document.querySelector('#cockpit .wheel[data-k=flapSpeed]'), r = w.getBoundingClientRect(), x = r.x + r.width / 2, y0 = r.y + r.height / 2;
+        const ev = (t, y) => w.dispatchEvent(new PointerEvent(t, {pointerType: 'touch', pointerId: 7, clientX: x, clientY: y, bubbles: true}));
+        ev('pointerdown', y0); for (let i = 1; i <= 40; i++) ev('pointermove', y0 - i * 5); ev('pointerup', y0 - 200); }""")
+    pg.wait_for_timeout(1500)
+    snd = e("window.__snd")
+    if val() < 55 or val() > 100:
+        bad.append(f"flaps settings: a fast 200 px drag from 20 ended at {val()}")
+    if snd >= (val() - 20) / 5:
+        bad.append(f"flaps settings: {snd} ratchet sounds for {(val() - 20) / 5:.0f} steps, not fewer")
+    drag(W, -400, steps=40, pause=30)
+    pg.wait_for_timeout(1500)
+    if val() != 100:
+        bad.append(f"flaps settings: a long drag up (and its roll) ended at {val()}, not at the limit 100")
+    # mid-drag the sheet stays where it is
+    b = pg.locator(W).bounding_box()
+    pos["x"], y0 = b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+    touch("touchStart", y0)
+    for i in range(1, 9):
+        touch("touchMove", y0 + 40 * i)
+        pg.wait_for_timeout(20)
+    mid = e(state + " + '|' + ($('cardBox') && $('cardBox').getAttribute('style'))")
+    touch("touchEnd", y0 + 320)
+    pg.wait_for_timeout(1500)
+    if str(mid).split("|")[0] != str(sc0) + "" and e("$('cardBox') && $('cardBox').classList.contains('drag')"):
+        bad.append(f"flaps settings: the sheet followed a finger on the wheel: {mid}")
+    drag(W, 300, steps=15, pause=20)
+    pg.wait_for_timeout(1200)
+    if val() != 10:
+        bad.append(f"flaps settings: drags down ended at {val()}, not at 10")
+    drag(W, 300, steps=15, pause=20)
+    if val() != 10:
+        bad.append(f"flaps settings: the wheel went past its end to {val()}")
+    pg.wait_for_timeout(300)
+    e("draft.flapSpeed = 43; cockpitShow(); 1")
+    pg.click(f"{W} .inc")
+    if val() != 45:
+        bad.append(f"flaps settings: ▲ from 43 gave {val()}, not 45")
+    e("draft.flapSpeed = 43; cockpitShow(); 1")
+    pg.click(f"{W} .dec")
+    if val() != 40:
+        bad.append(f"flaps settings: ▼ from 43 gave {val()}, not 40")
+    pg.click(f"{W} .inc")
+    if val() != 45:
+        bad.append(f"flaps settings: ▲ didn't turn the wheel: {val()}")
+    sc1 = e(state)
+    if sc0 != sc1 or e("!!$('cardBox') && $('cardBox').hidden"):
+        bad.append(f"flaps settings: dragging on the wheel scrolled or moved the sheet: {sc0} → {sc1}")
+    if e("getComputedStyle(document.querySelector('#cockpit .wheel')).touchAction") != "none":
+        bad.append("flaps settings: a thumbwheel doesn't have touch-action: none")
+    e("cockpitCancel(); cardClose(); 1")
+    pg.wait_for_timeout(500)
+    # the radar's range wheel
+    pg.click("[data-tab=radar]")
+    pg.wait_for_timeout(1500)
+    pg.click(".rvSet")
+    pg.wait_for_timeout(800)
+    if pg.is_visible("#rvWheel"):
+        e("radarZoomTo(0); 1")
+        pg.click("#rvZoomIn")
+        want = e("$('rvZoomKm').textContent")
+        e("radarZoomTo(0); 1")
+        pg.wait_for_timeout(200)
+        drag("#rvWheel", 30, steps=6, pause=20)
+        got = e("$('rvZoomKm').textContent")
+        if got != want:
+            bad.append(f"flaps settings: the radar's wheel dragged down reads {got}, the ▼ key {want}")
+        e("radarZoomTo(0); 1")
+    else:
+        bad.append("flaps settings: the radar's range wheel isn't on the radar tab")
+    ctx.close()
+    print("Flaps & sound settings hold" if len(bad) == fails else "flaps settings check(s) failed")
 
 
 def card_sound_checks(browser, bad):
