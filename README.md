@@ -560,8 +560,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   catch an uncommon (or rarer) plane that scores. Each pays **+50 once** (in the day, the week's league and the level);
   all five earn the **wings** (nothing more paid; the rank shows a wings pin). The Spotters' Club shows a cream training
   record: a line per mission with its stamp box (a red "FLIGHT SCHOOL · PASSED · 29 OCT · +50" stamp once done, a hint
-  for the next one only); Now shows a small bar "CHECKLIST 2/5 · NEXT UP · SCAN A PLANE" with five marks until the
-  wings. A mission done slides its line in at the top and a big stamp comes down on it with a thud; the fifth then signs
+  for the next one only); Now shows a small bar "CHECKLIST · SCAN A PLANE" with five marks (stamped as they are done) until the
+  wings (since 1.129.18 the count is in the marks, so the longest mission fits a 320 px phone). A mission done slides its line in at the top and a big stamp comes down on it with a thud; the fifth then signs
   the record's WINGS line with your first name, written stroke by stroke as with a pen, and "Cleared for take-off"
   comes with the wings; the signed record moves to the end of the club. Recent points lists the missions in a Flight
   school row. With reduced motion the stamps and the signature appear without moving. A player already at level 4 when
@@ -824,7 +824,7 @@ Five buttons along the bottom:
   latest planes spotted. The photo and the **Sky view row** (the key, the scan, which way to look, the compass) are one card under the board
   (1.115, 1.128). **Recent flights** (1.95) is a timeline: a line down the left with a dot for each plane in the
   colour of its remark, since 1.129.12 on **one metal plate** like Settings' (screws, the planes between engraved lines, the line a groove with a lamp for each plane), since 1.115 **one line a plane**: time, flight, route and
-  type, "8 in the last hour" at the top and "All 64 planes today ›" at the end, which goes to Today. A flight's status
+  type, "8 in the last hour" at the top and "All 64 planes today ›" at the end, which goes to Today. Since 1.129.17 the hour carries on across midnight: just after 00:00 the planes of the last hour from yesterday stay, under a YESTERDAY title (Today itself starts at 0). A flight's status
   is a coloured pill on Recent flights (every status word since 1.122: ARRIVING, DEPARTING, SUPERJUMBO ...); at the end of the
   row, always in this order, Today's **target** for a plane you scanned, a **★** for a type or
   airline new to the logbook, a **flag** in its colour for an unusual plane (military, a giant such as SUPERJUMBO, a

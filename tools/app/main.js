@@ -603,7 +603,9 @@ function tlCardHtml(e){
 const cardLi = (e, now) => `<li class="fl open" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e, now)}">${tlCardHtml(e)}</li>`;
 // 1.115 (Dave's pick B): the rows one after another, newest first; the quarter-hour and hour headings went (every
 // row has its time).
-const tlHtml = (list, open, now) => list.map(e => open && tlKey(e) === open ? cardLi(e, now) : rowHtml(e, now)).join("");
+// 1.129.17: Now's rows from yesterday (`prev`, after midnight) stand under a Yesterday title
+const tlHtml = (list, open, now) => list.map((e, i) => (e.prev && !(list[i - 1] || {}).prev ? `<li class="tg mid"><b>${escH(lblWord(recentPrev.day))}</b></li>` : "") +
+  (open && tlKey(e) === open ? cardLi(e, now) : rowHtml(e, now))).join("");
 // 1.129.12: a pair of the plate's screws (.scr), for the Logbook's day plates and its empty lines' pieces (hidden on Now's plate)
 const SCR2 = '<i class="scr"></i><i class="scr"></i>';
 // The empty list: why, on the rail (the newest-first line it will be)
@@ -631,14 +633,50 @@ function tlDone(){ if (!tlBusy() && tlAgain) { tlAgain = false; renderRecent(); 
 
 /* Now: the plane overhead on flaps, its photo and details, and the latest sightings. */
 let recentSig = "";
+// 1.129.17 (to-do #297): the list and its count are about the last hour, so just after midnight they keep the planes of
+// the hour before from yesterday's file (the relay's logbook list), under a Yesterday title. Today's own list and the
+// Logbook's Today still start at 0 at midnight.
+const recentPrev = {day: "", at: 0, busy: false, ok: false, list: []};
+// The earlier day the last hour reaches into ("" when it doesn't, or the relay can't say)
+function prevDay(){
+  if (S.demo || liveWaiting() || !relayV5() || (window.OVERHEAD_RELAY_VERSION || 0) < 105) return "";
+  const d = lblIso(new Date(Date.now() - 36e5));
+  return d < lblToday() ? d : "";
+}
+async function recentPrevLoad(day){
+  const p = recentPrev;
+  p.busy = true; p.at = Date.now();
+  try {
+    const j = await fetchJSON(`${relay()}/logbook/flights?over=${overKm()}&deg=${OVER_DEG}${apiWanted() ? "&api=1" : ""}${sightPlaceQ()}&stop=${day}&until=${day}`, {}, 8000);
+    if (p.day !== day) return;
+    p.list = (j.entries || []).map(r => ({...fromRelay(r), prev: true}));
+    p.ok = true;
+  } catch (e) {
+    dlog("warn", `Couldn't read the last hour of yesterday from the relay: ${netError(e, "relay")}`);
+    if (p.day === day) p.ok = true;
+  }
+  finally { p.busy = false; }
+  if (p.day === day) renderRecent();
+}
+// Yesterday's rows of the last hour; null while they are still on their way (the list then stays as it is)
+function recentPrevRows(){
+  const day = prevDay(), p = recentPrev;
+  if (!day) { p.day = ""; return []; }
+  if (p.day !== day) Object.assign(p, {day, at: 0, ok: false, list: []});
+  if (!p.busy && Date.now() - p.at > 120e3) recentPrevLoad(day);
+  if (!p.ok) return null;
+  return p.list.filter(e => Date.now() - (e.ts || 0) < 36e5 && !(userLists.hide.length && isHidden(e)));
+}
 function renderRecent(){
-  const all = dayList().filter(e => !e.sample || S.demo), list = all.slice(0, 8), L = $("recent");
+  const today = dayList().filter(e => !e.sample || S.demo), prev = recentPrevRows();
+  if (prev === null && !today.length) return;      // midnight: yesterday's last hour isn't in yet, so "Nothing spotted yet" would be wrong
+  const all = today.concat(prev || []), list = all.slice(0, 8), L = $("recent");
   // 1.95: the heading counts the last hour; the link at the end goes to Today, with the whole day's count
-  const hour = all.filter(e => Date.now() - (e.ts || 0) < 36e5).length, day = Math.max(all.length, spotted.length >= 400 && relayStats ? relayStats.planes || 0 : 0);
+  const hour = all.filter(e => Date.now() - (e.ts || 0) < 36e5).length, day = Math.max(today.length, spotted.length >= 400 && relayStats ? relayStats.planes || 0 : 0);
   const head = all.length && !(hour === 0 && isOffline()) ? T(hour ? "{n} in the last hour" : "None in the last hour", {n: nf.format(hour)}) : "", link = T(day === 1 ? "1 plane today ›" : "All {n} planes today ›", {n: nf.format(day)});
   if ($("recentN").textContent !== head) $("recentN").textContent = head;
   if ($("recentAll").textContent !== link) $("recentAll").textContent = link;
-  $("recentFoot").hidden = !all.length;
+  $("recentFoot").hidden = !today.length;
   tlAhead(list);
   const open = list.find(e => tlKey(e) === tlOpenId.recent);
   if (!open) tlOpenId.recent = "";
@@ -2363,6 +2401,8 @@ function hangarLoad(){
   hangarAt = Date.now();
   fetchJSON(`${relay()}/game/hangar`, {}, 12000).then(j => { hangar = j; renderGame(); if (hgWant && Date.now() - hgWant < 15000) requestAnimationFrame(hgShow); }).catch(() => { hangarAt = Date.now() - 4 * 60000; });
 }
+// 1.129.17 (to-do #299): a type's name as the Logbook's rows say it (A320neo, not A20N); the code only for one nobody has a name for
+const typeShown = (code, name) => shortType(typeLabel(code, name));
 // 1.82.2: names as the app's table has them (the relay's are "AIRBUS A-320neo", which Wikipedia doesn't know), the relay's
 // as a second try; the model photo already found for them, else "".
 const hgNames = (code, name) => [...new Set([TYPES[code], name].map(n => String(n || "").trim()).filter(Boolean))];
@@ -2416,10 +2456,10 @@ function hangarHtml(hg){
   const by = new Map((hg.types || []).map(t => [t.code, t])), inSet = new Set((hg.sets || []).flatMap(s => s.types));
   const scanned = c => !!(by.get(c) && by.get(c).scans), seen = c => by.has(c) && !scanned(c);
   const card = (code, heli, eager) => {
-    const t = by.get(code), names = hgNames(code, t && t.name), name = typeLabel(code, t && t.name), full = !!(t && t.scans);
+    const t = by.get(code), names = hgNames(code, t && t.name), name = typeShown(code, t && t.name), full = !!(t && t.scans);
     const img = `<span class="hgPh${heli || SPECIAL_TYPES[code] === "HELICOPTER" ? " heli" : ""}" data-mp="${escH(names.join("|"))}"` +
       `${full ? ` data-own="${escH([t.thumb, t.photo].filter(Boolean).join(" "))}"` : ""}${eager ? ' data-e="1"' : ""}></span>`;
-    if (!full) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img}<b>${escH(code)}</b><span>${escH(T(t ? "still to scan" : "still to find"))}</span>` +
+    if (!full) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img}<b>${escH(name)}</b><span>${escH(T(t ? "still to scan" : "still to find"))}</span>` +
       (t && t.last ? `<small>${escH(T("Last overhead {d}", {d: fmtDay(t.last)}))}</small>` : "") + `</button>`;
     const mk = mstOf(t.scans, t.m), nx = t.scans ? mstNext(t.scans, t.m, t.mt) : null;
     return `<button type="button" class="hgCard${mk ? " mk" + mk : ""}" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` + img +
@@ -2554,7 +2594,7 @@ function scPin(x, attr){
   const rt = x.route && x.route.length === 2 && x.route.every(Boolean) ? `${x.route[0]} → ${x.route[1]}` : "", tag = attr ? "button" : "div";
   return `<${tag}${attr ? ` type="button"${attr}` : ""} class="hgCard sc" data-scc="${escH(x.code)}" data-scn="${escH(x.name || "")}" style="--t:${TIER_COL[x.tier] || TIER_COL.uncommon}">` +
     (pic ? `<img src="${escH(pic)}" alt="">` : `<span class="hgPh"></span>`) +
-    `<span class="hgT"><em>${escH(T(TIER_NAME[x.tier] || "Uncommon"))}</em><b>${escH(typeLabel(x.code, x.name))}</b>` +
+    `<span class="hgT"><em>${escH(T(TIER_NAME[x.tier] || "Uncommon"))}</em><b>${escH(typeShown(x.code, x.name))}</b>` +
     (rt ? `<span class="scRt">${escH(rt)}</span>` : "") +
     `<span>${escH([x.airline || x.flight, x.ts ? scDate(x.ts) : ""].filter(Boolean).join(" · "))}</span></span></${tag}>`;
 }
@@ -4764,7 +4804,7 @@ function renderRadarList(){
     const info = radarInfo(o), name = radarName(o);
     const code = airlineCodeOf(info), L = code ? logo(code, true) : null, g = o.ac.alt_baro === "ground" ? gateFor(info) : "";
     const lg = L && L.state === "ok" ? `<img src="${escH(L.img.src)}" alt="">` : code ? escH(code) : "";
-    return `<li class="rv${radar.sel === o.ac.hex ? " sel" : ""}" data-hex="${escH(o.ac.hex)}" style="--lamp:${radarColor(o)}"><span class="rvLogo${L && L.state === "ok" ? " ok" : ""}">${lg}</span><strong>${escH(name)}<span>${escH(String(o.ac.t || ""))}</span></strong>` +
+    return `<li class="rv${radar.sel === o.ac.hex ? " sel" : ""}" data-hex="${escH(o.ac.hex)}" style="--lamp:${radarColor(o)}"><span class="rvLogo${L && L.state === "ok" ? " ok" : ""}">${lg}</span><strong>${escH(name)}<span>${escH(arType(o.ac, info))}</span></strong>` +
       `<span class="num">${distText(dist)} ${dir}</span><span class="num">${escH(altShort(o.alt))}</span>${chip(st, g && (st ? g : T("GATE {g}", {g})))}</li>`;   // 1.65: with its gate while on the ground
   });
   // 1.118: the two number columns get their names in a row of small labels (a shared grid lines them up), not with no list
@@ -6069,6 +6109,7 @@ function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); i
 // each, pointing at one thing; the app's own words for the styles and Now's pages (the board keeps MODE_TIP, PAGE_TIPS).
 const TAB_TIPS = {now: "This is Now: the plane over you. Tap the board for its card.",
   logbook: "Logbook: today's planes, and every plane you've ever spotted.",
+  game: "Club: your points, your level and the league.",
   radar: "Radar: the planes around you right now.",
   settings: "Settings: your place, the look and the sounds."};
 const NOW_TIPS = {mode: "Switch between Overhead, the planes over you, and Airport, the take-offs and landings.",
@@ -6086,6 +6127,7 @@ function appTips(t){
   if (TAB_TIPS[t]) tip("tab-" + t, tabBtn(t), T(TAB_TIPS[t]));
   if (t === "now") {
     tip("mode", () => $("modes"), T(NOW_TIPS.mode));
+    tip("sky", () => $("look"), T("Point your phone at a plane to scan it."));      // 1.129.17 (to-do #298)
     const pageBtn = p => () => vis($("apPick").querySelector(`[data-page="${p}"]`)) || vis($("nowPages").querySelector(`[data-page="${p}"]`));
     if (airportMode()) for (const [p, k] of [["lists", "aplists"], ["dep", "apdep"], ["land", "apland"]]) tip("ap-" + p, pageBtn(p), T(NOW_TIPS[k]));
     else for (const [p, k] of [["lists", "spotted"], ["ac", "aircraft"]]) tip("pg-" + p, pageBtn(p), T(NOW_TIPS[k]));
@@ -7430,6 +7472,12 @@ async function gLeagueLoad(force){
    others keep their pictures, place and wiring; gPlates null (a new visit) draws it whole. One plate inside another
    would split wrong: then it stays one piece. */
 let gPlates = null;
+// 1.129.18 (to-do #295): Your level's footer was the Logbook's whole sentence (counting since, the NEW date, the points: all of it in the header chip
+// or in All time); only the date first sightings are marked NEW from stays, as a footnote, while it applies
+function learnFoot(){
+  const b = lbData(), u = b && b.learningUntil;
+  return u && Date.now() < u ? T("NEW marks from {d} {t}", {d: fmtDay(u), t: hhmm(new Date(u))}) : "";
+}
 function gPlateSplit(h){
   const parts = h.split(/(?=<section class="plate secPlate)/);
   return parts.every(p => p.split("<section").length === p.split("</section>").length) ? parts : [h];
@@ -7473,7 +7521,6 @@ function renderGame(){
   const fs = sub === "level" && fsState();
   if (fs && !fs.wings) h = secPlate(T("Flight school"), fsRecord(fs), "fsPlate") + h;
   if (fs && fs.wings) { h += secPlate(T("Flight school"), fsRecord(fs, {sig: window.SIG_FONT || sigFailed ? fsSigHtml(fsName()) : ""}), "fsPlate"); if (!window.SIG_FONT) sigFont().then(f => f && renderGame()); }
-  if (sub === "level") h += `<p class="sum lbFoot">${escH(logbookSummary())}</p>`;          // 1.89: the Logbook's footnote, here too
   const box = $("gameBox"), parts = gPlateSplit(h), old = gPlates && gPlates.length === parts.length ? gPlates : null;
   const changed = parts.map((p, i) => old && old[i] === p ? -1 : i).filter(i => i >= 0);
   if (old && !changed.length) return;
@@ -7557,7 +7604,7 @@ function gIndexHtml(g, g0){
     const won = g0.trophies || {};
     row("trophies", "Trophies", T("{n} of {m}", {n: TROPHY_IDS.filter(k => won[k]).length, m: TROPHY_IDS.length}));
   }
-  return secPlate(T("Your club"), `<div class="gRows">${rows.join("")}</div>`, "gClub");
+  return secPlate(T("Your club"), `<div class="gRows">${rows.join("")}</div>` + plFoot(learnFoot()), "gClub");
 }
 // 1.104 (to-do #157, Dave's pick B): the standby (relay 87). From level 6 one a week keeps the streak through a day
 // without a scan, from 14 two; the relay judges the days. The level card's week: Monday to Sunday (sbyDay: the weekday
@@ -7912,7 +7959,7 @@ const fsBox = (t, big) => `<span class="fsBox${big ? " big" : ""}"><small>${escH
 // The training record: o.sig the WINGS line's signature (an <svg>), o.next false: no hint (the wings' copy)
 function fsRecord(s, o = {}){
   const n = SCHOOL.filter(([m]) => s.done[m]).length, nx = !s.wings && o.next !== false && fsNext(s);
-  return `<div class="fsRec"><div class="hd"><span>${escH(T("Training record · pre-flight"))}</span><span>${n} / ${SCHOOL.length}</span></div>` +
+  return `<div class="fsRec"><div class="hd"><span>${escH(T("Pre-flight record"))}</span><span>${n} / ${SCHOOL.length}</span></div>` +
     SCHOOL.map(([m, t, h]) => { const d = s.done[m], next = nx && nx[0] === m;
       return `<div class="r${d ? " on" : next ? " nx" : ""}"><span class="t"><b>${escH(T(t))}</b><span>${escH(next ? T(h, {k: gKm()}) : "+" + fsPts())}</span></span>` +
         `<span class="bx">${d ? fsBox(d) : next ? escH(T("Next up")) : ""}</span></div>`; }).join("") +
@@ -7931,7 +7978,10 @@ function fsBar(){
   bar.hidden = !nx;
   if (!nx) return;
   const n = SCHOOL.filter(([m]) => s.done[m]).length;
-  const h = `<b>${escH(T("Checklist {n}/{m}", {n, m: SCHOOL.length}))}</b><span>${escH(T("Next up · {m}", {m: T(nx[1])}))}</span>` +
+  // 1.129.18: "Checklist" and the next mission, the boxes carry the count (it is in the label for a screen reader): the longer
+  // missions ("Open a plane's card") no longer cut off at 360 px
+  bar.setAttribute("aria-label", T("Checklist {n}/{m}", {n, m: SCHOOL.length}) + " · " + T("Next up · {m}", {m: T(nx[1])}));
+  const h = `<b>${escH(T("Checklist"))}</b><span>${escH(T(nx[1]))}</span>` +
     `<span class="bx">${SCHOOL.map(([m]) => `<u${s.done[m] ? ' class="on"' : ""}></u>`).join("")}</span>`;
   if (bar.dataset.h !== h) { bar.dataset.h = h; bar.innerHTML = h; }
 }
@@ -8087,7 +8137,6 @@ function gameStart(){
   gRefresh(true); gLeagueLoad();
   setInterval(() => gRefresh(), 2500);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) gRefresh(true); });
-  setTimeout(() => tip("gstrip", () => $("gHead"), T("Your points and level: tap for the Spotters' Club.")), 4000);
 }
 function run(){
   if (booted) return;

@@ -3479,6 +3479,60 @@ def logbook_list_checks(browser, bad):
     ctx.close()
 
 
+def recent_midnight_checks(browser, bad):
+    """1.129.17 (to-do #297): Now's Recent flights and its "N in the last hour" are about the last hour, so at 00:01 they keep
+    the planes from 23:02 on, under a Yesterday title (older ones stay out); at 23:59 there is no title; with nothing in the
+    last hour the empty line says so (and only then)."""
+    import datetime
+    from zoneinfo import ZoneInfo
+    vie = ZoneInfo("Europe/Vienna")
+    at = lambda d, h, m: datetime.datetime(2026, 11, d, h, m, tzinfo=vie)      # noqa: E731
+    stamps = [(22, 20), (22, 35), (22, 48), (22, 55), (23, 2), (23, 9), (23, 18), (23, 27), (23, 34), (23, 41), (23, 49), (23, 56)]
+
+    def rows_of(old_only):
+        out = []
+        for i, (h, m) in enumerate(stamps):
+            if old_only and h == 23:
+                continue
+            ts = int(at(3, h, m).timestamp() * 1000)
+            out.append({"id": f"mn{i}", "hex": f"{0xb00000 + i:06x}", "ts": ts, "time": f"{h:02d}:{m:02d}", "callsign": f"AUA{300 + i}", "typeCode": "A320", "reg": "OE-LBM",
+                        "minDist": 2.0, "altAtMin": 9000, "looked": True, "day": "2026-11-03"})
+        return sorted(out, key=lambda r: -r["ts"])
+
+    def run(label, when, day, today, old_only, expect_head, expect_rows, expect_title, expect_empty):
+        ctx = browser.new_context(viewport={"width": 390, "height": 844}, timezone_id="Europe/Vienna")
+        ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: bad.append(f"recent midnight page error: {e}"))
+        pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
+        rows = rows_of(old_only)
+
+        def sightings(route):
+            res = route.fetch()
+            j = res.json()
+            j.update(date=day, entries=rows if today else [])
+            route.fulfill(response=res, body=json.dumps(j), headers={**res.headers, "content-encoding": "identity"})
+
+        def flights(route):
+            res = route.fetch()
+            j = res.json()
+            j.update(date=day, entries=rows if "stop=2026-11-03" in route.request.url else j.get("entries", []))
+            route.fulfill(response=res, body=json.dumps(j), headers={**res.headers, "content-encoding": "identity"})
+        pg.route("**/sightings?*", sightings)
+        pg.route("**/logbook/flights?*", flights)
+        pg.clock.set_fixed_time(when)
+        pg.goto(BASE + "/app/")
+        pg.wait_for_timeout(5000)
+        got = pg.evaluate("""({n: document.getElementById("recentN").textContent, rows: document.querySelectorAll("#recent li.fl").length,
+            title: [...document.querySelectorAll("#recent li.tg.mid")].map(x => x.textContent).join(), empty: !!document.querySelector("#recent li.st b")})""")
+        if got["n"] != expect_head or got["rows"] != expect_rows or (got["title"] == "Yesterday") != expect_title or got["empty"] != expect_empty:
+            bad.append(f"Recent flights at {label}: {got}, expected {expect_head!r}, {expect_rows} rows, title {expect_title}, empty line {expect_empty}")
+        ctx.close()
+    run("23:59", at(3, 23, 59), "2026-11-03", True, False, "8 in the last hour", 8, False, False)
+    run("00:01", at(4, 0, 1), "2026-11-04", False, False, "8 in the last hour", 8, True, False)
+    run("00:01 with nothing since 23:01", at(4, 0, 1), "2026-11-04", False, True, "", 0, False, True)
+
+
 def logbook_lead_checks(browser, bad):
     """1.129.5 (to-do #271, #270): Today's amber headline stands at the top of the unfiltered Logbook lists with no flight
     today (2026 and All time: an empty day, then Yesterday), once when the day's first flight comes, again at midnight,
@@ -4148,6 +4202,7 @@ def browser_checks(browser):
     ctx.close()
     logbook_list_checks(browser, bad)
     logbook_lead_checks(browser, bad)
+    recent_midnight_checks(browser, bad)
     demo_rows_checks(browser, bad)
     sky_sizes_checks(browser, bad)
     styles_cell_checks(browser, bad)
