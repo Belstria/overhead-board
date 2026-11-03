@@ -6087,7 +6087,7 @@ function tierChip(code){
 // title, sub, subAttr (makes the sub a button), chip, music, kind (the band's chip: model, airline, place or flight),
 // band: [[big, small, attrs], "", [big, small, attrs]] or a line saying why there is none, via: [[text, attrs]] (links under the band: an airline's "Flown by", "Part of"),
 // tiles: [[label, value, small, attrs (makes it a button)] x3], facts: [[text, source]],
-// det: [[label, html]], wiki: {text, url}, btns}).
+// det: [[label, html]], wiki: {text, url}, btns, picFn (1.131, the app: draws the photo window itself, given pic, the overlay and picAttr)}).
 // 1.96.1 (to-do #124, Dave's picks: chip C2, the model from the front): the band's middle says what the card is, a
 // solid gold chip with an icon and a word; a flight's (a plane card's route, Sky view's) only a gold disc with a plane,
 // simpler than the ✈ glyph, whose engines blurred on small screens.
@@ -6106,7 +6106,7 @@ function infoCard(o){
   const facts = (o.facts || []).filter(Boolean), know = facts.slice(1, 4), det = (o.det || []).filter(d => d[1]);
   const paras = o.wiki && o.wiki.text ? String(o.wiki.text).split(/\n+/).map(s => s.trim()).filter(Boolean) : [];
   return `<div class="cInfo"${o.music ? " data-music" : ""}>` +
-    (o.pic && (o.pic.src || o.pic.asking) ? picHtml(o.pic, " cSkyPic", `<div class="cOv">${head}</div>`, o.picAttr) : `<div class="cOv cOvPlain"${o.picAttr || ""}>${head}</div>`) +
+    (o.picFn ? o.picFn(o.pic, `<div class="cOv">${head}</div>`, o.picAttr || "") : o.pic && (o.pic.src || o.pic.asking) ? picHtml(o.pic, " cSkyPic", `<div class="cOv">${head}</div>`, o.picAttr) : `<div class="cOv cOvPlain"${o.picAttr || ""}>${head}</div>`) +
     (typeof o.band === "string" ? `<p class="cNoRoute">${escH(o.band)}</p>` :
       o.band && (o.band[0] || o.band[2]) ? `<div class="cRouteB">${end(o.band[0])}${bandMid(o.kind)}${end(o.band[2])}</div>` : "") +
     ((o.via || []).some(Boolean) ? `<div class="cVia">${o.via.filter(Boolean).map(([t, at]) => `<button class="cLink cOvA" type="button"${at}>${escH(t)} ›</button>`).join("")}</div>` : "") +
@@ -7926,6 +7926,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.131", date: "2026-11-03", notes: [
+    "A picture you take in Sky view stays with the plane: its row gets a camera, and its card opens on your photo, the usual photo a swipe away.",
+  ]},
   {v: "1.129.17", date: "2026-11-03", notes: [
     "Recent flights keeps the last hour across midnight, with yesterday's planes under their own title.",
     "The first tips point at the Sky view row and the Club key.",

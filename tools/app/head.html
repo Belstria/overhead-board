@@ -514,6 +514,8 @@ body.real{--pl-hi:inset 0 1px 0 rgba(255,255,255,.12);--pl-side:inset 1px 0 0 rg
 .tline .l1 .mk:empty{position:absolute;width:1px;height:1px;overflow:hidden}   /* 1.122: only the rarity to say */
 .tline .l1 .mScan{color:var(--amber)}
 .tline .l1 .mScan .skyIco{width:15px;height:15px;margin:0;display:block}
+.tline .l1 .mPh{color:var(--amber)}                  /* 1.131: your Sky view photo */
+.tline .l1 .mPh svg{width:15px;height:15px;display:block}
 .tline .l1 .mNew{color:var(--amber)}
 .tline .l1 .mFlag svg{width:15px;height:15px;display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.6))}
 .tline .l1 .mFav{color:#e0679f}
@@ -581,6 +583,22 @@ html.daylight :is(#svList,#recent) .tlCard.cardish{background:none!important;--i
 @media (prefers-reduced-motion:reduce){.tlMill *,.tlMill::before,.tlMill *::before,.tlMill *::after{animation:none!important}}
 .tlCard .cInfo .cSkyPic .cPic{height:170px}
 .tlCard .cSkyPic,.tlCard .cOvPlain{cursor:pointer}
+/* 1.131 (to-do #310, Dave's pick A): your photo first, the stock one a swipe away; the label (its time) and the dots
+   are the only things on the photo that take a tap */
+.tlCard .cInfo .phA.two{touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.phA .phTrack{display:flex;transition:transform .34s cubic-bezier(.25,.8,.35,1)}
+.tlCard .cInfo .phA .phTrack>.cPic{flex:0 0 100%;min-width:0}
+.tlCard .cInfo .phA .phTrack>.phMine{object-position:50% 38%}
+.phA[data-ph="1"] .phTrack{transform:translateX(-100%)}
+.phA.phDrag .phTrack{transition:none}
+.tlCard .cInfo .phA .phCr{z-index:3;padding:6px;margin:-6px;border:0;background:none;cursor:pointer;pointer-events:auto;text-align:left}
+.phA .cCr{transition:opacity .2s}
+.phA[data-ph="1"] .phCr,.phA[data-ph="0"] .phCrS{opacity:0;visibility:hidden}
+.phDots{all:unset;position:absolute;z-index:3;top:4px;right:4px;display:flex;gap:5px;padding:8px;cursor:pointer}
+.phDots i{width:6px;height:6px;border-radius:50%;background:rgba(243,240,232,.35);box-shadow:0 1px 2px rgba(0,0,0,.6);transition:background .2s}
+.phA[data-ph="0"] .phDots i:first-child,.phA[data-ph="1"] .phDots i:last-child{background:#f3f0e8}
+.phDots:focus-visible,.phA .phCr:focus-visible{outline:2px solid var(--amber);border-radius:6px}
+@media (prefers-reduced-motion:reduce){.phA .phTrack,.phA .cCr,.phDots i{transition:none}}
 .tlWas{position:absolute;left:0;right:0;top:0;z-index:2;padding:9px 12px 10px;border-radius:12px;background:var(--box-bg);border:var(--box-bd);pointer-events:none}
 .tlGone{position:absolute;left:0;right:0;top:0;z-index:2;pointer-events:none}
 #sheet{position:fixed;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}

@@ -2852,6 +2852,25 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   aircraft type: `typeShown(code, name)` (`shortType(typeLabel(...))`) names the Hangar's cards (a type still to scan used to show its code) and the
   Club's showcase cards, and Radar's Nearest uses `arType` (as Sky view's labels do). Left as they are: the sheets' own "Code" line, the board's
   flaps (width-limited), the Logbook's category lists (full model names, not codes), and the fallback to a code where no name is known.
+- 1.131 (to-do #310, Dave's pick A of three, "Yours first, swipe for the stock"; app only, no relay change): **Your Sky view photo stays with the
+  sighting.** `arSnap` (Sky view's shutter, only once a plane is locked on) also calls `myPhSave(arLocked, cv, H, at)`: the picture without its band,
+  scaled to at most 1280 px and JPEG 0.72, smaller by 0.8 until under `MYPH_KB` (150 KB; a sky is usually 30-60 KB), kept in IndexedDB (`od-photos`,
+  store `p`, keyPath `k`) as `{k: "hex|YYYY-MM-DD", hex, at, blob}`: the aircraft and the local day, as the Logbook's marks go; a second picture of the
+  plane that day replaces the first, and past `MYPH_MAX` (200) the oldest are deleted. `myPhLoad` reads them all at start into `myPh.map` (blobs stay
+  handles; object URLs only when a card shows one, `myPhUrl`). Phone only: not synced, gone with the app's data; said in the sheet the label's tap
+  opens (`plateSheet`), not at rest. Rows: `rowInner` draws a camera (`CAM_SVG`, `.mPh`, amber like the target) first among the marks, in place of
+  Today's scan target and on Recent flights too; `rowSig` carries the photo's time, so the lists redraw it, and `myPhChanged` patches the rows and
+  an open card on show (every `.tline`, the long Logbook's too). Card: `infoCard` takes `picFn` (shared code, only the app passes it); `tlCardHtml`
+  gives `myPhHtml`, a window `.phA` with a `.phTrack` of your photo (`.phMine`, centred a little high) and the stock one, `data-ph` 0 or 1, your label
+  `.phCr` (a button: YOUR PHOTO · the time) and the stock credit `.phCrS` swapping by visibility, and `.phDots` (one button, two dots) top right.
+  Without a stock photo (none, or still being asked for) it is yours alone, no dots; the card redraws when the stock one comes. The swipe: pointer
+  events on `.phA.two` (`touch-action: pan-y`, so up and down stay the page's scroll), 10 px decide, the track follows the finger (a quarter of it
+  past either end), let go past 20 % of the width or a flick and it turns; it starts anywhere on the photo, away from Android's edge-back zones.
+  The images are `draggable="false"` (a mouse drag otherwise starts the browser's image drag and cancels the pointer). A window-level click listener
+  runs before the list's: the dots switch, the label explains, and a swipe's click doesn't open the plane's card. The side shown is kept per photo
+  (`myPh.side`) across redraws. Tabs don't swipe from it (`.tline li.open` is claimed), and it lives in the list's card, not the sheet, so the
+  sheet's swipe-down is untouched. flows.py `your_photo_checks`: the shutter keeps a JPEG under 150 KB, the camera on the Logbook and Recent
+  flights rows, the card on your photo, CDP touch swipes left and right, the dots, the label's sheet, a reload, the cap of 200.
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 

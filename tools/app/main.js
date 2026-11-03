@@ -554,24 +554,25 @@ function rowMarks(e){
     star: e.newType ? "NEW TYPE" : e.newAirline ? "NEW AIRLINE" : "", fav: isFav(e)};
 }
 const SKY_ICO = `<svg class="skyIco" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+const CAM_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5h3.2l1.6-2.5h6.4l1.6 2.5H20a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18V9A1.5 1.5 0 0 1 4 7.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="currentColor" stroke-width="2"/></svg>';   // 1.131: your photo
 const FLAG_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M6 4h12l-3 4.5 3 4.5H6z" fill="currentColor"/></svg>';
 function rowInner(e, now){
   const m = rowMarks(e), pill = now ? remarkFor(e) : "", done = e.done !== false, name = rowName(e), ty = shortType(e.type) || e.typeCode || "";
   const rt = e.from || e.to ? `<b>${escH(code3(e.from) || "···")}</b><i>→</i><b>${escH(code3(e.to) || "···")}</b>${ty ? `<span class="ty"> · ${escH(ty)}</span>` : ""}`
     : ty ? `<span class="ty">${escH(ty)}</span>` : done ? `<span class="ty">${escH(noRoute(e))}</span>` : "";
-  const star = m.star !== pill && m.star, fav = m.fav && pill !== "FAVOURITE", scan = !now && e.scan;
+  const star = m.star !== pill && m.star, fav = m.fav && pill !== "FAVOURITE", ph = !!myPhOf(e), scan = !now && !ph && e.scan;
   const flag = now ? m.flag !== pill && m.flag : (m.status !== "OVERHEAD" && m.status) || m.flag, tier = TIER_NAME[rowTier(e)];
-  const mk = (scan ? `<i class="mScan" title="${escH(T("Scanned"))}">${SKY_ICO}</i>` : "") +
+  const mk = (ph ? `<i class="mPh" title="${escH(T("Your photo"))}">${CAM_SVG}</i>` : "") + (scan ? `<i class="mScan" title="${escH(T("Scanned"))}">${SKY_ICO}</i>` : "") +
     (star ? `<i class="mNew" title="${escH(T(star))}">★</i>` : "") +
     (flag ? `<i class="mFlag" style="color:${lampOf(flag) || "var(--amber)"}" title="${escH(T(flag))}">${FLAG_SVG}</i>` : "") +
     (fav ? `<i class="mFav" title="${escH(T("FAVOURITE"))}">♥\ufe0e</i>` : "");
-  const say = [tier, scan ? "Scanned" : "", star, flag, fav ? "FAVOURITE" : ""].filter(Boolean).map(w => T(w)).join(", ");   // a rarity is only a colour: said here
+  const say = [tier, ph ? "Your photo" : "", scan ? "Scanned" : "", star, flag, fav ? "FAVOURITE" : ""].filter(Boolean).map(w => T(w)).join(", ");   // a rarity is only a colour: said here
   return `<div class="l1"><time>${escH(e.time || "")}</time><b class="f">${escH(name)}</b><span class="rt">${rt}</span>` +
     `${pill ? chip(pill) : ""}${say ? `<span class="mk" role="img" aria-label="${escH(say)}">${mk}</span>` : ""}</div>`;
 }
 const rowHtml = (e, now) => `<li class="fl" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e, now)}" tabindex="0">${rowInner(e, now)}</li>`;
 const rowSig = e => [e.id || e.hex, e.time, e.flight, e.callsign, e.airline, e.owner, e.type, e.reg, code3(e.from), code3(e.to), e.from && e.from.city, e.to && e.to.city,
-  e.minDist, e.altAtMin, remarkFor(e), e.done, e.place, e.scan].join("|");
+  e.minDist, e.altAtMin, remarkFor(e), e.done, e.place, e.scan, (myPhOf(e) || {}).at].join("|");
 // The card in the list: 1.94's info card (D's): the photo (Planespotters' first; it opens the whole plane card, so only
 // its credit links to Planespotters) with the flight, airline and remark on it, the route band and three boxes.
 const tlPic = e => planePic({hex: e.hex, r: e.reg, t: e.typeCode, desc: e.desc}, {reg: e.reg, type: e.type}, detailsOf(e.hex) || {photo: e.photo}, tlLate);
@@ -593,7 +594,7 @@ function tlAgo(e){
 function tlCardHtml(e){
   const r = remarkFor(e), name = rowName(e), m = rowMarks(e), words = [m.status, m.flag, m.star].filter(Boolean);   // 1.115: the row's pill and marks, by name
   const chips = words.length ? words.map(chipHtml).join("") : chipHtml(r);
-  const card = infoCard({pic: tlPic(e), picAttr: " data-full", title: name, sub: e.airline || (e.owner !== name ? e.owner || "" : ""), subAttr: e.airline ? " data-al" : "",
+  const card = infoCard({pic: tlPic(e), picAttr: " data-full", picFn: myPhOf(e) ? (p, over, attrs) => myPhHtml(e, p, over, attrs) : null, title: name, sub: e.airline || (e.owner !== name ? e.owner || "" : ""), subAttr: e.airline ? " data-al" : "",
     chip: chips, band: e.from || e.to ? [routeEnd(e.from, "from"), "", routeEnd(e.to, "to")] : e.done !== false ? noRoute(e) : null,
     tiles: [["Aircraft", shortType(e.type), "", e.type ? " data-ty" : ""], ["Closest", distText(e.minDist)], ["Height", altText(e.altAtMin)]]});
   const tier = TIER_NAME[rowTier(e)];                       // 1.122 (to-do #232): the rarity the bubble's colour shows, in words
@@ -625,7 +626,7 @@ function tlFill(L, html, open){
   else if (now) tlWire(now);
   L.dataset.card = sig;
 }
-const tlWire = li => { for (const im of li.querySelectorAll(".cPicW img")) im.onerror = () => picFailed(im, tlLate); };
+const tlWire = li => { for (const im of li.querySelectorAll(".cPicW img:not(.phMine)")) im.onerror = () => picFailed(im, tlLate); };
 // A photo found late (Planespotters' answer, the model's picture): an open card takes it.
 function tlLate(){ if (tlOpenId.recent || tlOpenId.svList) { renderRecent(); renderToday(); } }
 function tlDone(){ if (!tlBusy() && tlAgain) { tlAgain = false; renderRecent(); renderToday(); } }
@@ -3856,8 +3857,129 @@ async function arSnap(){
   const blob = await new Promise(ok => cv.toBlob(ok, "image/png"));
   arSnapping = false;
   dlog(blob ? "info" : "warn", blob ? `Sky view snapshot · ${n} planes · ${W}×${H + B}` : "Sky view snapshot: couldn't make the picture");
+  if (blob && arLocked) myPhSave(arLocked, cv, H, d.getTime());          // 1.131: kept with the plane's sighting
   if (blob) picCard(blob, `fallblatt-sky-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}-${hhmm(d).replace(":", "")}.png`);
 }
+/* 1.131 (to-do #310, Dave's pick A): your Sky view picture kept with the sighting. The shutter's picture (without its
+   band) of the plane locked on, scaled down to about 150 KB, in IndexedDB on this phone only: not synced, gone with the
+   browser's data, the newest MYPH_MAX kept. Keyed like the Logbook's own marks: the aircraft and the day (a second
+   picture that day replaces the first). Its row gets a camera among the marks; its card opens on it (myPhHtml). */
+const MYPH_MAX = 200, MYPH_KB = 150;
+const myPh = {map: new Map(), urls: new Map(), side: new Map(), db: null};   // "hex|YYYY-MM-DD" → {at, blob}; side: 1 = the stock photo on show
+const myPhKey = (hex, ts) => `${String(hex || "").toLowerCase()}|${lblIso(new Date(ts))}`;
+const myPhOf = e => e && e.hex && e.ts ? myPh.map.get(myPhKey(e.hex, e.ts)) || null : null;
+const myPhUrl = k => myPh.urls.get(k) || (myPh.map.has(k) ? (myPh.urls.set(k, URL.createObjectURL(myPh.map.get(k).blob)), myPh.urls.get(k)) : "");
+const myPhReq = r => new Promise((ok, no) => { r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
+function myPhDb(){
+  if (!myPh.db) myPh.db = new Promise((ok, no) => {
+    if (!window.indexedDB) return no(new Error("no IndexedDB"));
+    const r = indexedDB.open("od-photos", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("p", {keyPath: "k"});
+    r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error);
+  });
+  return myPh.db;
+}
+async function myPhLoad(){
+  try {
+    const all = await myPhReq((await myPhDb()).transaction("p").objectStore("p").getAll());
+    for (const r of all) if (r && r.k && r.blob) myPh.map.set(r.k, {at: r.at, blob: r.blob});
+    if (all.length) myPhChanged();
+  } catch (e) { myPh.db = null; dlog("warn", `Your photos: couldn't read them (${(e && e.message) || e})`); }
+}
+async function myPhSave(hex, src, h, at){
+  const k = myPhKey(hex, at);
+  let s = Math.min(1, 1280 / Math.max(src.width, h)), blob = null;
+  for (let i = 0; i < 5; i++) {                  // smaller until it fits (a sky is mostly smooth: once, usually)
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(src.width * s)); c.height = Math.max(1, Math.round(h * s));
+    c.getContext("2d").drawImage(src, 0, 0, src.width, h, 0, 0, c.width, c.height);
+    blob = await new Promise(ok => c.toBlob(ok, "image/jpeg", .72));
+    if (!blob || blob.size <= MYPH_KB * 1024) break;
+    s *= .8;
+  }
+  if (!blob) return dlog("warn", "Your photo: couldn't make it");
+  try {
+    const db = await myPhDb(), st = db.transaction("p", "readwrite").objectStore("p");
+    await myPhReq(st.put({k, hex: String(hex).toLowerCase(), at, blob}));
+    myPhDrop(k); myPh.map.set(k, {at, blob}); myPh.side.delete(k);
+    const old = [...myPh.map].sort((a, b) => a[1].at - b[1].at).slice(0, Math.max(0, myPh.map.size - MYPH_MAX)).map(x => x[0]);
+    if (old.length) { const t = db.transaction("p", "readwrite").objectStore("p"); for (const o of old) { t.delete(o); myPhDrop(o); myPh.map.delete(o); } }
+    dlog("info", `Your photo kept · ${Math.round(blob.size / 1024)} KB · ${myPh.map.size} on this phone`);
+    myPhChanged();
+  } catch (e) { myPh.db = null; dlog("warn", `Your photo: couldn't keep it (${(e && e.message) || e})`); }
+}
+function myPhDrop(k){ const u = myPh.urls.get(k); if (u) { URL.revokeObjectURL(u); myPh.urls.delete(k); } }
+// A photo kept or read: the rows on show take the camera and an open card its photo, where they stand (Today and
+// Recent flights are drawn again by their own signatures).
+function myPhChanged(){
+  for (const L of document.querySelectorAll(".tline")) {
+    for (const li of L.querySelectorAll("li.fl[data-more]")) {
+      const e = tlFind(li.dataset.more);
+      if (!e) continue;
+      if (li.classList.contains("open")) {
+        if (L.dataset.card !== tlCardSig(e) && !tlBusy()) { li.innerHTML = tlCardHtml(e); L.dataset.card = tlCardSig(e); tlWire(li); }
+      } else if (!!li.querySelector(".mPh") !== !!myPhOf(e)) li.innerHTML = rowInner(e, L.id === "recent");
+    }
+  }
+}
+// The card's photo window (tlCardHtml through infoCard's pic): yours, labelled with the time you took it, and the
+// stock photo one swipe away (or a tap on the dots), with no stock photo yours alone. The label's tap explains it.
+function myPhHtml(e, p, over, attrs){
+  const ph = myPhOf(e), k = myPhKey(e.hex, e.ts), two = !!(p && p.src), side = two && myPh.side.get(k) ? 1 : 0;
+  const stockCr = two ? (p.kind === "ps" ? `<a class="cCr phCrS" href="${escH(p.link)}" target="_blank" rel="noopener">${picCreditHtml(p)}</a>` : `<span class="cCr phCrS">${picCreditHtml(p)}</span>`) : "";
+  return `<div class="cPicW cSkyPic phA${two ? " two" : ""}"${attrs} data-ph="${side}" data-ph-k="${escH(k)}"><div class="phTrack">` +
+    `<img class="cPic phMine" src="${escH(myPhUrl(k))}" alt="" draggable="false">${two ? `<img class="cPic" src="${escH(p.src)}" alt="" draggable="false" referrerpolicy="no-referrer">` : ""}</div>` +
+    `<button type="button" class="cCr phCr" data-ph-why><span class="crBy">${escH(T("Your photo"))}</span><span class="crSrc"> · ${escH(hhmm(new Date(ph.at)))}</span></button>` +
+    stockCr + over + (two ? `<button type="button" class="phDots" data-ph-go aria-label="${escH(T("Other photo"))}"><i></i><i></i></button>` : "") + "</div>";
+}
+function myPhSet(P, side){
+  if (!P) return;
+  myPh.side.set(P.dataset.phK, side);
+  for (const x of document.querySelectorAll(".phA.two")) if (x.dataset.phK === P.dataset.phK) x.dataset.ph = side;   // the card as it is now (redrawn meanwhile: a photo came in)
+}
+// The swipe: from anywhere on the photo (not the screen's edge, Android's back gesture), sideways only; up and down
+// stays the page's scroll (touch-action: pan-y). A swipe isn't also a tap on the photo (which opens the plane's card).
+{ let d = null, swiped = 0;
+  const end = e => {
+    if (!d || e.pointerId !== d.id) return;
+    const {P, on, dx, t0, side} = d;
+    d = null;
+    if (!on) return;
+    swiped = Date.now();
+    P.classList.remove("phDrag"); P.querySelector(".phTrack").style.transform = "";
+    const far = Math.abs(dx) > P.clientWidth * .2 || Math.abs(dx) > 30 && Math.abs(dx) / Math.max(1, e.timeStamp - t0) > .5;
+    if (e.type === "pointerup" && far && (dx < 0) === (side === 0)) { ctlSound.nav(); myPhSet(P, side ? 0 : 1); }
+  };
+  document.addEventListener("pointerdown", e => {
+    const P = e.target.closest && e.target.closest(".phA.two");
+    d = P && e.isPrimary && !(e.button > 0) && !e.target.closest("button") ? {P, id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, t0: e.timeStamp, on: false, side: +P.dataset.ph} : null;
+  });
+  document.addEventListener("pointermove", e => {
+    if (!d || e.pointerId !== d.id) return;
+    const dx = e.clientX - d.x, dy = e.clientY - d.y;
+    if (!d.on) {
+      if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { d = null; return; }
+      if (Math.abs(dx) < 10) return;
+      d.on = true; d.P.classList.add("phDrag");
+      try { d.P.setPointerCapture(e.pointerId); } catch {}
+    }
+    d.dx = dx;
+    const w = d.P.clientWidth, edge = (d.side === 0 && dx > 0) || (d.side === 1 && dx < 0);       // past either end it gives a little
+    d.P.querySelector(".phTrack").style.transform = `translateX(${-d.side * w + (edge ? dx * .25 : dx)}px)`;
+  });
+  document.addEventListener("pointerup", end); document.addEventListener("pointercancel", end);
+  addEventListener("click", e => {             // before the list's own click (document, capture)
+    const P = e.target.closest && e.target.closest(".phA");
+    if (!P) return;
+    const go = e.target.closest("[data-ph-go]"), why = e.target.closest("[data-ph-why]");
+    if (!go && !why && Date.now() - swiped > 400) return;
+    e.stopPropagation(); e.preventDefault();
+    if (go) { ctlSound.nav(); myPhSet(P, +P.dataset.ph ? 0 : 1); }
+    else if (why) ctlSound.nav(), plateSheet(T("Your photo"), `<p class="sum">${escH(T("The picture you took of this plane in Sky view, kept with its sighting"))}</p>` +
+      `<p class="sum">${escH(T("Only on this phone: not synced, and gone if the app's data is cleared. The newest {n} are kept", {n: MYPH_MAX}))}</p>`);
+  }, true);
+}
+myPhLoad();
 /* 1.128.1 (to-do #261, Dave: "only auto align with the sun or moon ... only check during the alignment trigger"): the
    camera's picture is read only while the align step is open (arAlign): arAlignTick, every AR_ALIGN_PACE ms. Nothing
    between alignments corrects the labels; the snapshot takes its picture when the shutter is pressed. */

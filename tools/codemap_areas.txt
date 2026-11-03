@@ -187,10 +187,11 @@ test/index.html: SV_ROWS DAY_START_H boardDay todayKey loadLog saveLog SAME_PASS
     legendChip drawLegend SV_TOOLS .svFind +renderSpotted +recentShown
 tools/app/head.html: .flights .fl .chip .legend #recentPl .scr css:body.real .flights.tline .lbDay .lbDayL .lbDayH .lbDayH.stuck .lbDayH.lbGrow @lbGrow .lbIn @lbIn .lbMore.lbFold .lbMore @lbScrew .cap.lbTop .cap.lbTop.rest .lbTop .lbTopT .lbTopProbe #svList.wait #svList #svSum #svTools #todayFacts .dayFacts #todayP
     #todayTop .tdFil .lbSeg .tlHead .tline .tlFoot .tlCard .tlBg .tlK .tlX .tlWas .tlGone .tlMill @tlMillBg @tlMillLine @tlMillRule @tlMillDiv #recentN #recentFoot #recentAll
+    .mPh .phA .phTrack .phMine .phDrag .phCr .phCrS .phDots
 tools/app/main.js: TODAYP SCR2 spotted logDay rollDay syncSightings fullDay loadFullDay dayList chip distText altText
     rowHtml rowSig svFilter svSig todayList svData SV_TOOLS buildSvTools legendHtml todayNumbers
     TD_PLATE TD_FACTS todayFactsSig tdSig renderTodayNumbers tdOpen $("tdPlate").onclick tdFilter tdFilDot $("tdFil").onclick todayJump renderToday renderLists
-    tlKey plainCode noFlightNo rowName noRoute tlNode rowTier rowMarks FLAG_SVG rowInner tlPic tlCardSig tlAsking tlAhead tlAgo tlCardHtml cardLi
+    tlKey plainCode noFlightNo rowName noRoute tlNode rowTier rowMarks CAM_SVG FLAG_SVG +myPhOf +myPhHtml rowInner tlPic tlCardSig tlAsking tlAhead tlAgo tlCardHtml cardLi
     tlHtml tlState tlFinding tlNothing tlOpenId tlTok tlRunning tlCap tlAgain tlBusy tlFill tlWire tlLate tlDone
     LBL_PAGE lbl lblPlate lblOn lblIso lblSpan lblToday lblPlaces lblKey lblLive lblPass lblUrl lblWords lblWord lblHead lblDayLi lblHtml lblLead lblStop lblShown lblEnded lblLine lblMoreSync lblEmpty lblDraw lblAppend lblAdd lblLoad lblFirst lblPatch lblReset lblNews lblFlush lblSync lblLeave lblTopLang lblRaf lblRestT lblTopFit lblTopPlace lblTopRest lblScrolled $("lbTop").onclick lblSegH lblStickyMark
     tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd tlTap tlOpen tlFold tlScroll sightPlane
@@ -454,6 +455,7 @@ tools/app/main.js: lookHeading lookOn lookRaf lookWhy lookWhyLogged lookAt drawL
     arFeed AR_LAG_LOW AR_LAG_OFF AR_LAG_MAX arLags arClock arEvent arQuat arQMatrix wrap180 arYaw arOrient arRelHolds AR_REL_TILT AR_REL_YAW AR_REL_RATE arGapStep arGyroStep AR_AHEAD AR_GAP_MS arRd arRdRef arW arFrT arFrN arTim arMo arMotion arQMul arTimPush arTurnLog arTurn arFrame arResume arHold arOpen arOpening arStart arWant arOpenAt arCalCheck
     arClose WMM_EPOCH WMM_C magCache magField magDecl skyBodies arProject arUnproject arPicSig arLoop arSpotIdx arSpotMap arLabel arInfoOf arName arType arTextW arTW arLabelDraw arReportOk arR1 arReport
     $("arFlag").onclick arShotAt arShownN arLocked arLift arSnapping arSnap
+    MYPH_MAX MYPH_KB myPh myPhKey myPhOf myPhUrl myPhReq myPhDb myPhLoad myPhSave myPhDrop myPhChanged myPhHtml myPhSet
     AR_ALIGN_PACE AR_ALIGN_STILL arAlignAt arAlignWait arTurnNow arAlignTick arCamLog arCamCost arCamLast arGrab arCamTime arSunCan arSunCx
     arSunFind AR_ALIGN_R AR_ALIGN_WIN AR_ALIGN_N AR_ALIGN_MS AR_ALIGN_TOL AR_ALIGN_FAR_AZ AR_ALIGN_FAR_EL AR_ALIGN_DONE arAlign arAlignUndo arAlignLog arMoonSaw arAlignT arMoonCan arMoonCx arAlignUp arSunUpAt arAlignNote arAlignSeen arAlignBar arAlignBtn arAlignMoved arAlignShow arAlignOpen arAlignStart arAlignEnd arAlignCancel arAlignDo arAlignBack arAlignReset arAlignPress arAlignStep arMoonFind $("arAlignGo").onclick arGlide AR_LABEL_UP arTopOut AR_CHIP_H AR_CHIP_UP AR_CHIP_GAP arChipTurn arBounds arChipBounds arChipsAt arChipsDraw AR_MINI arMiniSig arAroundNow arMini arAroundOpen $("arMini").onclick arBody arBodyAt arBodiesAt arBodiesDraw arBodyEdge AR_RIB arRibSig arRibbon arMove
     arWeather arHeight arAimStep arScans arScanned arAimDraw shortType arDragStart arDragMove arDragEnd arMovedNote AR_TOUR arTour
