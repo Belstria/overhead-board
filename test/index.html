@@ -1141,7 +1141,7 @@ vdef("logbook", "lvRegs",     {kind:"chars", n:6, drum:DRUM_ALT, align:"right", 
 vdef("logbook", "lvTypes",    {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:70});
 vdef("logbook", "lvAirlines", {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:70});
 vdef("logbook", "lvModel",    {kind:"chars", n:16, dur:60, style:"amber"});
-[6, 4, 4, 6, 3, 3].forEach((n, i) => vdef("logbook", `lp${i}`, {kind:"chars", n, drum:DRUM_ALT, align:"right", dur:70}));
+[6, 6, 4, 4, 3, 3].forEach((n, i) => vdef("logbook", `lp${i}`, {kind:"chars", n, drum:DRUM_ALT, align:"right", dur:70}));
 [0, 1, 2].forEach(i => vdef("logbook", `lf${i}`, {kind:"chars", n:18, dur:60, style: i === 2 ? "amber" : "ink"}));
 for (const [k] of LB_CATS) {
   vdef("logbook", `lvl_${k}`, {kind:"word",  n:1, dur:90, words:"lamp", loud:.3});
@@ -1222,7 +1222,7 @@ function layout(){
     placeRow(ids, lg ? [.8, .5, .8, .8, .8, .8] : [.8, .8, .8, .8, .8], Y.list0 + i * Y.listPitch, LIST, 1.3);     // 1.55: lower flaps, more gap
   }
   const L0 = Y.list0;
-  placeRow(["stPlanes","stAirlines","stTypes","stOver"], [7, 7, 7], L0, IW / 34, 1.45);        // 1.82: four across, no busiest hour
+  placeRow(["stPlanes","stOver","stTypes","stAirlines"], [7, 7, 7], L0, IW / 34, 1.45);        // 1.82: four across, no busiest hour
   ["stLow", "stHigh", "stFast"].forEach((id, i) => placeRow([id], [], L0 + 101, IW / 50, 1.45, M + i * IW / 3));      // 1.111: side by side, the plane engraved under
   placeRow(["stTop","stNew"], [2], L0 + 234, IW / 50, 1.45);
   const ax = M + PHOTO.w + 40, as = (IW - PHOTO.w - 40) / 29;
@@ -3528,15 +3528,15 @@ function renderTimes(){
 // 1.55 (to-do #55, relay 50): most trophies come in tiers, each tier a trophy of its own; the ladders say what each
 // counts (the relay's trophyCounts, for the progress bar to the next tier) and the description they share.
 const TROPHY_LADDERS = [
-  ["planes", "{n} planes in the logbook", [["century", 100, "Century"], ["thousand", 1000, "Thousand"], ["planes10k", 10000, "Ten thousand"], ["planes50k", 50000, "Fifty thousand"], ["planes100k", 100000, "Hundred thousand"]]],
-  ["types", "{n} aircraft types", [["types50", 50, "Type hunter"], ["types100", 100, "Type collector"], ["types150", 150, "Type expert"], ["types200", 200, "Type master"]]],
-  ["airlines", "{n} airlines", [["airlines25", 25, "Globetrotter"], ["airlines50", 50, "High flyer"], ["airlines100", 100, "Jet setter"], ["airlines150", 150, "Around the world"]]],
-  ["regs", "{n} different aircraft", [["regs1k", 1000, "Fleet watcher"], ["regs5k", 5000, "Fleet expert"], ["regs10k", 10000, "Fleet master"]]],
-  ["countries", "Aircraft from {n} countries", [["countries10", 10, "Passport"], ["countries25", 25, "Diplomat"], ["countries50", 50, "United Nations"]]],
+  ["planes", "{n} planes scanned", [["century", 100, "Century"], ["thousand", 1000, "Thousand"], ["planes10k", 10000, "Ten thousand"], ["planes50k", 50000, "Fifty thousand"], ["planes100k", 100000, "Hundred thousand"]]],
+  ["types", "{n} aircraft types scanned", [["types50", 50, "Type hunter"], ["types100", 100, "Type collector"], ["types150", 150, "Type expert"], ["types200", 200, "Type master"]]],
+  ["airlines", "{n} airlines scanned", [["airlines25", 25, "Globetrotter"], ["airlines50", 50, "High flyer"], ["airlines100", 100, "Jet setter"], ["airlines150", 150, "Around the world"]]],
+  ["regs", "{n} different aircraft scanned", [["regs1k", 1000, "Fleet watcher"], ["regs5k", 5000, "Fleet expert"], ["regs10k", 10000, "Fleet master"]]],
+  ["countries", "Aircraft from {n} countries scanned", [["countries10", 10, "Passport"], ["countries25", 25, "Diplomat"], ["countries50", 50, "United Nations"]]],
   ["points", "{n} points", [["points1k", 1000, "High scorer"], ["points10k", 10000, "Big scorer"], ["points100k", 100000, "Top scorer"]]],
-  ["legendary", "{n} special planes", [["legend10", 10, "Spotter's eye"], ["legend100", 100, "Rare breed"], ["legend500", 500, "Hall of fame"]]],
+  ["legendary", "{n} special planes scanned", [["legend10", 10, "Spotter's eye"], ["legend100", 100, "Rare breed"], ["legend500", 500, "Hall of fame"]]],
   ["today", "{n} planes in one day", [["busyday", 100, "Busy sky"], ["busy300", 300, "Rush hour"], ["busy500", 500, "Gridlock"]]],
-  ["friend", "The same aircraft {n} times", [["oldfriend", 25, "Old friend"], ["regular100", 100, "Regular"]]],
+  ["friend", "The same aircraft scanned {n} times", [["oldfriend", 25, "Old friend"], ["regular100", 100, "Regular"]]],
   ["streak", "Points {n} days running", [["streak7", 7, "On a roll"], ["streak30", 30, "Unstoppable"]]]];
 const TROPHY_SINGLES = ["a320fam", "giants", "jumbochopper", "nightowl", "aroundclock", "lowpass", "bullseye", "stratos", "specialday",
   "daytypes40", "dayairlines40", "beluga", "antonov", "allsets", "bingo", "fullcard"];
@@ -4646,23 +4646,22 @@ const demoYear = y => ({sample: true, year: y, planes: 21480, types: 96, airline
     farthest: {v: 7120, callsign: "UAE127", place: {code: "DXB", city: "Dubai"}}}});
 const lbPerData = () => lbPer !== "year" ? reviewData() : S.demo ? demoYear(lbYear()) : lbYears[lbYear()] || null;
 const lbPerTitle = () => lbPer === "year" ? T("{y} in planes", {y: lbYear()}) : T("{p} in planes", {p: reviewTitle()});
-const LB_NUMS = {year: [["planes", "Planes"], ["types", "Types"], ["airlines", "Airlines"], ["airframes", "Aircraft"], ["countries", "Countries"], ["days", "Days"]],
-  span: [["planes", "Planes"], ["types", "Types"], ["airlines", "Airlines"], ["airframes", "Aircraft"], ["newTypeCount", "New types"], ["rare", "Rare"]]};
+// 1.129.19: the plates' order everywhere: Planes, Aircraft, Types, Airlines (Today: Planes, Overhead, Types, Airlines), then the rest
+const LB_NUMS = {year: [["planes", "Planes"], ["airframes", "Aircraft"], ["types", "Types"], ["airlines", "Airlines"], ["countries", "Countries"], ["days", "Days"]],
+  span: [["planes", "Planes"], ["airframes", "Aircraft"], ["types", "Types"], ["airlines", "Airlines"], ["newTypeCount", "New types"], ["rare", "Rare"]]};
 const lbNums = () => LB_NUMS[lbPer === "year" ? "year" : "span"];
 // the logbook on show: everything, or the place picked
 const lbBook = () => (lbPlace ? lbPlaceData[lbPlace] : lbData()) || null;
 const lbTop = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
 const lbAirline = (code, a) => (AIRLINES[code] || [])[1] || (a && a.name) || code;
 const lbDayY = ts => new Date(ts).toLocaleDateString(LOC(), {day: "numeric", month: "short", year: "numeric"});
-// a model's name in n letters: whole, or without its maker ("Airbus A320neo" → "A320neo"), else its code
-const MAKERS = /^(Airbus Helicopters|De Havilland Canada|De Havilland|McDonnell Douglas|Lockheed Martin|AgustaWestland|Airbus|Boeing|Embraer|Bombardier|Cessna|Dassault|Gulfstream|Pilatus|Beechcraft|Beech|Diamond|Piper|Cirrus|Lockheed|Antonov|Eurocopter|Leonardo|Sikorsky|Robinson|Fokker|Saab|ATR)\s+/i;
 function lbModel(code, name, n){
   const full = typeLabel(code, name), short = full.replace(MAKERS, "");
   return full.length <= n ? full : short.length <= n || !code ? short : code;
 }
 // a fact for the flaps, which have no "·": "Sat 4 Jul · 412" → "SAT 4 JUL - 412", with plain spaces where a dash won't fit
 const lbFlap = (s, n) => { s = String(s || ""); const d = s.replace(/ · /g, " - "); return d.length <= n ? d : s.replace(/ · /g, " "); };
-const lbWho = x => x.callsign || x.reg || x.type || "";
+const lbWho = x => x.callsign || x.reg || typeShown(x.type);
 const lbRecVal = (k, x) => k === "closest" ? `${x.v < 10 ? x.v.toFixed(2) : Math.round(x.v)} km` : k === "lowest" ? altitudeStr(x.v).toLowerCase()
   : k === "fastest" ? speedStr(x.v).toLowerCase() : `${x.place ? x.place.code || x.place.city || "" : ""} ${nf.format(x.v)} km`.trim();
 function lbYearFetch(){
@@ -5047,6 +5046,15 @@ const game = () => (lbData() || {}).game || null;
 /* The logbook on the board: totals, categories, and the top of each list on flaps. */
 const fmtDay = ts => ts ? new Date(ts).toLocaleDateString(LOC(), {day: "numeric", month: "short"}) : "";
 const typeLabel = (code, name) => TYPES[code] || typeName(code, name).name || code;
+// a model's name in n letters: whole, or without its maker ("Airbus A320neo" → "A320neo"), else its code
+const MAKERS = /^(Airbus Helicopters|De Havilland Canada|De Havilland|McDonnell Douglas|Lockheed Martin|AgustaWestland|Airbus|Boeing|Embraer|Bombardier|Cessna|Dassault|Gulfstream|Pilatus|Beechcraft|Beech|Diamond|Piper|Cirrus|Lockheed|Antonov|Eurocopter|Leonardo|Sikorsky|Robinson|Fokker|Saab|ATR)\s+/i;
+// 1.129.19: a type for a value: its name (the maker left out, "Airbus A320neo" → "A320neo"), never the bare ICAO code; with n letters
+// to fill, the whole name if it fits, else without the maker, else the code
+function typeShown(t, n){
+  t = String(t || "");
+  const full = TYPES[t.toUpperCase()] || t, short = full.replace(MAKERS, "") || full;
+  return !n ? short : full.length <= n ? full : short.length <= n ? short : t;
+}
 function demoLogbook(){
   const now = Date.now(), d = n => now - n * 86400e3, t = (count, first, name) => ({count, first: d(first), name: name || ""});
   return {sample: true, since: new Date(d(41)).toISOString().slice(0, 10), sightings: 2314, regsCount: 1187, learningUntil: d(40),
@@ -5158,11 +5166,11 @@ function reviewSummary(r){
       : T(more > 0 ? (w ? "{p}% more than the week before" : "{p}% more than the month before") : (w ? "{p}% fewer than the week before" : "{p}% fewer than the month before"), {p: Math.abs(more)})));
 }
 // [label, value] for each fact; values in mixed case (the board's flaps show them in capitals).
-function reviewFacts(r){
-  const rc = r.records || {}, who = x => x.callsign || x.reg || x.type || "", b = r.busiest, ra = r.rarest, al = r.topAirline, m = r.mostSeen, f = rc.farthest;
+function reviewFacts(r, n){
+  const rc = r.records || {}, who = x => x.callsign || x.reg || typeShown(x.type, n), b = r.busiest, ra = r.rarest, al = r.topAirline, m = r.mostSeen, f = rc.farthest;
   const fp = f && f.place;
   return [["Busiest day", b ? `${reviewDay(b.day, {weekday: "short", day: "numeric", month: "short"})} · ${nf.format(b.planes)}` : ""],
-    ["Rarest", ra ? `${ra.type || ra.reg} · ${T(TIER_NAME[ra.tier] || "")}` : ""],
+    ["Rarest", ra ? `${typeShown(ra.type, n) || ra.reg} · ${T(TIER_NAME[ra.tier] || "")}` : ""],
     ["Most seen airline", al && al.count > 1 ? `${(AIRLINES[al.code] || [])[1] || al.name || al.code} · ${nf.format(al.count)}` : ""],   // 1.87.2.1: none when nothing came twice
     ["Most seen aircraft", m && m.count > 1 ? `${m.reg} · ${T("{n} times", {n: nf.format(m.count)})}` : ""],
     ["Farthest route", f ? `${who(f)} · ${fp ? fp.code || fp.city : ""} ${nf.format(f.v)} km` : ""],
@@ -5171,7 +5179,7 @@ function reviewFacts(r){
     ["Fastest", rc.fastest ? `${who(rc.fastest)} · ${speedStr(rc.fastest.v).toLowerCase()}` : ""]].map(([k, v]) => [T(k), v]);
 }
 const reviewNewTypes = r => (r.newTypes || []).map(t => t.type).join(", ") + (r.newTypeCount > (r.newTypes || []).length ? " …" : "");
-const REVIEW_NUMS = [["planes", "Planes"], ["types", "Types"], ["airlines", "Airlines"], ["airframes", "Aircraft"], ["newTypeCount", "New types"], ["rare", "Rare"], ["points", "Points"]];
+const REVIEW_NUMS = [["planes", "Planes"], ["airframes", "Aircraft"], ["types", "Types"], ["airlines", "Airlines"], ["newTypeCount", "New types"], ["rare", "Rare"], ["points", "Points"]];
 function renderLogbookBoard(){
   if (view !== "logbook") return;
   if (!snapping && lbStaticSig() !== lbSig) drawStatic();
@@ -5182,7 +5190,7 @@ function renderLogbookBoard(){
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
   setChars("lvModel", types[0] && types[0][1].count > 1 ? typeLabel(types[0][0], types[0][1].name) : "", 240);
   lbNums().forEach(([k], i) => setChars(`lp${i}`, p ? nf.format(p[k] || 0) : "", 300 + i * 40));
-  const facts = p ? reviewFacts(p) : [];
+  const facts = p ? reviewFacts(p, 10) : [];
   [0, 3, 1].forEach((j, i) => setChars(`lf${i}`, p ? lbFlap(facts[j][1], 18) || "-" : "", 540 + i * 60));    // busiest day, most seen aircraft, rarest
   LB_CATS.forEach(([k, , , col], i) => {
     setWord(`lvl_${k}`, b.categories ? col : "", 300 + i * 40);
@@ -7926,6 +7934,13 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.129.19", date: "2026-11-03", notes: [
+    "Offline, Sky view, the list of planes around and Recent flights say \"Offline · retrying\" instead of claiming the sky is empty.",
+    "Trophies that count scanned planes, types, airlines and aircraft now say \"scanned\".",
+    "The Logbook lists its numbers in one order everywhere: Planes, Aircraft, Types, Airlines (Today: Planes, Overhead, Types, Airlines).",
+    "The week, month and year panels show the same four numbers as their plate first.",
+    "A type shows its name, not its code, in the Logbook's panels and lists.",
+  ]},
   {v: "1.129.18", date: "2026-11-03", notes: [
     "Daylight: the Sky view row, the Radar's list, its (i), a plane's card and the \"All planes today\" link are readable.",
     "The Radar's list shows airline logos whole.",

@@ -81,7 +81,7 @@ changelog: style|palette|finish|badge|daylight|realistic|gold leaf|first class|L
 test/index.html: +liveShow swapSign placeModeSwitch setMode tickClock updateFooter +placeNow css:footer .pip #status
     .dot #modeSw #dot #pip #statusText +drawStatic
 tools/app/head.html: #top .where #mark .title .clockbox .dot .status #dot #modes .stOk .verdict +.gHead
-tools/app/main.js: drawMark setMode showModes applyMode $("dot").onclick statusLine updateFooter statusVerdict stMore statusCard
+tools/app/main.js: drawMark setMode showModes applyMode $("dot").onclick statusLine updateFooter offShown statusVerdict stMore statusCard
     updateWhere liveShow tickClock headFit
 README.md: "The footer shows the name" "- **Connection** (1.38)"
 changelog: title|header|clock|footer|status line|the dot
@@ -191,7 +191,7 @@ tools/app/main.js: TODAYP SCR2 spotted logDay rollDay syncSightings fullDay load
     rowHtml rowSig svFilter svSig todayList svData SV_TOOLS buildSvTools legendHtml todayNumbers
     TD_PLATE TD_FACTS todayFactsSig tdSig renderTodayNumbers tdOpen $("tdPlate").onclick tdFilter tdFilDot $("tdFil").onclick todayJump renderToday renderLists
     tlKey plainCode noFlightNo rowName noRoute tlNode rowTier rowMarks FLAG_SVG rowInner tlPic tlCardSig tlAsking tlAhead tlAgo tlCardHtml cardLi
-    tlHtml tlState tlFinding tlNothing tlOpenId tlTok tlRunning tlCap tlAgain tlBusy tlFill tlWire tlLate tlDone
+    tlHtml tlState tlFinding tlNothing tlOffline tlOpenId tlTok tlRunning tlCap tlAgain tlBusy tlFill tlWire tlLate tlDone
     LBL_PAGE lbl lblPlate lblOn lblIso lblSpan lblToday lblPlaces lblKey lblLive lblPass lblUrl lblWords lblWord lblHead lblDayLi lblHtml lblLead lblStop lblShown lblEnded lblLine lblMoreSync lblEmpty lblDraw lblAppend lblAdd lblLoad lblFirst lblPatch lblReset lblNews lblFlush lblSync lblLeave lblTopLang lblRaf lblRestT lblTopFit lblTopPlace lblTopRest lblScrolled $("lbTop").onclick lblSegH lblStickyMark
     tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd tlTap tlOpen tlFold tlScroll sightPlane
 relay/serve.py: day_stats same_spot sightings_json /sightings +Spot.day_entries FLIGHTS_PAGE FLIGHTS_DAYS SPECIAL_TYPE_CODES _list_sq _flight_test _flight_hidden flights_json /logbook/flights
@@ -203,12 +203,12 @@ changelog: spotted today|today tab|\btoday\b|legend|filter
 [logbook] Logbook and records: the board's one-screen Logbook, the app's Logbook tab, search, categories, places, week/month/year
 test/index.html: LB_ROWS RV_ROWS LB_CATS LB_RECS LB_RECS.forEach LB_BOX lbBox LB_CAT_Y LB_LIST_Y LB_LIST_P lbCache
     lbError lbPer lbYearBack lbSig lbFocusK lbYears lbYearAt lbYearOk lbPers lbYear demoYear lbPerData lbPerTitle
-    LB_NUMS lbNums lbBook lbTop lbAirline lbDayY MAKERS lbModel lbFlap lbWho lbRecVal lbYearFetch lbFetch lbAgain
+    LB_NUMS lbNums lbBook lbTop lbAirline lbDayY lbModel lbFlap lbWho lbRecVal lbYearFetch lbFetch lbAgain
     lbPerSet lbPick lbPlates plateDraw lbStaticSig lbLabels lbLabel lbStatic lbSeekOk lbSeek lbSeekQ lbSeekTok lbFound
     lbToolsHtml lbToolsWire lbToolsSync lbCardK lbCardTok lbCardWait lbBackTo lbCatQ lbCatV lbCatData lbCatOk lbCatKey
     lbCardOn lbCard lbCardShow lbCardBack lbCardAgain lbRow lbFacts lbCardHtml lbCatHtml lbCatFetch lbCardWire
     lbSearch lbFoundHtml lbBoxAt lbHitsShow fx.addEventListener("mousemove") fx.addEventListener("mouseleave") lbFocus
-    lbFocusPlate lbKey lbNear fmtDay typeLabel demoLogbook lbData lbPlace lbPlaceData LB_VIEWS LB_VIEW_NAMES lbPlaceOk
+    lbFocusPlate lbKey lbNear fmtDay typeLabel MAKERS typeShown demoLogbook lbData lbPlace lbPlaceData LB_VIEWS LB_VIEW_NAMES lbPlaceOk
     lbChips lbPlaceName lbPlaceUrl fetchLogbook logbookSummary review reviewOk reviewKey fetchReview demoReview
     reviewData reviewTitle reviewDay reviewSummary reviewFacts reviewNewTypes REVIEW_NUMS renderLogbookBoard #lbHits
     #fx.lbHov 'if (view !== "logbook" || !cardOpenNow()' .lbRow .lbRecs .lbCard .lbFound .lbNums .lbSeg .lbRk .lbCats
@@ -411,7 +411,7 @@ tools/app/head.html: #gSub .seg.jumpSeg .seg.svFilters css:html(#t-game .gRows .
     @gPop .pF @pfIn @pfTear #arBurst @pfSpark @gSheen #gameBox .rpList .gHow .rkI .rkGold .rkLv .plIns
     .fsRec .fsBox .fsBox.big .fsSig .fsSigT .fsSigT.writing @fsWipe #fsBar #fsStamp #fsStamp.out @fsSlip @fsOut @fsLand @fsInk @fsFade @fsWingIn @fsCleared #gLvUp.fsW
     .cuD .cuP .cuI .cuI.flap .cuUn .cuMini .cuLn .cuLb .cuStop .cuRt .cuT .cuPl @cuDrop .cuPlate .cuArr @cuFly @cuLit .cuTag @cuTag .cuTry .cuLater .cuSheet .cScroll
-tools/app/main.js: learnFoot collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad typeShown hgNames modelPicNow HG_EAGER HG_GAP hgLast hgPumpT hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
+tools/app/main.js: learnFoot collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad typeNamed hgNames modelPicNow HG_EAGER HG_GAP hgLast hgPumpT hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
     hgSoon hangarCard tierIcons tierIcon gTrTab trProg trPips trMedal MD_M MD_RN mdRoman mdFaceSvg mdDrawn mdCoin MD_RIBBON trRow trToGo trWon trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gScanKm gScanSet gGoldSet gme gmeAt gBusy
     STK_W STK_S STK_LAND_MS STK_RUN_MS STK_FLY_MS stkWeek stkWeekBack stkRun stkNew gLeague gLeagueAt gAll gAnimT gLvFrom gStripSetup gRingP gLapSet gRingSet gGoPlate gHit gHitDo gGoing gGoLive gGoShow gSay gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gAwShort nwWord gWhoNw gAwFoil gPop gWho gAwards gScanPops SKY_ICO gAwsBox gAwTimer gAwTap GL_GAP GL_STUCK gLine GL_TIX gLineOn gLineAdd gTixAside gTixUp gLineRun gPassFill TIX_MS RIP_AFTER RIP_MS POP_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack gAwBig
     gCoins gLvT gLvPoll gLvChipOk gLvBusy gLvChipT gLvMem gGainUntil gLvArEnd gSeen gLvUpOn gLvGet gLvSave gLvCheck gLvBlocked gLvKick gLvStep gLvChip gLevelUp gJingle gRip gGold gBurst gLeagueLoad gPlates gPlateSplit renderGame G_SUBS G_PARTS LY_TAU LY_FAST TIX_MIN gSub gSubHas gSubBar gSubGo gIndexHtml gLimFull gLimLine gLimOpen gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gLastMin gSbyHtml gSbyFrom plateSheet gSbyOpen
