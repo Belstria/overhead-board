@@ -2838,7 +2838,7 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `tlMillRule`, `tlMillDiv`, `lbIn` for the screws) cut the recess in over the app's own opening, ending about 0.55 s after the tap; `tlFold` drops the
   class before the card fades so the moved element doesn't replay it. Checked at 390 and 360 px: no photo, a helicopter without route, a special plane, a
   favourite, long names (the tiles lost their 6 px gaps, so a type is cut no harder), daylight, Realistic look off.
-- 1.129.19 (to-dos #297, #298, #299; app only, no relay change): **Three small improvements.** (#297) Now's Recent flights and its "N in the last
+- 1.129.17 (to-dos #297, #298, #299; app only, no relay change): **Three small improvements.** (#297) Now's Recent flights and its "N in the last
   hour" count are about the last hour, so after midnight they keep the planes from the hour before. `renderRecent` (`tools/app/main.js`) adds
   `recentPrevRows()`: when `prevDay()` (the day of "an hour ago", from `lblIso`, earlier than `lblToday()`; relay 105 or newer, not in demo or
   while finding) names yesterday, it reads that day once from the Logbook's own `/logbook/flights?stop=D&until=D` (`recentPrevLoad`, again after

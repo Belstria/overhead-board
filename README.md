@@ -824,7 +824,7 @@ Five buttons along the bottom:
   latest planes spotted. The photo and the **Sky view row** (the key, the scan, which way to look, the compass) are one card under the board
   (1.115, 1.128). **Recent flights** (1.95) is a timeline: a line down the left with a dot for each plane in the
   colour of its remark, since 1.129.12 on **one metal plate** like Settings' (screws, the planes between engraved lines, the line a groove with a lamp for each plane), since 1.115 **one line a plane**: time, flight, route and
-  type, "8 in the last hour" at the top and "All 64 planes today ›" at the end, which goes to Today. Since 1.129.19 the hour carries on across midnight: just after 00:00 the planes of the last hour from yesterday stay, under a YESTERDAY title (Today itself starts at 0). A flight's status
+  type, "8 in the last hour" at the top and "All 64 planes today ›" at the end, which goes to Today. Since 1.129.17 the hour carries on across midnight: just after 00:00 the planes of the last hour from yesterday stay, under a YESTERDAY title (Today itself starts at 0). A flight's status
   is a coloured pill on Recent flights (every status word since 1.122: ARRIVING, DEPARTING, SUPERJUMBO ...); at the end of the
   row, always in this order, Today's **target** for a plane you scanned, a **★** for a type or
   airline new to the logbook, a **flag** in its colour for an unusual plane (military, a giant such as SUPERJUMBO, a

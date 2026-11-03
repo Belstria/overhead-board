@@ -603,7 +603,7 @@ function tlCardHtml(e){
 const cardLi = (e, now) => `<li class="fl open" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e, now)}">${tlCardHtml(e)}</li>`;
 // 1.115 (Dave's pick B): the rows one after another, newest first; the quarter-hour and hour headings went (every
 // row has its time).
-// 1.129.19: Now's rows from yesterday (`prev`, after midnight) stand under a Yesterday title
+// 1.129.17: Now's rows from yesterday (`prev`, after midnight) stand under a Yesterday title
 const tlHtml = (list, open, now) => list.map((e, i) => (e.prev && !(list[i - 1] || {}).prev ? `<li class="tg mid"><b>${escH(lblWord(recentPrev.day))}</b></li>` : "") +
   (open && tlKey(e) === open ? cardLi(e, now) : rowHtml(e, now))).join("");
 // 1.129.12: a pair of the plate's screws (.scr), for the Logbook's day plates and its empty lines' pieces (hidden on Now's plate)
@@ -632,7 +632,7 @@ function tlDone(){ if (!tlBusy() && tlAgain) { tlAgain = false; renderRecent(); 
 
 /* Now: the plane overhead on flaps, its photo and details, and the latest sightings. */
 let recentSig = "";
-// 1.129.19 (to-do #297): the list and its count are about the last hour, so just after midnight they keep the planes of
+// 1.129.17 (to-do #297): the list and its count are about the last hour, so just after midnight they keep the planes of
 // the hour before from yesterday's file (the relay's logbook list), under a Yesterday title. Today's own list and the
 // Logbook's Today still start at 0 at midnight.
 const recentPrev = {day: "", at: 0, busy: false, ok: false, list: []};
@@ -2400,7 +2400,7 @@ function hangarLoad(){
   hangarAt = Date.now();
   fetchJSON(`${relay()}/game/hangar`, {}, 12000).then(j => { hangar = j; renderGame(); if (hgWant && Date.now() - hgWant < 15000) requestAnimationFrame(hgShow); }).catch(() => { hangarAt = Date.now() - 4 * 60000; });
 }
-// 1.129.19 (to-do #299): a type's name as the Logbook's rows say it (A320neo, not A20N); the code only for one nobody has a name for
+// 1.129.17 (to-do #299): a type's name as the Logbook's rows say it (A320neo, not A20N); the code only for one nobody has a name for
 const typeShown = (code, name) => shortType(typeLabel(code, name));
 // 1.82.2: names as the app's table has them (the relay's are "AIRBUS A-320neo", which Wikipedia doesn't know), the relay's
 // as a second try; the model photo already found for them, else "".
@@ -6126,7 +6126,7 @@ function appTips(t){
   if (TAB_TIPS[t]) tip("tab-" + t, tabBtn(t), T(TAB_TIPS[t]));
   if (t === "now") {
     tip("mode", () => $("modes"), T(NOW_TIPS.mode));
-    tip("sky", () => $("look"), T("Point your phone at a plane to scan it."));      // 1.129.19 (to-do #298)
+    tip("sky", () => $("look"), T("Point your phone at a plane to scan it."));      // 1.129.17 (to-do #298)
     const pageBtn = p => () => vis($("apPick").querySelector(`[data-page="${p}"]`)) || vis($("nowPages").querySelector(`[data-page="${p}"]`));
     if (airportMode()) for (const [p, k] of [["lists", "aplists"], ["dep", "apdep"], ["land", "apland"]]) tip("ap-" + p, pageBtn(p), T(NOW_TIPS[k]));
     else for (const [p, k] of [["lists", "spotted"], ["ac", "aircraft"]]) tip("pg-" + p, pageBtn(p), T(NOW_TIPS[k]));

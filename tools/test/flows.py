@@ -3480,7 +3480,7 @@ def logbook_list_checks(browser, bad):
 
 
 def recent_midnight_checks(browser, bad):
-    """1.129.19 (to-do #297): Now's Recent flights and its "N in the last hour" are about the last hour, so at 00:01 they keep
+    """1.129.17 (to-do #297): Now's Recent flights and its "N in the last hour" are about the last hour, so at 00:01 they keep
     the planes from 23:02 on, under a Yesterday title (older ones stay out); at 23:59 there is no title; with nothing in the
     last hour the empty line says so (and only then)."""
     import datetime
