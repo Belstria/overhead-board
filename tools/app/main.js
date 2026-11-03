@@ -7590,6 +7590,12 @@ async function gLeagueLoad(force){
    others keep their pictures, place and wiring; gPlates null (a new visit) draws it whole. One plate inside another
    would split wrong: then it stays one piece. */
 let gPlates = null;
+// 1.129.18 (to-do #295): Your level's footer was the Logbook's whole sentence (counting since, the NEW date, the points: all of it in the header chip
+// or in All time); only the date first sightings are marked NEW from stays, as a footnote, while it applies
+function learnFoot(){
+  const b = lbData(), u = b && b.learningUntil;
+  return u && Date.now() < u ? T("NEW marks from {d} {t}", {d: fmtDay(u), t: hhmm(new Date(u))}) : "";
+}
 function gPlateSplit(h){
   const parts = h.split(/(?=<section class="plate secPlate)/);
   return parts.every(p => p.split("<section").length === p.split("</section>").length) ? parts : [h];
@@ -7633,7 +7639,6 @@ function renderGame(){
   const fs = sub === "level" && fsState();
   if (fs && !fs.wings) h = secPlate(T("Flight school"), fsRecord(fs), "fsPlate") + h;
   if (fs && fs.wings) { h += secPlate(T("Flight school"), fsRecord(fs, {sig: window.SIG_FONT || sigFailed ? fsSigHtml(fsName()) : ""}), "fsPlate"); if (!window.SIG_FONT) sigFont().then(f => f && renderGame()); }
-  if (sub === "level") h += `<p class="sum lbFoot">${escH(logbookSummary())}</p>`;          // 1.89: the Logbook's footnote, here too
   const box = $("gameBox"), parts = gPlateSplit(h), old = gPlates && gPlates.length === parts.length ? gPlates : null;
   const changed = parts.map((p, i) => old && old[i] === p ? -1 : i).filter(i => i >= 0);
   if (old && !changed.length) return;
@@ -7717,7 +7722,7 @@ function gIndexHtml(g, g0){
     const won = g0.trophies || {};
     row("trophies", "Trophies", T("{n} of {m}", {n: TROPHY_IDS.filter(k => won[k]).length, m: TROPHY_IDS.length}));
   }
-  return secPlate(T("Your club"), `<div class="gRows">${rows.join("")}</div>`, "gClub");
+  return secPlate(T("Your club"), `<div class="gRows">${rows.join("")}</div>` + plFoot(learnFoot()), "gClub");
 }
 // 1.104 (to-do #157, Dave's pick B): the standby (relay 87). From level 6 one a week keeps the streak through a day
 // without a scan, from 14 two; the relay judges the days. The level card's week: Monday to Sunday (sbyDay: the weekday
@@ -8072,7 +8077,7 @@ const fsBox = (t, big) => `<span class="fsBox${big ? " big" : ""}"><small>${escH
 // The training record: o.sig the WINGS line's signature (an <svg>), o.next false: no hint (the wings' copy)
 function fsRecord(s, o = {}){
   const n = SCHOOL.filter(([m]) => s.done[m]).length, nx = !s.wings && o.next !== false && fsNext(s);
-  return `<div class="fsRec"><div class="hd"><span>${escH(T("Training record · pre-flight"))}</span><span>${n} / ${SCHOOL.length}</span></div>` +
+  return `<div class="fsRec"><div class="hd"><span>${escH(T("Pre-flight record"))}</span><span>${n} / ${SCHOOL.length}</span></div>` +
     SCHOOL.map(([m, t, h]) => { const d = s.done[m], next = nx && nx[0] === m;
       return `<div class="r${d ? " on" : next ? " nx" : ""}"><span class="t"><b>${escH(T(t))}</b><span>${escH(next ? T(h, {k: gKm()}) : "+" + fsPts())}</span></span>` +
         `<span class="bx">${d ? fsBox(d) : next ? escH(T("Next up")) : ""}</span></div>`; }).join("") +
@@ -8091,7 +8096,10 @@ function fsBar(){
   bar.hidden = !nx;
   if (!nx) return;
   const n = SCHOOL.filter(([m]) => s.done[m]).length;
-  const h = `<b>${escH(T("Checklist {n}/{m}", {n, m: SCHOOL.length}))}</b><span>${escH(T("Next up · {m}", {m: T(nx[1])}))}</span>` +
+  // 1.129.18: "Checklist" and the next mission, the boxes carry the count (it is in the label for a screen reader): the longer
+  // missions ("Open a plane's card") no longer cut off at 360 px
+  bar.setAttribute("aria-label", T("Checklist {n}/{m}", {n, m: SCHOOL.length}) + " · " + T("Next up · {m}", {m: T(nx[1])}));
+  const h = `<b>${escH(T("Checklist"))}</b><span>${escH(T(nx[1]))}</span>` +
     `<span class="bx">${SCHOOL.map(([m]) => `<u${s.done[m] ? ' class="on"' : ""}></u>`).join("")}</span>`;
   if (bar.dataset.h !== h) { bar.dataset.h = h; bar.innerHTML = h; }
 }

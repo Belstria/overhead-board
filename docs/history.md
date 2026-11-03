@@ -2852,6 +2852,17 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   aircraft type: `typeShown(code, name)` (`shortType(typeLabel(...))`) names the Hangar's cards (a type still to scan used to show its code) and the
   Club's showcase cards, and Radar's Nearest uses `arType` (as Sky view's labels do). Left as they are: the sheets' own "Code" line, the board's
   flaps (width-limited), the Logbook's category lists (full model names, not codes), and the fallback to a code where no name is known.
+- 1.129.18 (to-dos #287, #289, #290, #294, #295; app only, no relay change; found in a pass over the phone app, "Fifteen ideas"): **Five small fixes.**
+  (#287) Daylight, the rest of dark-on-dark and light-on-light: `html.daylight` gives `#acSec #look` (Now's Sky view row: its key, scan label and value) the
+  night's `--ink`/`--amber` like the plates (1.129.13); the Radar's Nearest numbers lose the `.rv .num` dark colour (the rows sit on a plate); the Radar's (i)
+  (`.rvTop .iBtn`, on the page, not a plate) and Recent flights' "All N planes today" (`.tlFoot .lnk`) take daylight's dark ink; a plane's card
+  (`#cardBox .cardIn.info`, whose facts, tiles and words are the board's hard-coded light-on-dark colours) keeps the night metal (it was cream with pale
+  text), so the paper rules there are `:not(.info)`. (#289) `.rvLogo img` is `max-width:100%`: the logo box is the grid's 44 px less the row's 16 px
+  padding (a subgrid track includes it), 28 px, and the 40 px image spilled over both edges. (#290) `fsBar`: "Checklist" and the next mission's name
+  (no "Next up ·", no count: the marks carry it; the full text is its aria-label), a 320 px rule shrinks the marks; `fsRecord`'s header reads "Pre-flight
+  record" (it wrapped as "PRE- / FLIGHT"). (#294) `#welcome .cap.big.go` is lit green on every step (only the last had `aria-pressed`, set by `pick()`),
+  and `#welcome .cap.big` is `width:auto` with `white-space:nowrap`. (#295) The Level tab's footer (`logbookSummary()`: counting since, NEW date, points)
+  is gone; `learnFoot()` puts "NEW marks from {date}" in a `.plFoot` at the end of the Your club plate while `learningUntil` is ahead.
 - 1.131 (to-do #310, Dave's pick A of three, "Yours first, swipe for the stock"; app only, no relay change): **Your Sky view photo stays with the
   sighting.** `arSnap` (Sky view's shutter, only once a plane is locked on) also calls `myPhSave(arLocked, cv, H, at)`: the picture without its band,
   scaled to at most 1280 px and JPEG 0.72, smaller by 0.8 until under `MYPH_KB` (150 KB; a sky is usually 30-60 KB), kept in IndexedDB (`od-photos`,
