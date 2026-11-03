@@ -4646,7 +4646,7 @@ const demoYear = y => ({sample: true, year: y, planes: 21480, types: 96, airline
     farthest: {v: 7120, callsign: "UAE127", place: {code: "DXB", city: "Dubai"}}}});
 const lbPerData = () => lbPer !== "year" ? reviewData() : S.demo ? demoYear(lbYear()) : lbYears[lbYear()] || null;
 const lbPerTitle = () => lbPer === "year" ? T("{y} in planes", {y: lbYear()}) : T("{p} in planes", {p: reviewTitle()});
-// 1.129.18: the plates' order everywhere: Planes, Aircraft, Types, Airlines (Today: Planes, Overhead, Types, Airlines), then the rest
+// 1.129.19: the plates' order everywhere: Planes, Aircraft, Types, Airlines (Today: Planes, Overhead, Types, Airlines), then the rest
 const LB_NUMS = {year: [["planes", "Planes"], ["airframes", "Aircraft"], ["types", "Types"], ["airlines", "Airlines"], ["countries", "Countries"], ["days", "Days"]],
   span: [["planes", "Planes"], ["airframes", "Aircraft"], ["types", "Types"], ["airlines", "Airlines"], ["newTypeCount", "New types"], ["rare", "Rare"]]};
 const lbNums = () => LB_NUMS[lbPer === "year" ? "year" : "span"];
@@ -5048,7 +5048,7 @@ const fmtDay = ts => ts ? new Date(ts).toLocaleDateString(LOC(), {day: "numeric"
 const typeLabel = (code, name) => TYPES[code] || typeName(code, name).name || code;
 // a model's name in n letters: whole, or without its maker ("Airbus A320neo" → "A320neo"), else its code
 const MAKERS = /^(Airbus Helicopters|De Havilland Canada|De Havilland|McDonnell Douglas|Lockheed Martin|AgustaWestland|Airbus|Boeing|Embraer|Bombardier|Cessna|Dassault|Gulfstream|Pilatus|Beechcraft|Beech|Diamond|Piper|Cirrus|Lockheed|Antonov|Eurocopter|Leonardo|Sikorsky|Robinson|Fokker|Saab|ATR)\s+/i;
-// 1.129.18: a type for a value: its name (the maker left out, "Airbus A320neo" → "A320neo"), never the bare ICAO code; with n letters
+// 1.129.19: a type for a value: its name (the maker left out, "Airbus A320neo" → "A320neo"), never the bare ICAO code; with n letters
 // to fill, the whole name if it fits, else without the maker, else the code
 function typeShown(t, n){
   t = String(t || "");
@@ -7934,7 +7934,7 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
-  {v: "1.129.18", date: "2026-11-03", notes: [
+  {v: "1.129.19", date: "2026-11-03", notes: [
     "Offline, Sky view, the list of planes around and Recent flights say \"Offline · retrying\" instead of claiming the sky is empty.",
     "Trophies that count scanned planes, types, airlines and aircraft now say \"scanned\".",
     "The Logbook lists its numbers in one order everywhere: Planes, Aircraft, Types, Airlines (Today: Planes, Overhead, Types, Airlines).",

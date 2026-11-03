@@ -2838,7 +2838,7 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `tlMillRule`, `tlMillDiv`, `lbIn` for the screws) cut the recess in over the app's own opening, ending about 0.55 s after the tap; `tlFold` drops the
   class before the card fades so the moved element doesn't replay it. Checked at 390 and 360 px: no photo, a helicopter without route, a special plane, a
   favourite, long names (the tiles lost their 6 px gaps, so a type is cut no harder), daylight, Realistic look off.
-- 1.129.18 (to-dos #286, #288, #291, #292, from "Fifteen ideas"; app and board, no relay change): four small fixes. **#286 Offline is not an empty
+- 1.129.19 (to-dos #286, #288, #291, #292, from "Fifteen ideas"; app and board, no relay change): four small fixes. **#286 Offline is not an empty
   sky:** `skyState` returns `offline` (`SKY_WORDS.offline`, "Sky view" / "Offline · retrying", dimmed) when there is no plane and `isOffline()`
   (`held` no longer keeps it for the 3 s grace); `renderRadarList`, `arAroundOpen`, the Sky view's `arCount`, `tlOffline` (Recent flights' empty line)
   and `nowEmptyNote` say the same words, and Recent's "None in the last hour" is left out while offline. `updateFooter` redraws these once when

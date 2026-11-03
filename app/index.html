@@ -7363,7 +7363,7 @@ const fmtDay = ts => ts ? new Date(ts).toLocaleDateString(LOC(), {day: "numeric"
 const typeLabel = (code, name) => TYPES[code] || typeName(code, name).name || code;
 // a model's name in n letters: whole, or without its maker ("Airbus A320neo" → "A320neo"), else its code
 const MAKERS = /^(Airbus Helicopters|De Havilland Canada|De Havilland|McDonnell Douglas|Lockheed Martin|AgustaWestland|Airbus|Boeing|Embraer|Bombardier|Cessna|Dassault|Gulfstream|Pilatus|Beechcraft|Beech|Diamond|Piper|Cirrus|Lockheed|Antonov|Eurocopter|Leonardo|Sikorsky|Robinson|Fokker|Saab|ATR)\s+/i;
-// 1.129.18: a type for a value: its name (the maker left out, "Airbus A320neo" → "A320neo"), never the bare ICAO code; with n letters
+// 1.129.19: a type for a value: its name (the maker left out, "Airbus A320neo" → "A320neo"), never the bare ICAO code; with n letters
 // to fill, the whole name if it fits, else without the maker, else the code
 function typeShown(t, n){
   t = String(t || "");
@@ -7961,7 +7961,7 @@ const SCR2 = '<i class="scr"></i><i class="scr"></i>';
 // The empty list: why, on the rail (the newest-first line it will be)
 const tlState = (head, title, text, find) => `<li class="tg">${SCR2}<b>${escH(head)}</b></li><li class="st${find ? " find" : ""}">${SCR2}${title ? `<b>${escH(title)}</b>` : ""}${escH(text)}</li>`;
 const tlFinding = () => tlState(T("Now"), T("Finding where you are …"), T("The planes show once live location has found you."), true);
-const tlOffline = () => tlState(T("Now"), T("Offline · retrying"), "");   // 1.129.18: not "nothing spotted" when there is no flight data
+const tlOffline = () => tlState(T("Now"), T("Offline · retrying"), "");   // 1.129.19: not "nothing spotted" when there is no flight data
 const tlNothing = () => tlState(T("Today"), T("Nothing spotted yet"), T("Every plane that comes within {n} km joins this line, the newest on top.", {n: +S.radiusKm || 15}));
 const tlOpenId = {recent: "", svList: ""};      // each list's open card (one at a time)
 let tlTok = 0, tlRunning = 0, tlCap = 0, tlAgain = false;       // the last tap; openings and foldings under way (a redraw waits for them)
@@ -10351,7 +10351,7 @@ function skyState(L){
   const game = gameOk();
   if (game && !S.live && liveOk()) return {k: "nolive"};
   if (game && liveWaiting()) return {k: "finding"};
-  if (!feat) return {k: isOffline() ? "offline" : "none"};   // 1.129.18: no flight data is not an empty sky
+  if (!feat) return {k: isOffline() ? "offline" : "none"};   // 1.129.19: no flight data is not an empty sky
   const o = feat.o, ac = o && o.ac, hex = ac ? ac.hex : "", play = game && S.live && !!gme;
   if (play && ac && ac.alt_baro === "ground") return {k: "ground", hex};
   if (play && gScanGx(hex)) return {k: "done", hex, L};
@@ -13397,7 +13397,7 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
-  {v: "1.129.18", date: "2026-11-03", notes: [
+  {v: "1.129.19", date: "2026-11-03", notes: [
     "Offline, Sky view, the list of planes around and Recent flights say \"Offline · retrying\" instead of claiming the sky is empty.",
     "Trophies that count scanned planes, types, airlines and aircraft now say \"scanned\".",
     "The Logbook lists its numbers in one order everywhere: Planes, Aircraft, Types, Airlines (Today: Planes, Overhead, Types, Airlines).",
@@ -15682,7 +15682,7 @@ function updateFooter(){
   if (bad && al.textContent !== line) al.textContent = line;
   if (!$("t-about").hidden) renderAbout();
   const off = isOffline();
-  if (off !== offShown) { offShown = off; renderRecent(); nowEmptyNote(); lookSoon(); if (tab === "radar") { rvSig = ""; renderRadarList(); } }   // 1.129.18: Offline, and back
+  if (off !== offShown) { offShown = off; renderRecent(); nowEmptyNote(); lookSoon(); if (tab === "radar") { rvSig = ""; renderRadarList(); } }   // 1.129.19: Offline, and back
 }
 let offShown = false;
 // The dot opens a card: the relay, the position source, the last update and Flightradar24 (1.38). 1.117 (to-do #210,

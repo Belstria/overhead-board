@@ -609,7 +609,7 @@ const SCR2 = '<i class="scr"></i><i class="scr"></i>';
 // The empty list: why, on the rail (the newest-first line it will be)
 const tlState = (head, title, text, find) => `<li class="tg">${SCR2}<b>${escH(head)}</b></li><li class="st${find ? " find" : ""}">${SCR2}${title ? `<b>${escH(title)}</b>` : ""}${escH(text)}</li>`;
 const tlFinding = () => tlState(T("Now"), T("Finding where you are …"), T("The planes show once live location has found you."), true);
-const tlOffline = () => tlState(T("Now"), T("Offline · retrying"), "");   // 1.129.18: not "nothing spotted" when there is no flight data
+const tlOffline = () => tlState(T("Now"), T("Offline · retrying"), "");   // 1.129.19: not "nothing spotted" when there is no flight data
 const tlNothing = () => tlState(T("Today"), T("Nothing spotted yet"), T("Every plane that comes within {n} km joins this line, the newest on top.", {n: +S.radiusKm || 15}));
 const tlOpenId = {recent: "", svList: ""};      // each list's open card (one at a time)
 let tlTok = 0, tlRunning = 0, tlCap = 0, tlAgain = false;       // the last tap; openings and foldings under way (a redraw waits for them)
@@ -2930,7 +2930,7 @@ function skyState(L){
   const game = gameOk();
   if (game && !S.live && liveOk()) return {k: "nolive"};
   if (game && liveWaiting()) return {k: "finding"};
-  if (!feat) return {k: isOffline() ? "offline" : "none"};   // 1.129.18: no flight data is not an empty sky
+  if (!feat) return {k: isOffline() ? "offline" : "none"};   // 1.129.19: no flight data is not an empty sky
   const o = feat.o, ac = o && o.ac, hex = ac ? ac.hex : "", play = game && S.live && !!gme;
   if (play && ac && ac.alt_baro === "ground") return {k: "ground", hex};
   if (play && gScanGx(hex)) return {k: "done", hex, L};
@@ -6171,7 +6171,7 @@ function updateFooter(){
   if (bad && al.textContent !== line) al.textContent = line;
   if (!$("t-about").hidden) renderAbout();
   const off = isOffline();
-  if (off !== offShown) { offShown = off; renderRecent(); nowEmptyNote(); lookSoon(); if (tab === "radar") { rvSig = ""; renderRadarList(); } }   // 1.129.18: Offline, and back
+  if (off !== offShown) { offShown = off; renderRecent(); nowEmptyNote(); lookSoon(); if (tab === "radar") { rvSig = ""; renderRadarList(); } }   // 1.129.19: Offline, and back
 }
 let offShown = false;
 // The dot opens a card: the relay, the position source, the last update and Flightradar24 (1.38). 1.117 (to-do #210,

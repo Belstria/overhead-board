@@ -3705,7 +3705,7 @@ def sky_row_checks(browser, bad):
         reset(); gme.limits = {uncommon: [3, 3]}; st("pastLimit", mk(), 8);
         reset(); st("ground", mk({ac: {alt_baro: "ground"}}), 8);
         reset(); st("none", null, null);
-        // 1.129.18 (to-do #286): no flight data for over a minute is not an empty sky: "Offline · retrying", and back to normal
+        // 1.129.19 (to-do #286): no flight data for over a minute is not an empty sky: "Offline · retrying", and back to normal
         reset(); lastOk = Date.now() - 120000; st("offline", null, null); out.offWords = SKY_WORDS.offline.join("|"); out.offList = tlOffline().includes("Offline · retrying") && !tlOffline().includes("Nothing");
         lastOk = Date.now(); st("backOnline", null, null); lastOk = keep.ok;
         reset(); S.demo = true; st("off", mk(), 12);
