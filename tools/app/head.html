@@ -292,6 +292,27 @@ button.lbPlate:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba
 .rv .num{font:600 var(--fs-s)/1 var(--f-board);color:#c9c6bf;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .flights li.rv::before{content:"";position:absolute;left:4px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--lamp);box-shadow:0 0 6px var(--lamp)}
 .rv .chip{min-width:78px}
+/* 1.129.22 (to-do #315): on a small phone (360 px and below) the flight number reads whole. Five columns left a long callsign with the widest
+   distance, height and pill 26 px ("OE…"), so the height sits under the distance in one column (the labels over them stack the same way), and the
+   logo, gaps and pill give a little more; at 390 px the row is as it was */
+@media (max-width:380px){
+  #rvList{grid-template-columns:38px minmax(0,1fr) auto auto;column-gap:6px}
+  .flights li.rv{padding-right:6px}
+  .rv>.rvLogo,.rv>strong,.rv>.chip{grid-row:1/3}
+  .rv{row-gap:3px}
+  .rv>.num:nth-child(3){grid-column:3;grid-row:1}
+  .rv>.num:nth-child(4){grid-column:3;grid-row:2}
+  .rv>.chip{grid-column:4;min-width:0;padding:0 6px;letter-spacing:.04em}
+  .rvHead>span:nth-child(1),.rvHead>span:nth-child(2),.rvHead>span:nth-child(5){display:none}
+  .rvHead>span:nth-child(3){grid-column:3;grid-row:1}
+  .rvHead>span:nth-child(4){grid-column:3;grid-row:2;margin-top:3px}
+}
+@media (max-width:340px){
+  #rvList{grid-template-columns:32px minmax(0,1fr) auto auto;column-gap:5px}
+  .rv>.chip{padding:0 4px;letter-spacing:0;font-size:var(--fs-tag)}
+  .rv>.num{font-size:var(--fs-xs)}
+}
+}
 /* buttons above lists, and the tab bar: the board's push buttons */
 .tools{display:flex;flex-wrap:wrap;gap:12px 14px;margin:14px 0 4px;padding:3px;--k:.86}
 .tools .cap{margin:0}

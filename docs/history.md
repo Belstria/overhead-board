@@ -2910,6 +2910,14 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   included. 1.39 MB → 1.14 MB, gzipped 446 → 339 KB (−24%). `codemap.py --build` looks for a block's first line of code in the app. *Tip ring
   (#306):* `tipNext` places the ring when the tip shows, on resize and on scroll (capture), and checks once a second whether its element (or the bubble)
   moved, instead of every frame; on `WEAK_TV`/`LITE()` the ring gets `.still` (no `tipPulse`, the glow held). TV board at 6× with a tip: 618 → ~40 ms/s.
+- 1.129.22 (to-do #315; app only, no relay change): **Radar's Nearest reads whole at 360 and 320 px.** The row (`.rv`, a subgrid of `#rvList`) had five
+  columns (logo, name and type, distance, height, pill); with the widest values ("12.3 km NNW", "10,950 m", SUPERJUMBO) the name column kept 26 px at 360
+  px, so a flight number read "OE…" (and 0 px at 320). `tools/app/head.html`, `@media (max-width:380px)` after `.rv .chip`: `#rvList` has four columns
+  (38 px logo track, name, one number column, pill), `.rv>.num:nth-child(3)` (distance) and `:nth-child(4)` (height) sit in the same column on two
+  rows, the logo, name and pill span both rows, the row's right padding is 6 px, the gaps 6 px, the pill's letters tighter; the head row's "Distance" and
+  "Height" stack the same way (the empty spans are hidden). `@media (max-width:340px)`: 32 px logo track, 12 px numbers, an 11 px pill with no letter
+  spacing. At 390 px nothing changed. A 7-character callsign (EZY1234) with the widest distance, height and pill reads whole at 360 and 320 px; the
+  type line may still end in "…" (the brief's exception). Built on top of 1.129.17 and 1.129.18 (#274, #277).
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 
