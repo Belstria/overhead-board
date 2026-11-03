@@ -216,14 +216,15 @@ test/index.html: LB_ROWS RV_ROWS LB_CATS LB_RECS LB_RECS.forEach LB_BOX lbBox LB
     +#viewTools 'vdef("logbook"'
 tools/app/head.html: .ranks .cats .yearCard .yNums .yFacts .reviewCard .rvTools .yActs .model .lbFindBox .plate
     #t-logbook.finding #lbFound .lbfPin .seg.lbViews .secPlate .perCard .perHead .perArr .sum.lbFoot .dd
-    .seg.catSeg .catRow .lbfRead #lbFindBox #lbLists #lbSum #lbViews #t-logbook #lbYear #lbFilPlace .lbFilter #lbStrip .lbStrip .lbStrip.one .lbPlate .lbPlate.lbOpens css:button.lbPlate .lbPlH .lbPlN .lbOpens #lbPlate #tdPlate .perMore
+    .seg.catSeg .catRow .lbfRead .lbfLast #lbFindBox #lbLists #lbSum #lbViews #t-logbook #lbYear #lbFilPlace .lbFilter #lbStrip .lbStrip .lbStrip.one .lbPlate .lbPlate.lbOpens css:button.lbPlate .lbPlH .lbPlN .lbOpens #lbPlate #tdPlate .perMore
     .perMoreIn
-tools/app/main.js: lbCache lbError fetchLogbook lbSig lbView lbViewsBar lbQuery lbFindT lbFindTok lbFindSetup
+tools/app/main.js: lbCache lbError fetchLogbook lbSig lbView lbViewsBar lbQuery lbFindT lbFindTok lbFindSetup LBQ_KEY lbLastNew lbFindSet lbLastGet lbLastAdd lbLastSync
     lbFind catOk lbCat lbCatView lbCatData lbCatKey catOpenHtml catFetch PIN DD lbfPlaces lbFoundRows foundCard
     lbPanels lbPanel lbPanelTok lbPanelOn lbPanelOpen lbPanelSync renderLogbook lbYearCard LB_PLATES lbPlateOn lbStripSig lbPlateNum lbPlateHtml lbStripSync lbPlateGo lbDemoPer lbPick recordsHtml secPlate plFoot plFootFit
     yearData yearAt yearCache fetchYear perKey perHas perLoad perWarm yearReview lbPeriod yearBack perMore perWant periodHtml PER_MORE reviewHtml +periodPicture +shareYear +sharePeriod
 relay/serve.py: _rec_entry note_records _gc_km _backfill_records _backfill_flights CARGO_AIRLINES HELICOPTERS
     MILITARY_TYPES BIZJETS LIGHT category_of CATEGORY_WORDS _logbook_entries search_json _cat_cache category_top_json
+    SEARCH_KEEP SEARCH_FIELDS _NOWHERE _search_kept _search_n _search_lock _search_rows _search_day
     _book_late logbook_json _place_days _place_summary _merge_items place_logbook place_logbook_json _days_of year_json
     REVIEW_SPANS REVIEW_WEEK_AT REVIEW_MONTH_AT _reviews review_range review_json CSV_COLS _csv_safe logbook_csv
     +seen_json +where_name +geo_where +where_of +review_check /logbook /search /logbook/category /year /review
@@ -356,16 +357,18 @@ test/index.html: plusRows plusN tapLine listHints cardTok cardOpen cardClose MUS
     factsOk brandsOk BAND_ICONS bandMid factsCache spottedCache planeLogs factsGet spottedGet planeLog yearOf longDate kmText mText bigText
     timesText ageYears isToday ENGINE_KIND RANGE_CITIES modelFunFacts airlineFunFacts placeFunFacts planeFunFacts
     tierChip infoCard cardMore +listSheet +togBtn +cardToggle +modelPic +planePic +picHtml +picCreditParts +photoKey
-tools/app/head.html: #cardBox .cRouteB .cRbEnd .cTiles .cTile .cDet @cardSwap .cBtn
+tools/app/head.html: #cardBox .cRouteB .cRbEnd .cTiles .cTile .cDet @cardSwap .cBtn .cInfo .cWx .cWhere .cardish
 tools/app/main.js: cardSheetHtml cardSheetPre cardSheetPost cardSheetGrow cardSheetClose planeAgain +radarPlaneCard
     +arTap +foundCard +hangarCard +playerCard +tlCardHtml +tlOpen +sightPlane
+    nowOk wnMem wxMem nowDue wnAsk wxAsk wnText wxText nowFill
 relay/serve.py: MEDIA_DIR MEDIA Handler.media /media/ WM_AGENT WIKI_API WIKIDATA_API COMMONS_FILE COMMONS_API SPARQL_API FACTS_FILE FACTS_DB FACTS_EVERY FACTS_NIGHT FACTS_IMG_W MODEL_TITLES
     FACTS_KEEP FACTS_FAIL FACTS_GAP FACTS_TEXT _facts_busy _facts_failed _wm_next _MONTHS _wm_get _Need _Stop _wm_batch _batch _need _wm_batch_get _wm_pages
     _wt_templates _wt_split _wt_strip _wt_params _wt_tpl _wt_text _wt_link _num _date _wiki_page _intro _wiki_extract _wiki_url
     _infobox _spec_rows _WORDS _qty _seats _first _list model_facts _wd_find _wd_items _wd_claims _wd_val _wd_time
     _wd_label _wd_pick _commons _wd_title CORP_TAIL _airline_parents _airline_brand airline_facts airline_own_facts org_facts _airline_item_facts airport_facts FACTS_KINDS FACTS_VER _FACTS_PREFIX _fdb _fdb_lock _facts_db _facts_get _facts_put _facts_meta _facts_keys facts_json _facts_running _facts_progress _facts_lists _facts_fetch _facts_chunk facts_refresh _facts_opens facts_status _facts_worker _spotted_days
     _spotted_summary spotted_json /facts /logbook/spotted +search_json +_saver
-tools/test/fakesrc.py: WIKI WD_ITEM WD_STR WD_TIME WD_QTY WIKIDATA WM_ASKED wikipedia wikidata sparql commons /wiki/w/api.php /sparql /commons-api/w/api.php
+    OPEN_METEO WEATHER_S WEATHER_FAIL_S WEATHER_DAY_CAP _weather _weather_day _weather_lock weather_at /weather
+tools/test/fakesrc.py: WIKI WD_ITEM WD_STR WD_TIME WD_QTY WIKIDATA WM_ASKED wikipedia wikidata sparql commons /wiki/w/api.php /sparql /commons-api/w/api.php METEO_ASKED meteo /meteo
     /wikidata/w/api.php /wm/asked /commons/
 tools/test/flows.py: "relay 74: the cards' facts" "the cards' facts (the fake Wikipedia"
 tools/test/run_test_relay.py: "--live-facts" "relay 74: the cards' facts"
@@ -670,9 +673,10 @@ tools/test/flows.py: "packed and tagged pages" "relay 69: the page knows the own
 test/index.html: +aboutHtml +SITE_LINKS
 relay/serve.py: SOURCES ROUTESET FRESH_S SOURCE_GAP_S STALE_S NUM AIRCRAFT LEGACY _positions _fetch_lock rest_for
     aircraft /aircraft/ /adsblol/ /airplaneslive/ /routeset +main
+    HEX_SOURCES WHERE_NOW_S WHERE_LOL_MAX WHERE_GROUND_KM WHERE_AIR_KM _wherenow _hex_own _nearest_airport _hex_in _where_fetch where_now /wherenow
 docs/architecture.md: "adsb.lol (in reserve for its 500 a day"
 README.md: "Positions come from adsb.fi, adsb.lol and airplanes.live"
-tools/test/fakesrc.py: plane APRON along /ac/
+tools/test/fakesrc.py: plane APRON along /ac/ HEX_ASKED hex_plane /hex/ /hex/asked
 tools/test/smoke.py: "the test relay served no positions"
 changelog: source|adsb|airplanes\.live|avioadsb
 

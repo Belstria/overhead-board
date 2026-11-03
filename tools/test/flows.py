@@ -2797,6 +2797,54 @@ def live_hidden_checks(expect):
     expect("... a live request without a fix is stale as before (relay 72)", stale("", "pl=live&" + pc), True)
 
 
+def now_extras_checks(expect):
+    """Relay 109 (1.130): where an aircraft is now (/wherenow, to-do #300), the weather and local time at an airport
+    (/weather, #301), and the search's kept days (#307). The fake source answers for adsb.fi, adsb.lol and Open-Meteo:
+    a hex whose number divides by three flies over Serbia, one more stands in Dubai, the rest aren't seen."""
+    fake = f"http://127.0.0.1:{int(BASE.rsplit(':', 1)[1]) - 1}"
+    asked = lambda: json.loads(urllib.request.urlopen(fake + "/hex/asked", timeout=5).read())     # noqa: E731
+
+    def get(path, ck="test-device"):
+        for _ in range(20):                    # the airport list may still be loading after the start (503)
+            st, h, b = call(path, ck)
+            if st != 503:
+                return st, h, b
+            time.sleep(0.5)
+        return st, h, b
+    js = lambda r: json.loads(r[2]) if r[0] == 200 else {"status": r[0]}                          # noqa: E731
+    expect("/wherenow without a proper hex", get("/wherenow?hex=12345")[0], 400)
+    expect("/wherenow for strangers", call("/wherenow?hex=0000f3")[0] in (401, 403), True)
+    a0 = asked()
+    expect("/wherenow in the air (state, country, height in ft)", {k: js(get("/wherenow?hex=0000f3")).get(k) for k in ("state", "cc", "alt")},
+           {"state": "air", "cc": "RS", "alt": 37100})
+    expect("/wherenow on the ground (at the airport nearest)", js(get("/wherenow?hex=0000f4")),
+           {"hex": "0000f4", "state": "ground", "code": "DXB", "city": "Dubai", "cc": "AE"})
+    expect("/wherenow not seen", js(get("/wherenow?hex=0000f5")), {"hex": "0000f5", "state": "none"})
+    a1 = asked()
+    expect("... each asked of adsb.fi once, adsb.lol never", (a1["fi"] - a0["fi"], a1["lol"] - a0["lol"]), (3, 0))
+    r = get("/wherenow?hex=0000f3")
+    expect("... kept a minute (no new call; the browser keeps it a minute too)", (asked()["fi"] - a1["fi"], r[1].get("Cache-Control")), (0, "private, max-age=60"))
+    call("/aircraft/48.2085/16.3731/25", "test-device")          # a plane a screen has just been shown: from those positions
+    a2 = asked()
+    expect("/wherenow of a plane in the relay's own positions", js(get("/wherenow?hex=440a01", "owner-device")).get("state"), "air")
+    expect("... without asking adsb.fi", asked()["fi"] - a2["fi"], 0)
+
+    expect("/weather without a code", get("/weather?ap=12")[0], 400)
+    m0 = asked()["meteo"]
+    w = js(get("/weather?ap=ATH,VIE,FRA"))
+    expect("/weather: two airports at most, each with its temperature, time zone and offset",
+           {k: (v.get("tz"), v.get("off"), isinstance(v.get("t"), (int, float))) for k, v in w.items()},
+           {"ATH": ("Europe/Athens", 7200, True), "VIE": ("Europe/Vienna", 3600, True)})
+    expect("... one call each", asked()["meteo"] - m0, 2)
+    get("/weather?ap=VIE,ATH")
+    expect("... kept an hour", asked()["meteo"] - m0, 2)
+    expect("/weather of an airport the list lacks", js(get("/weather?ap=XXX")), {})
+
+    # the search's kept days give the same answers as reading them (the first search reads, the next ones keep)
+    s1, s2 = js(get("/search?q=A320")), js(get("/search?q=A320"))
+    expect("/search kept days: the same answer twice", (s1.get("total"), s1.get("rows")) == (s2.get("total"), s2.get("rows")), True)
+
+
 def checks():
     bad = []
 
@@ -2805,6 +2853,7 @@ def checks():
             bad.append(f"{what}: got {got}, expected {want}")
 
     passport_checks(expect)
+    now_extras_checks(expect)
     ranks_checks(expect)
     showcase_checks(expect)
     school_checks(expect)

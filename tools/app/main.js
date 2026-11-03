@@ -594,9 +594,12 @@ function tlAgo(e){
 function tlCardHtml(e){
   const r = remarkFor(e), name = rowName(e), m = rowMarks(e), words = [m.status, m.flag, m.star].filter(Boolean);   // 1.115: the row's pill and marks, by name
   const chips = words.length ? words.map(chipHtml).join("") : chipHtml(r);
+  const end = (p, k) => { const x = routeEnd(p, k), c = nowOk() && code3(p); return c && /^[A-Z]{3}$/.test(c) ? [...x, `<small class="cWx" data-wx="${c}">${escH(wxText(c))}</small>`] : x; };
+  const hx = nowOk() && /^[0-9a-f]{6}$/i.test(e.hex || "") ? String(e.hex).toLowerCase() : "";
   const card = infoCard({pic: tlPic(e), picAttr: " data-full", title: name, sub: e.airline || (e.owner !== name ? e.owner || "" : ""), subAttr: e.airline ? " data-al" : "",
-    chip: chips, band: e.from || e.to ? [routeEnd(e.from, "from"), "", routeEnd(e.to, "to")] : e.done !== false ? noRoute(e) : null,
-    tiles: [["Aircraft", shortType(e.type), "", e.type ? " data-ty" : ""], ["Closest", distText(e.minDist)], ["Height", altText(e.altAtMin)]]});
+    chip: chips, band: e.from || e.to ? [end(e.from, "from"), "", end(e.to, "to")] : e.done !== false ? noRoute(e) : null,
+    tiles: [["Aircraft", shortType(e.type), "", e.type ? " data-ty" : ""], ["Closest", distText(e.minDist)], ["Height", altText(e.altAtMin)]],
+    afterTiles: hx ? `<div class="cTiles cWhere"><button type="button" class="cTile" data-wn="${hx}"><span>${escH(T("Where now"))}</span><b>${escH(wnText(hx))}</b></button></div>` : ""});
   const tier = TIER_NAME[rowTier(e)];                       // 1.122 (to-do #232): the rarity the bubble's colour shows, in words
   return `<div class="tlCard cardish">${'<i class="scr"></i>'.repeat(4)}<i class="tlBg"></i><p class="tlK"><span>${escH(e.time || "")} · <span data-ago>${escH(tlAgo(e))}</span>${tier ? ` · ${escH(T(tier))}` : ""}</span>` +
     `<button type="button" class="tlX" data-fold aria-label="${escH(T("Close"))}">${DD}</button></p>${card}</div>`;
@@ -627,7 +630,65 @@ function tlFill(L, html, open){
   else if (now) tlWire(now);
   L.dataset.card = sig;
 }
-const tlWire = li => { for (const im of li.querySelectorAll(".cPicW img")) im.onerror = () => picFailed(im, tlLate); };
+const tlWire = li => { for (const im of li.querySelectorAll(".cPicW img")) im.onerror = () => picFailed(im, tlLate); nowFill(li); };
+/* 1.130 (to-do #300, #301; relay 109): an opened card says where its aircraft is right now (Where now, under the three
+   boxes: "Over Serbia · 11,300 m", "On the ground · Dubai", "Not seen now"; "/" when the relay can't ask) and, under each
+   city of its route, the weather and local time there ("21° · 14:35 local"). Asked of the relay only for the card that
+   is open, kept a minute (where) and an hour (weather); the lines are there from the start ("···"), so nothing moves. */
+const nowOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 109;
+const wnMem = new Map(), wxMem = new Map();      // hex → {until, v, busy}; IATA → the same: v undefined until answered, null: unknown
+const nowDue = h => !h || (!h.busy && Date.now() >= h.until);
+function wnAsk(hx){
+  if (!nowDue(wnMem.get(hx))) return;
+  const h = wnMem.get(hx) || {};
+  wnMem.set(hx, {...h, busy: true});
+  fetchJSON(`${relay()}/wherenow?hex=${hx}`, {}, 12000).then(j => j, () => null).then(j => {
+    wnMem.set(hx, j ? {until: Date.now() + 6e4, v: j} : {until: Date.now() + 15e3, v: h.v !== undefined ? h.v : null});   // not answered: again in 15 s
+    nowFill(document);
+  });
+}
+function wxAsk(codes){
+  const ask = codes.filter(c => nowDue(wxMem.get(c)));
+  if (!ask.length) return;
+  for (const c of ask) wxMem.set(c, {...wxMem.get(c), busy: true});
+  fetchJSON(`${relay()}/weather?ap=${ask.join(",")}`, {}, 12000).then(j => j, () => null).then(j => {
+    for (const c of ask) {
+      const h = wxMem.get(c) || {};
+      wxMem.set(c, j ? {until: Date.now() + 36e5, v: j[c] || null} : {until: Date.now() + 15e3, v: h.v !== undefined ? h.v : null});
+    }
+    nowFill(document);
+  });
+}
+function wnText(hx){
+  const h = wnMem.get(hx), v = h && h.v;
+  if (!h || h.v === undefined) return "···";
+  if (!v) return NA;
+  const cc = v.cc ? countryName(v.cc, v.cc) : "";
+  if (v.state === "air") return [cc ? T("Over {country}", {country: cc}) : T("In the air"), altText(v.alt)].filter(Boolean).join(" · ");
+  if (v.state === "ground") return [T("On the ground"), v.city || cc].filter(Boolean).join(" · ");
+  return T("Not seen now");
+}
+function wxText(c){
+  const h = wxMem.get(c), v = h && h.v;
+  if (!h || h.v === undefined) return "···";
+  if (!v) return "";
+  let t = "";
+  try { t = new Date().toLocaleTimeString(LOC(), {hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: v.tz || "UTC"}); } catch {}
+  if (!t) { const d = new Date(Date.now() + (v.off || 0) * 1000); t = `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`; }
+  return T("{t}° · {time} local", {t: Math.round(v.t), time: t});
+}
+// The open cards' lines as they are now (the clock moves on), asking for what isn't there yet.
+function nowFill(root){
+  if (!nowOk() || !root || !root.querySelectorAll) return;
+  const wn = root.querySelectorAll("[data-wn]"), wx = root.querySelectorAll("[data-wx]");
+  for (const el of wn) {
+    const hx = el.dataset.wn, b = el.querySelector("b"), t = wnText(hx);
+    if (b && b.textContent !== t) b.textContent = t;
+    wnAsk(hx);
+  }
+  for (const el of wx) { const t = wxText(el.dataset.wx); if (el.textContent !== t) el.textContent = t; }
+  if (wx.length) wxAsk([...new Set([...wx].map(el => el.dataset.wx))]);
+}
 // A photo found late (Planespotters' answer, the model's picture): an open card takes it.
 function tlLate(){ if (tlOpenId.recent || tlOpenId.svList) { renderRecent(); renderToday(); } }
 function tlDone(){ if (!tlBusy() && tlAgain) { tlAgain = false; renderRecent(); renderToday(); } }
@@ -683,6 +744,7 @@ function renderRecent(){
   if (!open) tlOpenId.recent = "";
   const ago = open && L.querySelector("li.open [data-ago]"), agoT = open ? tlAgo(open) : "";
   if (ago && ago.textContent !== agoT) ago.textContent = agoT;
+  if (open) nowFill(L.querySelector("li.fl.open"));                     // 1.130: the local time moves on
   const sig = list.map(rowSig).join("~") + S.units + liveWaiting() + nfSig() + isOffline() + "|" + Math.floor(Date.now() / 9e5) + "|" + (open ? tlCardSig(open) : "");
   if (sig === recentSig) return;
   for (let i = 0; i < NOW_ROWS; i++) {           // the same, on flaps (the phone on its side)
@@ -986,6 +1048,7 @@ function renderToday(){
   if (!open) tlOpenId.svList = "";
   const ago = open && L.querySelector("li.open [data-ago]"), agoT = open ? tlAgo(open) : "";
   if (ago && ago.textContent !== agoT) ago.textContent = agoT;
+  if (open) nowFill(L.querySelector("li.fl.open"));                     // 1.130: the local time moves on
   const sig = svFilter + svQuery + S.units + allPlaces + liveWaiting() + "|" + Math.floor(Date.now() / 36e5) + "|" + (open ? tlCardSig(open) : "") + d.rows.map(rowSig).join("~");
   if (sig === svSig) return;
   const waiting = allPlaces && !(fullDay.all && fullDay.list);
@@ -1272,6 +1335,7 @@ function lblSync(d){
   if (tlBusy()) { tlAgain = true; return; }
   const ago = L.querySelector("li.open [data-ago]"), open = lbl.map.get(tlOpenId.svList);
   if (ago && open) { const t = tlAgo(open); if (ago.textContent !== t) ago.textContent = t; }
+  if (open) nowFill(L.querySelector("li.fl.open"));                     // 1.130: the local time moves on
   if (!L.classList.contains("lbBack") || !lbl.drawn || lblShown().length !== lbl.shown) {
     const fromToday = !L.classList.contains("lbBack") && !!L.querySelector(":scope > .lbDay");   // 1.129.1: Today's own headline is there already: the row in view stays where it is
     lblDraw(!fromToday && (lbl.grow || !L.classList.contains("lbBack")));
@@ -1429,19 +1493,56 @@ function lbFindSetup(){
     `placeholder="${escH(T((window.OVERHEAD_RELAY_VERSION || 0) >= 63 ? "Search, e.g. OE-LBN, A380, Santorini" : "Search, e.g. OE-LBN, A380, OS 802"))}" aria-label="${escH(T("Search the logbook"))}">` +
     `<button type="button" data-qx aria-label="${escH(T("Clear"))}" hidden>×</button></span>`;
   const inp = box.querySelector("[data-q]"), x = box.querySelector("[data-qx]");
-  const set = v => { lbQuery = v; x.hidden = !v; clearTimeout(lbFindT); lbFindT = setTimeout(lbFind, v ? 350 : 0); };
+  const set = v => { lbQuery = v; x.hidden = !v; clearTimeout(lbFindT); lbFindT = setTimeout(lbFind, v ? 350 : 0); if (!v) lbLastNew = true; lbLastSync(); };
   inp.oninput = () => set(inp.value.trim());
   x.onclick = () => { ctlSound.click(); inp.value = ""; set(""); inp.focus(); };
+  inp.onfocus = lbLastSync;
+  inp.onblur = () => setTimeout(lbLastSync, 300);         // after a chip's tap has landed
+  lbFindSet = v => { lbLastNew = true; inp.value = v; set(v); };
 }
+/* 1.130 (to-do #302): the last three searches as chips (the search's own .lbfChip) under the search while it is empty
+   and has the focus; one tap searches again, typing hides them. Kept on this phone per profile. Typing on refines the
+   newest ("A3", "A38", "A380" keep only "A380"); clearing the box, or a chip, starts a new one. */
+const LBQ_KEY = "od.lbq." + (GUEST ? GUEST.id : "local");
+let lbLastNew = true, lbFindSet = null;
+function lbLastGet(){
+  try { const a = JSON.parse(localStorage.getItem(LBQ_KEY) || "[]"); return Array.isArray(a) ? a.filter(q => typeof q === "string" && q).slice(0, 3) : []; }
+  catch { return []; }
+}
+function lbLastAdd(q){
+  q = String(q || "").trim().slice(0, 60);
+  if (q.replace(/[\s-]/g, "").length < 2) return;
+  const a = lbLastGet(), lq = q.toLowerCase(), rest = (lbLastNew ? a : a.slice(1)).filter(x => x.toLowerCase() !== lq);
+  lbLastNew = false;
+  try { localStorage.setItem(LBQ_KEY, JSON.stringify([q, ...rest].slice(0, 3))); } catch {}
+}
+function lbLastSync(){
+  const out = $("lbFound"), inp = $("lbFindBox") && $("lbFindBox").querySelector("[data-q]");
+  if (!out || !inp) return;
+  if (lbQuery.replace(/[\s-]/g, "").length >= 2) {        // a search on show (or on its way) keeps the box
+    if (out.querySelector(".lbfLast")) { out.innerHTML = ""; out.hidden = true; }
+    return;
+  }
+  const a = document.activeElement === inp && !inp.value ? lbLastGet() : [];
+  out.hidden = !a.length;
+  out.innerHTML = a.length ? `<p class="lbfRead lbfLast">${a.map(q => `<button type="button" class="lbfChip" data-lq="${escH(q)}">${escH(q)}</button>`).join("")}</p>` : "";
+}
+document.addEventListener("click", e => {
+  const b = e.target && e.target.closest && e.target.closest("#lbFound [data-lq]");
+  if (!b || !lbFindSet) return;
+  ctlSound.click();
+  lbFindSet(b.dataset.lq);
+});
 async function lbFind(){
   const out = $("lbFound"), on = lbQuery.replace(/[\s-]/g, "").length >= 2, tok = ++lbFindTok;
   $("t-logbook").classList.toggle("finding", on); out.hidden = !on;
-  if (!on) { out.innerHTML = ""; return; }
+  if (!on) { out.innerHTML = ""; lbLastSync(); return; }
   out.innerHTML = `<p class="lbfHead">${escH(T("Searching …"))}</p>`;
   let j;
   try { j = await fetchJSON(`${relay()}/search?q=${encodeURIComponent(lbQuery)}`, {}, 10000); }
   catch { if (tok === lbFindTok) out.innerHTML = `<p class="sum">${escH(T("The search didn't answer. Try again."))}</p>`; return; }
   if (tok !== lbFindTok) return;
+  lbLastAdd(lbQuery);                                     // 1.130: answered, so kept among the last searches
   const when = t => t ? fmtDay(t) : "", time = t => t ? hhmm(new Date(t)) : "";
   lbFoundRows = j.rows;
   const pill = (k, i, t) => t ? `<button class="cLink" type="button" data-fp="${k}" data-fi="${i}">${escH(t)}</button>` : "";
@@ -5591,6 +5692,8 @@ document.addEventListener("click", e => {
   const al = e.target.closest("[data-al]"), pl = e.target.closest("[data-pl]"), ty = e.target.closest("[data-ty]");
   if (al) return airlineCard(x);
   if (ty) return typeCard(x);
+  if (e.target.closest("[data-wn]")) { ctlSound.nav(); return plateSheet(T("Where now"), `<p class="sum">${escH(T("Where this aircraft is now, from the free tracking networks"))}</p>` +
+    `<p class="sum">${escH(T("The country it flies over or the airport it stands at; Not seen now when they can't hear it"))}</p>`); }
   if (pl) return placeCard(x[pl.dataset.pl]);
   if (e.target.closest("[data-full]") && !e.target.closest("a")) planeCard(sightPlane(x));
 }, true);

@@ -106,7 +106,9 @@ def run(a, tmp, procs):
              ("https://nominatim.openstreetmap.org", FAKE + "/nominatim"),
              ("https://raw.githubusercontent.com/vradarserver/standing-data/main/airlines/schema-01/airlines.csv", FAKE + "/airlines.csv"),
              ("https://raw.githubusercontent.com/vradarserver/standing-data/main/routes/schema-01", FAKE + "/vrs-routes"),   # relay 106
-             ("https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/airports.csv", FAKE + "/airports.csv")]
+             ("https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/airports.csv", FAKE + "/airports.csv"),
+             ("https://opendata.adsb.fi/api/v2/hex", FAKE + "/hex/fi"), ("https://api.adsb.lol/v2/hex", FAKE + "/hex/lol"),   # relay 109
+             ("https://api.open-meteo.com/v1/forecast", FAKE + "/meteo")]
     if not a.live_photos:
         fakes.append(("https://api.planespotters.net/pub/photos", FAKE + "/ps/pub/photos"))
     if not a.live_facts:                  # relay 74: the cards' facts from the fake's few pages
