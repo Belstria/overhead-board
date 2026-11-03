@@ -448,11 +448,12 @@ function rollDay(){
   spotted = S.demo ? demoLog() : []; renderLists();
 }
 //@E15
+const sightUrl = () => `${relay()}/sightings?over=${overKm()}&deg=${OVER_DEG}${apiWanted() ? "&api=1" : ""}${sightPlaceQ()}`;
 async function syncSightings(){
   if (sightBusy || !relayV5()) return;
   sightBusy = true;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}&deg=${OVER_DEG}${apiWanted() ? "&api=1" : ""}${sightPlaceQ()}`, {}, 8000);
+    const url = sightUrl(), j = await early(url, () => fetchJSON(url, {}, 8000));      // 1.129.21: maybe asked as the page started
     if (j.fr24 === false) apiOff();
     const first = sightRev === null;
     spotted = (j.entries || []).map(fromRelay);
@@ -6277,12 +6278,18 @@ function nvGoing(){
 }                          // the board's notice (with the patch notes); no reload while Settings is open
 NV.busy = () => tab === "settings";
 async function start(){
-  try {
-    await Promise.race([
-      Promise.all(["700 40px", "600 20px", "400 40px"].map(s => document.fonts.load(`${s} ${(THEMES[S.theme] || THEMES.classic).font}`))),
-      new Promise(r => setTimeout(r, 1200))      // not long: the board shouldn't wait for a slow font
-    ]);
-  } catch {}
+  // 1.129.21: the first positions and today's list are asked for now, while the fonts load and the tabs are built; run()
+  // takes the answers (the plane was on the flaps about a fifth of a second later). The last known board still shows first.
+  // The fonts are asked for first.
+  const fonts = Promise.race([
+    Promise.all(["700 40px", "600 20px", "400 40px"].map(s => document.fonts.load(`${s} ${(THEMES[S.theme] || THEMES.classic).font}`))),
+    new Promise(r => setTimeout(r, 1200))      // not long: the board shouldn't wait for a slow font
+  ]);
+  if (located() && !S.demo && relay() && !relayLegacy) {
+    earlyAsk(aircraftUrl(), () => xhrRead(aircraftUrl()));
+    if (relayV5()) earlyAsk(sightUrl(), () => fetchJSON(sightUrl(), {}, 8000));
+  }
+  try { await fonts; } catch {}
   pickLang();
   for (const el of document.querySelectorAll("[data-t]")) el.textContent = T(el.dataset.t);
   for (const el of document.querySelectorAll("[data-ta]")) el.setAttribute("aria-label", T(el.dataset.ta));   // 1.114.5: fixed labels

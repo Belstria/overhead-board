@@ -2838,6 +2838,25 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `tlMillRule`, `tlMillDiv`, `lbIn` for the screws) cut the recess in over the app's own opening, ending about 0.55 s after the tap; `tlFold` drops the
   class before the card fades so the moved element doesn't replay it. Checked at 390 and 360 px: no photo, a helicopter without route, a special plane, a
   favourite, long names (the tiles lost their 6 px gaps, so a type is cut no harder), daylight, Realistic look off.
+- 1.129.21 (to-dos #303–#306, from the 3 Nov performance research; test board and app, no relay change): **Four performance gains.** Measured in headless
+  Chromium against the test relay, CPU throttled through CDP (4× a mid-range phone, 6× the Fire TV board), before and after in the same runs.
+  *Radar (#303):* `paintRadar` draws the sweep with one cone gradient (`radarSweep`; the 28 wedges stay where a canvas lacks `createConicGradient`, e.g.
+  older TV browsers) and the dial's still parts in two cached layers (`radarLayer`, `radarLayers`): "under" the planes (overhead circle, cross, rings,
+  dashed radius, runways with the one in use, the airport's code; drawn without the clip and copied inside it, so the clip's edge applies once) and
+  "over" them (rim, glass, N E S W, your place, engraved range and map credit). A layer's key holds the canvas size and transform, `document.fonts.status`
+  and everything it draws from (range, centre, styles' colours, the runways in use, …); pinching (`radar.live`) and a context without `getTransform`
+  draw straight on. Ring labels and `radar.apBox` are still worked out each frame. Pixel check (same frame, same planes, old vs new `paintRadar` in one
+  page): at most 5 levels of 255 apart, mostly the wedges' steps that became a smooth fade. Radar tab 783 → 375 ms/s at 4×, the TV radar 457 → ~300
+  at 6×. *First plane (#304):* the app's `start()` asks the fonts first, then sends the first `/aircraft` (by `xhrRead`, an XMLHttpRequest: its answer
+  arrives read in one task, where fetch's headers and body each waited for one of the start-up's first frames) and `/sightings` (`sightUrl`); `early(url,
+  make)` in `getAircraft` and `syncSightings` takes such an answer once, within 15 s, if the URL is the same (`earlyKey` ignores a live location's
+  `&fix=` age). `aircraftUrl()` and `acRead` came out of `getAircraft`. Live data handled 754 → 590 ms after opening (warm), 1,342 → 1,234 ms (cold;
+  150 ms round trip, 10 Mbit/s). *Smaller update (#305):* `tools/app/build.py` writes the app through `tools/app/strip.py` (comments out of the inline
+  scripts, the CSS and the HTML; nothing renamed, line breaks between code kept for automatic semicolons); `--keep-comments` writes it with them.
+  `tools/test/strip_check.py` (in `smoke.py --syntax`) builds it with comments too and compares every script token by token with espree, line breaks
+  included. 1.39 MB → 1.14 MB, gzipped 446 → 339 KB (−24%). `codemap.py --build` looks for a block's first line of code in the app. *Tip ring
+  (#306):* `tipNext` places the ring when the tip shows, on resize and on scroll (capture), and checks once a second whether its element (or the bubble)
+  moved, instead of every frame; on `WEAK_TV`/`LITE()` the ring gets `.still` (no `tipPulse`, the glow held). TV board at 6× with a tip: 618 → ~40 ms/s.
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 
