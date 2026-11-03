@@ -258,7 +258,7 @@ def(TODAYP, "stPlanes",   {kind:"chars", n:4, dur:70, drum:DRUM_DIGIT, align:"ri
 def(TODAYP, "stAirlines", {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Airlines",""]});
 def(TODAYP, "stTypes",    {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Types","Typen"]});
 def(TODAYP, "stOver",     {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Overhead",""]});
-placeRow(["stPlanes", "stAirlines", "stTypes", "stOver"], [1.3, 1.3, 1.3], 18, 21.5, 1.3, UM);
+placeRow(["stPlanes", "stOver", "stTypes", "stAirlines"], [1.3, 1.3, 1.3], 18, 21.5, 1.3, UM);
 //@L:engine2
 //@E3
 /* ---------- drawing a flap, mid-flip or at rest ---------- */
@@ -448,11 +448,12 @@ function rollDay(){
   spotted = S.demo ? demoLog() : []; renderLists();
 }
 //@E15
+const sightUrl = () => `${relay()}/sightings?over=${overKm()}&deg=${OVER_DEG}${apiWanted() ? "&api=1" : ""}${sightPlaceQ()}`;
 async function syncSightings(){
   if (sightBusy || !relayV5()) return;
   sightBusy = true;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}&deg=${OVER_DEG}${apiWanted() ? "&api=1" : ""}${sightPlaceQ()}`, {}, 8000);
+    const url = sightUrl(), j = await early(url, () => fetchJSON(url, {}, 8000));      // 1.129.21: maybe asked as the page started
     if (j.fr24 === false) apiOff();
     const first = sightRev === null;
     spotted = (j.entries || []).map(fromRelay);
@@ -611,6 +612,7 @@ const SCR2 = '<i class="scr"></i><i class="scr"></i>';
 // The empty list: why, on the rail (the newest-first line it will be)
 const tlState = (head, title, text, find) => `<li class="tg">${SCR2}<b>${escH(head)}</b></li><li class="st${find ? " find" : ""}">${SCR2}${title ? `<b>${escH(title)}</b>` : ""}${escH(text)}</li>`;
 const tlFinding = () => tlState(T("Now"), T("Finding where you are …"), T("The planes show once live location has found you."), true);
+const tlOffline = () => tlState(T("Now"), T("Offline · retrying"), "");   // 1.129.19: not "nothing spotted" when there is no flight data
 const tlNothing = () => tlState(T("Today"), T("Nothing spotted yet"), T("Every plane that comes within {n} km joins this line, the newest on top.", {n: +S.radiusKm || 15}));
 const tlOpenId = {recent: "", svList: ""};      // each list's open card (one at a time)
 let tlTok = 0, tlRunning = 0, tlCap = 0, tlAgain = false;       // the last tap; openings and foldings under way (a redraw waits for them)
@@ -672,7 +674,7 @@ function renderRecent(){
   const all = today.concat(prev || []), list = all.slice(0, 8), L = $("recent");
   // 1.95: the heading counts the last hour; the link at the end goes to Today, with the whole day's count
   const hour = all.filter(e => Date.now() - (e.ts || 0) < 36e5).length, day = Math.max(today.length, spotted.length >= 400 && relayStats ? relayStats.planes || 0 : 0);
-  const head = all.length ? T(hour ? "{n} in the last hour" : "None in the last hour", {n: nf.format(hour)}) : "", link = T(day === 1 ? "1 plane today ›" : "All {n} planes today ›", {n: nf.format(day)});
+  const head = all.length && !(hour === 0 && isOffline()) ? T(hour ? "{n} in the last hour" : "None in the last hour", {n: nf.format(hour)}) : "", link = T(day === 1 ? "1 plane today ›" : "All {n} planes today ›", {n: nf.format(day)});
   if ($("recentN").textContent !== head) $("recentN").textContent = head;
   if ($("recentAll").textContent !== link) $("recentAll").textContent = link;
   $("recentFoot").hidden = !today.length;
@@ -681,7 +683,7 @@ function renderRecent(){
   if (!open) tlOpenId.recent = "";
   const ago = open && L.querySelector("li.open [data-ago]"), agoT = open ? tlAgo(open) : "";
   if (ago && ago.textContent !== agoT) ago.textContent = agoT;
-  const sig = list.map(rowSig).join("~") + S.units + liveWaiting() + "|" + Math.floor(Date.now() / 9e5) + "|" + (open ? tlCardSig(open) : "");
+  const sig = list.map(rowSig).join("~") + S.units + liveWaiting() + nfSig() + isOffline() + "|" + Math.floor(Date.now() / 9e5) + "|" + (open ? tlCardSig(open) : "");
   if (sig === recentSig) return;
   for (let i = 0; i < NOW_ROWS; i++) {           // the same, on flaps (the phone on its side)
     const e = list[i], d = i * 150, id = c => `nl${i}${c}`;
@@ -695,8 +697,47 @@ function renderRecent(){
   }
   if (tlBusy()) { tlAgain = true; return; }
   recentSig = sig;
-  tlFill(L, list.length ? tlHtml(list, tlOpenId.recent, true) : liveWaiting() ? tlFinding() : tlNothing(), open);
+  tlFill(L, list.length ? tlHtml(list, tlOpenId.recent, true) : liveWaiting() ? (liveLost() ? tlNoFix() : tlFinding()) : isOffline() ? tlOffline() : tlNothing(), open);
 }
+/* 1.129.20 (to-do #296, Dave's pick C, with the profile's places): live location without a position (liveLost) says why
+   on Recent flights' plate, one line, and offers a way out: the place before live location (Home, liveStop) and the
+   saved places, as Settings → Location lists them (one: a key with its name; more: Pick a place opens them as a list;
+   none: Pick a place opens Settings → Location), and Try again (live location starts looking again). A place turns
+   live location off. */
+const NOFIX = {still: ["Still looking", "Indoors, or location is off."], deny: ["Not allowed", "Allow location in the site settings."],
+  unav: ["Not available", "Turn location on, or step outside."], off: ["Location off", "Turn it on in the quick settings."],
+  approx: ["Not precise", "Allow precise location in the site settings."]};
+// The places to choose from: {name, sub, go}; the place before live location first, unless a saved place is the same spot.
+function nfPlaces(){
+  const was = S.livePrev && typeof S.livePrev === "object" ? S.livePrev : null, list = placesRelay() ? places.list || [] : [];
+  const out = list.map(p => ({name: p.k, sub: [p.n !== p.k ? p.n : "", p.home].filter(Boolean).join(" · "), go: () => { delete S.livePrev; usePlace(p); }}));
+  if (was && !was.k && was.lat != null && located() && !list.some(p => placeAt(p, was.lat, was.lon)))
+    out.unshift({name: T("Home"), sub: [was.n, was.home].filter(Boolean).join(" · "), go: liveStop});
+  return out;
+}
+const nfSig = () => liveLost() ? liveWhy() + nfPlaces().map(p => p.name).join("\n") : "";
+function tlNoFix(){
+  const w = liveWhy(), [what, line] = NOFIX[w], pl = nfPlaces(), android = !!(window.OverheadAndroid && window.OverheadAndroid.locate);
+  const help = w === "deny" && android ? "Allow location in the app's settings." : line;
+  const key = pl.length === 1 ? T("Use {place}", {place: pl[0].name}) : T("Pick a place");
+  return `<li class="tg">${SCR2}<b>${escH(T("Now"))}</b></li><li class="st find nofix">${SCR2}<b>${escH(T("No position · {why}", {why: T(what)}))}</b>${escH(T(help))}` +
+    `<span class="nfKeys"><button class="cBtn hot" type="button" data-nf="place">${escH(key)}</button><button class="cBtn" type="button" data-nf="again">${escH(T("Try again"))}</button></span></li>`;
+}
+$("recent").addEventListener("click", e => {
+  const b = e.target.closest("[data-nf]");
+  if (!b) return;
+  e.stopPropagation();
+  if (b.dataset.nf === "again") { ctlSound.click(); if (S.live && liveOk()) { liveRun(); liveShow(); } return; }
+  const pl = nfPlaces();
+  if (!pl.length) return setOpen("loc");
+  if (pl.length === 1) { ctlSound.click(); return pl[0].go(); }
+  ctlSound.nav();
+  cardOpen(`<div class="lbIn">${secPlate(T("Pick a place"), `<div class="pickList">` + pl.map((p, i) =>
+    `<button class="cBtn" type="button" data-nfp="${i}"><b>${escH(p.name)}</b>${p.sub ? `<small>${escH(p.sub)}</small>` : ""}</button>`).join("") + `</div>`)}</div>`, ci => {
+    ci.classList.add("tdSheet", "lbSheet");
+    for (const x of ci.querySelectorAll("[data-nfp]")) x.onclick = () => { ctlSound.click(); cardClose(); if (S.live) pl[+x.dataset.nfp].go(); };
+  });
+});
 $("recentAll").onclick = () => { ctlSound.nav(); showTab("today"); };
 let shownPhoto = null;
 function renderAircraftInfo(){
@@ -839,7 +880,7 @@ function renderTodayNumbers(){
     tdSig = sig;
     $("tdPlate").hidden = false;
     const v = x => wait ? null : x;
-    $("tdPlate").innerHTML = lbPlateHtml(T("Today"), [[v(n.planes), "Planes"], [v(n.over), "Overhead"], [v(n.airlines), "Airlines"], [v(n.types), "Types"]], true);
+    $("tdPlate").innerHTML = lbPlateHtml(T("Today"), [[v(n.planes), "Planes"], [v(n.over), "Overhead"], [v(n.types), "Types"], [v(n.airlines), "Airlines"]], true);
   }
   lbStripSync();
 }
@@ -1431,7 +1472,7 @@ function catOpenHtml(k){
     .map(([v, l]) => `<button type="button" data-cv="${v}" aria-pressed="${lbCatView === v}">${escH(T(l))}</button>`).join("") + `</div>`;
   const list = d[lbCatView] || [];
   const row = (x, i) => lbCatView === "types" ? `<button type="button" class="catRow" data-ct="${escH(x.code)}" data-cn="${escH(x.name)}"><span>${i + 1}</span>${escH(typeLabel(x.code, x.name))}<b>${nf.format(x.n)}</b></button>`
-    : lbCatView === "regs" ? `<button type="button" class="catRow" data-cr="${escH(x.reg)}"><span>${i + 1}</span>${escH(x.reg)}${x.type ? ` · ${escH(x.type)}` : ""}<b>${nf.format(x.n)}</b></button>`
+    : lbCatView === "regs" ? `<button type="button" class="catRow" data-cr="${escH(x.reg)}"><span>${i + 1}</span>${escH(x.reg)}${x.type ? ` · ${escH(typeShown(x.type))}` : ""}<b>${nf.format(x.n)}</b></button>`
     : `<button type="button" class="catRow" data-co="${escH(x.icao || "")}" data-cn="${escH(x.name)}" data-ci="${escH(x.iata || "")}"><span>${i + 1}</span>${escH((AIRLINES[x.icao] || [])[1] || x.name)}<b>${nf.format(x.n)}</b></button>`;
   return `<li class="catSub">${seg}${list.length ? list.map(row).join("") : `<p class="sum">${escH(T("Nothing here yet."))}</p>`}</li>`;
 }
@@ -2401,7 +2442,7 @@ function hangarLoad(){
   fetchJSON(`${relay()}/game/hangar`, {}, 12000).then(j => { hangar = j; renderGame(); if (hgWant && Date.now() - hgWant < 15000) requestAnimationFrame(hgShow); }).catch(() => { hangarAt = Date.now() - 4 * 60000; });
 }
 // 1.129.17 (to-do #299): a type's name as the Logbook's rows say it (A320neo, not A20N); the code only for one nobody has a name for
-const typeShown = (code, name) => shortType(typeLabel(code, name));
+const typeNamed = (code, name) => shortType(typeLabel(code, name));
 // 1.82.2: names as the app's table has them (the relay's are "AIRBUS A-320neo", which Wikipedia doesn't know), the relay's
 // as a second try; the model photo already found for them, else "".
 const hgNames = (code, name) => [...new Set([TYPES[code], name].map(n => String(n || "").trim()).filter(Boolean))];
@@ -2455,7 +2496,7 @@ function hangarHtml(hg){
   const by = new Map((hg.types || []).map(t => [t.code, t])), inSet = new Set((hg.sets || []).flatMap(s => s.types));
   const scanned = c => !!(by.get(c) && by.get(c).scans), seen = c => by.has(c) && !scanned(c);
   const card = (code, heli, eager) => {
-    const t = by.get(code), names = hgNames(code, t && t.name), name = typeShown(code, t && t.name), full = !!(t && t.scans);
+    const t = by.get(code), names = hgNames(code, t && t.name), name = typeNamed(code, t && t.name), full = !!(t && t.scans);
     const img = `<span class="hgPh${heli || SPECIAL_TYPES[code] === "HELICOPTER" ? " heli" : ""}" data-mp="${escH(names.join("|"))}"` +
       `${full ? ` data-own="${escH([t.thumb, t.photo].filter(Boolean).join(" "))}"` : ""}${eager ? ' data-e="1"' : ""}></span>`;
     if (!full) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img}<b>${escH(name)}</b><span>${escH(T(t ? "still to scan" : "still to find"))}</span>` +
@@ -2593,7 +2634,7 @@ function scPin(x, attr){
   const rt = x.route && x.route.length === 2 && x.route.every(Boolean) ? `${x.route[0]} → ${x.route[1]}` : "", tag = attr ? "button" : "div";
   return `<${tag}${attr ? ` type="button"${attr}` : ""} class="hgCard sc" data-scc="${escH(x.code)}" data-scn="${escH(x.name || "")}" style="--t:${TIER_COL[x.tier] || TIER_COL.uncommon}">` +
     (pic ? `<img src="${escH(pic)}" alt="">` : `<span class="hgPh"></span>`) +
-    `<span class="hgT"><em>${escH(T(TIER_NAME[x.tier] || "Uncommon"))}</em><b>${escH(typeShown(x.code, x.name))}</b>` +
+    `<span class="hgT"><em>${escH(T(TIER_NAME[x.tier] || "Uncommon"))}</em><b>${escH(typeNamed(x.code, x.name))}</b>` +
     (rt ? `<span class="scRt">${escH(rt)}</span>` : "") +
     `<span>${escH([x.airline || x.flight, x.ts ? scDate(x.ts) : ""].filter(Boolean).join(" · "))}</span></span></${tag}>`;
 }
@@ -2675,7 +2716,7 @@ function recordsHtml(all, g0, part){
   let html = "";
   const r = all.records;
   if (part !== "bingo" && r && (r.closest || r.lowest || r.fastest || r.farthest)) {           // lifetime records (relay 28; the game's since relay 59)
-    const who = x => x.callsign || x.reg || x.type || "", p = r.farthest && r.farthest.place;
+    const who = x => x.callsign || x.reg || typeShown(x.type), p = r.farthest && r.farthest.place;
     const rows = [["Closest ever", r.closest, x => `${x.v < 10 ? x.v.toFixed(2) : Math.round(x.v)} km`], ["Lowest ever", r.lowest, x => altitudeStr(x.v).toLowerCase()],
       ["Fastest ever", r.fastest, x => speedStr(x.v).toLowerCase()], ["Farthest route", r.farthest, x => `${p ? p.code || p.city : ""} · ${nf.format(x.v)} km`]].filter(x => x[1]);
     html += secPlate(T("Records"), rank(rows.map(([en, x, val]) => li(T(en), val(x), [who(x), x.ts ? fmtDay(x.ts) : ""].filter(Boolean).join(" · "))), true));
@@ -2838,18 +2879,18 @@ function periodHtml(){
   const arrows = `<span class="perArr"><button class="cBtn" type="button" data-pb="1" aria-label="${escH(T("Earlier"))}">◀</button>` +
     `<button class="cBtn" type="button" data-pb="-1" aria-label="${escH(T("Later"))}"${onBack ? "" : " disabled"}>▶</button></span>`;
   const r = per === "year" ? yearReview(yearData && yearData.year === yr ? yearData : null) : reviewData(), f = reviewFacts(r || {}), nt = r ? reviewNewTypes(r) : "";
-  const nums = list => `<div class="yNums">` + list.map(([k, l]) => `<div><b>${r ? nf.format(r[k] || 0) : "–"}</b><span>${escH(T(l))}</span></div>`).join("") + `</div>`;
+  const nums = (list, x = "") => `<div class="yNums${x}">` + list.map(([k, l]) => `<div><b>${r ? nf.format(r[k] || 0) : "–"}</b><span>${escH(T(l))}</span></div>`).join("") + `</div>`;
   const facts = list => `<dl class="yFacts">` + list.map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v || "–")}</dd></div>`).join("") + `</dl>`;
   const csv = relay() && !S.demo && (window.OVERHEAD_RELAY_VERSION || 0) >= 29 ? `<div class="yActs"><a class="cBtn" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
     `<p class="sum">${escH(T("Every sighting as a spreadsheet, for a spotting app or Excel."))}</p>` : "";
   const title = per === "year" ? T("{y} in planes", {y: yr}) : T("{p} in planes", {p: reviewTitle()});
-  const body = nums(REVIEW_NUMS.slice(0, 3)) + facts(f.slice(0, 4)) +
+  const body = nums(REVIEW_NUMS.slice(0, 4)) + facts(f.slice(0, 4)) +
     `<div class="yActs"><button class="cBtn" type="button" id="${per === "year" ? "yShare" : "pShare"}"${r && r.planes ? "" : " disabled"}>${escH(T("Share"))}</button></div>` +
     `<ul class="idx perMore"><li><button type="button" data-pmore aria-expanded="${perMore}"><b>${escH(T(perMore ? "Less" : "More"))}</b><i aria-hidden="true">›</i></button></li></ul>` +
-    (perMore ? `<div class="perMoreIn">${r ? `<p class="sum">${escH(reviewSummary(r))}</p>` : ""}${nums(PER_MORE)}${facts(f.slice(4).concat([[T("New types"), nt]]))}${csv}</div>` : "");
+    (perMore ? `<div class="perMoreIn">${r ? `<p class="sum">${escH(reviewSummary(r))}</p>` : ""}${nums(PER_MORE, " yMore")}${facts(f.slice(4).concat([[T("New types"), nt]]))}${csv}</div>` : "");
   return secPlate(title, `<div class="perHead">${seg}${arrows}</div>${body}`, "perCard");
 }
-const PER_MORE = [["airframes", "Aircraft"], ["newTypeCount", "New types"], ["rare", "Rare"], ["countries", "Countries"], ["days", "Days"], ["points", "Points"]];
+const PER_MORE = [["newTypeCount", "New types"], ["rare", "Rare"], ["countries", "Countries"], ["days", "Days"], ["points", "Points"]];
 document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-pmore], #yCsv");
   if (!b) return;
@@ -2968,8 +3009,8 @@ function skyState(L){
   if (feat) skyFeatAt = Date.now();
   const game = gameOk();
   if (game && !S.live && liveOk()) return {k: "nolive"};
-  if (game && liveWaiting()) return {k: "finding"};
-  if (!feat) return {k: "none"};
+  if (game && liveWaiting()) return {k: liveLost() ? "nofix" : "finding"};      // 1.129.20: No position after 20 s or an error
+  if (!feat) return {k: isOffline() ? "offline" : "none"};   // 1.129.19: no flight data is not an empty sky
   const o = feat.o, ac = o && o.ac, hex = ac ? ac.hex : "", play = game && S.live && !!gme;
   if (play && ac && ac.alt_baro === "ground") return {k: "ground", hex};
   if (play && gScanGx(hex)) return {k: "done", hex, L};
@@ -3002,10 +3043,10 @@ function skyLookText(L){
   return !on ? T("{d} · {e}° up", {d: L.dir, e: L.up}) : Math.abs(d) <= 8 ? T("Ahead · {e}° up", {e: L.up}) : T(d > 0 ? "Right · {e}° up" : "Left · {e}° up", {e: L.up});
 }
 const skyPut = (el, t) => { if (el.textContent !== t) el.textContent = t; };
-const SKY_DIM = ["away", "passing", "none", "ground", "finding", "far", "nopos", "noheight"];
+const SKY_DIM = ["away", "passing", "none", "offline", "ground", "finding", "nofix", "far", "nopos", "noheight"];
 const SKY_WORDS = {in: ["Scan", "In range"], closing: ["Scannable in", "{n} km"], passing: ["Closest pass", "{n} km"], away: ["Moving away", "{n} km"],
-  done: ["Scan", "✓ Scanned"], none: ["Sky view", "No planes around"], off: ["Look", ""], ground: ["Scan", "On the ground"],
-  nolive: ["Scan needs", "Live location"], finding: ["Live location", "Finding you"], far: ["Too far", "{n} km"],
+  done: ["Scan", "✓ Scanned"], none: ["Sky view", "No planes around"], offline: ["Sky view", "Offline · retrying"], off: ["Look", ""], ground: ["Scan", "On the ground"],
+  nolive: ["Scan needs", "Live location"], finding: ["Live location", "Finding you"], nofix: ["Live location", "No position"], far: ["Too far", "{n} km"],
   nopos: ["Position", "Not in yet"], noheight: ["Height", "Not in yet"]};
 function drawLook(){
   lookRaf = 0;
@@ -3015,7 +3056,7 @@ function drawLook(){
   if (!L && feat && lookWhy && lookWhyLogged !== feat.hex + lookWhy) { lookWhyLogged = feat.hex + lookWhy; dlog(/^error/.test(lookWhy) ? "warn" : "debug", `Where to look: none for ${planeName(feat, feat.o.ac)} (${lookWhy})`); }
   const box = $("look");
   // A moment without a plane between two isn't "no planes"
-  const held = !feat && skyMem.s && skyMem.k !== "none" && Date.now() - skyFeatAt < 3000;
+  const held = !feat && skyMem.s && skyMem.k !== "none" && skyMem.k !== "offline" && Date.now() - skyFeatAt < 3000;
   const s = held ? skyMem.s : skyState(L), K = s.k, fresh = K !== skyMem.k || s.hex !== skyMem.hex;
   const num = held ? skyMem.num : skyNum(s, fresh);
   skyMem.k = K; skyMem.hex = s.hex; skyMem.s = s;
@@ -3033,7 +3074,7 @@ function drawLook(){
   if (lk && (fresh || Date.now() - skyMem.lookAt >= 1000)) { skyMem.lookAt = Date.now(); skyPut($("skyLkV"), skyLookText(s.L)); }
   const key = $("arBtn");
   key.hidden = !arPossible() && K !== "nolive";
-  key.classList.toggle("hot", K === "in" || K === "nolive"); key.classList.toggle("off", K === "finding");
+  key.classList.toggle("hot", K === "in" || K === "nolive"); key.classList.toggle("off", K === "finding" || K === "nofix");
   key.querySelector(".skyIco").style.display = K === "nolive" ? "none" : "";
   skyPut($("skyKeyT"), T(K === "nolive" ? "Go live" : "Sky view"));
   // 1.73.1: the heading tape: with the compass the directions slide as the phone turns; without it, centred on the plane
@@ -3056,6 +3097,7 @@ function skyOpen(k){
     ground: () => ["Scan", T("Only planes in the air can be scanned"), T("Once it has taken off, this row says how far it is")],
     nolive: () => ["Scan needs", T("Scans count from where you are, so the app has to follow your location"), T("Go live, and this row says how far the plane still has to come")],
     finding: () => ["Live location", T("Your phone is finding where you are"), T("The planes near you show once it has")],
+    nofix: () => ["Live location", T("Your phone hasn't found where you are"), T("Recent flights says why, with your places and Try again")],
     far: () => ["Too far", T("This plane is more than 80 km away, too far to look for yet"), T("The direction comes once it's within 80 km")],
     nopos: () => ["Position", T("This plane's position hasn't come in yet, or doesn't add up"), T("The direction comes with the next good one")],
     noheight: () => ["Height", T("This plane hasn't sent its height, so how high to look can't be worked out"), T("The direction comes with its first height")]}[k]();
@@ -3669,7 +3711,7 @@ function arLoop(){
   const card = $("arCard"), lift = snap && !card.hidden && !arFull && arP === 0 ? card.offsetHeight + 4 : 0;
   if (lift !== arLift) { arLift = lift; $("arView").style.setProperty("--ar-lift", lift + "px"); }
   // 1.114.6: written only when it changes (every frame, it cost two layouts a frame)
-  const count = inView.length + outs.length ? T("{n} around", {n: inView.length + outs.length}) : T("No planes nearby");   // 1.121: one number
+  const count = inView.length + outs.length ? T("{n} around", {n: inView.length + outs.length}) : isOffline() ? T("Offline · retrying") : T("No planes nearby");   // 1.121: one number
   if ($("arCount").textContent !== count) $("arCount").textContent = count;
   const moved = Math.abs(arOff.h) > .5 || Math.abs(arOff.p) > .5;
   if ($("arAlign").classList.contains("moved") !== moved) $("arAlign").classList.toggle("moved", moved);   // 1.72.7: the labels were moved
@@ -4210,7 +4252,7 @@ function arAroundOpen(){
     (v ? `<em class="arInV">${escH(T("in view"))}</em> · ` : "") + `${escH([arType(s.ac), distText(s.d / 1000) + " " + T(DIR8[Math.round(s.az / 45) % 8])].filter(Boolean).join(" · "))}</small></button></li>`;
   const rows = inView.map(s => row(s, true)).concat(outs.map(s => row(s, false)));
   cardOpen(`<div class="cHead"><div><h3>${escH(T("Planes around"))}</h3><span>${escH($("arCount").textContent)}</span></div></div>` +
-    (rows.length ? `<ul class="idx arAround">${rows.join("")}</ul>` : `<p class="note">${escH(T("No planes around right now"))}</p>`), ci => {
+    (rows.length ? `<ul class="idx arAround">${rows.join("")}</ul>` : `<p class="note">${escH(isOffline() ? T("Offline · retrying") : T("No planes around right now"))}</p>`), ci => {
     for (const b of ci.querySelectorAll("[data-ahex]")) b.onclick = () => { cardClose(); arSel = b.dataset.ahex; arFull = true; ctlSound.nav(); arCardRender(); };
   });
 }
@@ -4808,7 +4850,7 @@ function renderRadarList(){
   });
   // 1.118: the two number columns get their names in a row of small labels (a shared grid lines them up), not with no list
   const head = `<li class="rvHead" aria-hidden="true"><span></span><span></span><span>${escH(T("Distance"))}</span><span>${escH(T("Height"))}</span><span></span></li>`;
-  const html = rows.length ? head + rows.join("") : `<li class="empty">${escH(T("No planes within {n} km right now.", {n: range}))}</li>`;
+  const html = rows.length ? head + rows.join("") : `<li class="empty">${escH(isOffline() ? T("Offline · retrying") : T("No planes within {n} km right now.", {n: range}))}</li>`;
   if (html !== rvSig) { rvSig = html; $("rvList").innerHTML = html; }
 }
 
@@ -5037,7 +5079,7 @@ function nowEmptyNote(){
   const el = $("nowEmpty"), empty = isAcPage(nowPage) && !feat;
   el.hidden = !empty;
   const say = nowPage === "dep" ? "No plane taking off right now" : nowPage === "land" ? "No plane landing right now" : "No plane to show right now";
-  if (empty) el.innerHTML = `${escH(T(say))}<small>${escH(T("The page fills in as soon as there is one."))}</small>`;
+  if (empty) el.innerHTML = isOffline() ? escH(T("Offline · retrying")) : `${escH(T(say))}<small>${escH(T("The page fills in as soon as there is one."))}</small>`;
 }
 // The pages turn every 20 seconds, like the board's (Airport: the lists, Take-off, the lists, Landing), skipping a page
 // with no plane; upright, only the Airport style's Take-off and Landing turn.
@@ -6211,7 +6253,10 @@ function updateFooter(){
   al.hidden = !bad; al.dataset.state = dot.dataset.state;
   if (bad && al.textContent !== line) al.textContent = line;
   if (!$("t-about").hidden) renderAbout();
+  const off = isOffline();
+  if (off !== offShown) { offShown = off; renderRecent(); nowEmptyNote(); lookSoon(); if (tab === "radar") { rvSig = ""; renderRadarList(); } }   // 1.129.19: Offline, and back
 }
+let offShown = false;
 // The dot opens a card: the relay, the position source, the last update and Flightradar24 (1.38). 1.117 (to-do #210,
 // Dave's pick B): a verdict first, from the dot's state; the facts unfold in place under "Details and the log".
 function statusVerdict(){
@@ -6268,7 +6313,7 @@ function updateWhere(){
   // 1.122.1 (to-do #236): "VIENNA · 15 KM" (the word RADIUS went); two spans in one row: when both do not fit the radius
   // wraps and is clipped (head.html's .where), and only a name too long on its own is cut with …
   const w = $("where"), put = (a, r) => { w.innerHTML = `<span class="wn">${escH(a)}</span>` + (r ? `<span class="wr"> · ${escH(r)}</span>` : ""); };
-  if (liveWaiting()) put("◉ " + T("FINDING YOU …"));
+  if (liveWaiting()) put("◉ " + T(liveLost() ? "NO POSITION" : "FINDING YOU …"));
   else if (S.live && !name) put("◉ " + (liveStale() ? T("FINDING YOU …") : clean(T("On the go"))));
   else put(`${S.live ? "◉ " : ""}${liveStale() ? T("FINDING YOU …") + " · " : ""}${lab}${clean(name)}`, `${+S.radiusKm || 15} KM`);
 }
@@ -6319,12 +6364,18 @@ function nvGoing(){
 }                          // the board's notice (with the patch notes); no reload while Settings is open
 NV.busy = () => tab === "settings";
 async function start(){
-  try {
-    await Promise.race([
-      Promise.all(["700 40px", "600 20px", "400 40px"].map(s => document.fonts.load(`${s} ${(THEMES[S.theme] || THEMES.classic).font}`))),
-      new Promise(r => setTimeout(r, 1200))      // not long: the board shouldn't wait for a slow font
-    ]);
-  } catch {}
+  // 1.129.21: the first positions and today's list are asked for now, while the fonts load and the tabs are built; run()
+  // takes the answers (the plane was on the flaps about a fifth of a second later). The last known board still shows first.
+  // The fonts are asked for first.
+  const fonts = Promise.race([
+    Promise.all(["700 40px", "600 20px", "400 40px"].map(s => document.fonts.load(`${s} ${(THEMES[S.theme] || THEMES.classic).font}`))),
+    new Promise(r => setTimeout(r, 1200))      // not long: the board shouldn't wait for a slow font
+  ]);
+  if (located() && !S.demo && relay() && !relayLegacy) {
+    earlyAsk(aircraftUrl(), () => xhrRead(aircraftUrl()));
+    if (relayV5()) earlyAsk(sightUrl(), () => fetchJSON(sightUrl(), {}, 8000));
+  }
+  try { await fonts; } catch {}
   pickLang();
   for (const el of document.querySelectorAll("[data-t]")) el.textContent = T(el.dataset.t);
   for (const el of document.querySelectorAll("[data-ta]")) el.setAttribute("aria-label", T(el.dataset.ta));   // 1.114.5: fixed labels

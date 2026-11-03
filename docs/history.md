@@ -2838,25 +2838,6 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `tlMillRule`, `tlMillDiv`, `lbIn` for the screws) cut the recess in over the app's own opening, ending about 0.55 s after the tap; `tlFold` drops the
   class before the card fades so the moved element doesn't replay it. Checked at 390 and 360 px: no photo, a helicopter without route, a special plane, a
   favourite, long names (the tiles lost their 6 px gaps, so a type is cut no harder), daylight, Realistic look off.
-- 1.129.22 (to-do #315; app only, no relay change): **Radar's Nearest reads whole at 360 and 320 px.** The row (`.rv`, a subgrid of `#rvList`) had five
-  columns (logo, name and type, distance, height, pill); with the widest values ("12.3 km NNW", "10,950 m", SUPERJUMBO) the name column kept 26 px at 360
-  px, so a flight number read "OE…" (and 0 px at 320). `tools/app/head.html`, `@media (max-width:380px)` after `.rv .chip`: `#rvList` has four columns
-  (38 px logo track, name, one number column, pill), `.rv>.num:nth-child(3)` (distance) and `:nth-child(4)` (height) sit in the same column on two
-  rows, the logo, name and pill span both rows, the row's right padding is 6 px, the gaps 6 px, the pill's letters tighter; the head row's "Distance" and
-  "Height" stack the same way (the empty spans are hidden). `@media (max-width:340px)`: 32 px logo track, 12 px numbers, an 11 px pill with no letter
-  spacing. At 390 px nothing changed. A 7-character callsign (EZY1234) with the widest distance, height and pill reads whole at 360 and 320 px; the
-  type line may still end in "…" (the brief's exception). Built on top of 1.129.17 and 1.129.18 (#274, #277).
-- 1.129.18 (to-dos #287, #289, #290, #294, #295; app only, no relay change; found in a pass over the phone app, "Fifteen ideas"): **Five small fixes.**
-  (#287) Daylight, the rest of dark-on-dark and light-on-light: `html.daylight` gives `#acSec #look` (Now's Sky view row: its key, scan label and value) the
-  night's `--ink`/`--amber` like the plates (1.129.13); the Radar's Nearest numbers lose the `.rv .num` dark colour (the rows sit on a plate); the Radar's (i)
-  (`.rvTop .iBtn`, on the page, not a plate) and Recent flights' "All N planes today" (`.tlFoot .lnk`) take daylight's dark ink; a plane's card
-  (`#cardBox .cardIn.info`, whose facts, tiles and words are the board's hard-coded light-on-dark colours) keeps the night metal (it was cream with pale
-  text), so the paper rules there are `:not(.info)`. (#289) `.rvLogo img` is `max-width:100%`: the logo box is the grid's 44 px less the row's 16 px
-  padding (a subgrid track includes it), 28 px, and the 40 px image spilled over both edges. (#290) `fsBar`: "Checklist" and the next mission's name
-  (no "Next up ·", no count: the marks carry it; the full text is its aria-label), a 320 px rule shrinks the marks; `fsRecord`'s header reads "Pre-flight
-  record" (it wrapped as "PRE- / FLIGHT"). (#294) `#welcome .cap.big.go` is lit green on every step (only the last had `aria-pressed`, set by `pick()`),
-  and `#welcome .cap.big` is `width:auto` with `white-space:nowrap`. (#295) The Level tab's footer (`logbookSummary()`: counting since, NEW date, points)
-  is gone; `learnFoot()` puts "NEW marks from {date}" in a `.plFoot` at the end of the Your club plate while `learningUntil` is ahead.
 - 1.129.17 (to-dos #297, #298, #299; app only, no relay change): **Three small improvements.** (#297) Now's Recent flights and its "N in the last
   hour" count are about the last hour, so after midnight they keep the planes from the hour before. `renderRecent` (`tools/app/main.js`) adds
   `recentPrevRows()`: when `prevDay()` (the day of "an hour ago", from `lblIso`, earlier than `lblToday()`; relay 105 or newer, not in demo or
@@ -2871,6 +2852,72 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   aircraft type: `typeShown(code, name)` (`shortType(typeLabel(...))`) names the Hangar's cards (a type still to scan used to show its code) and the
   Club's showcase cards, and Radar's Nearest uses `arType` (as Sky view's labels do). Left as they are: the sheets' own "Code" line, the board's
   flaps (width-limited), the Logbook's category lists (full model names, not codes), and the fallback to a code where no name is known.
+- 1.129.18 (to-dos #287, #289, #290, #294, #295; app only, no relay change; found in a pass over the phone app, "Fifteen ideas"): **Five small fixes.**
+  (#287) Daylight, the rest of dark-on-dark and light-on-light: `html.daylight` gives `#acSec #look` (Now's Sky view row: its key, scan label and value) the
+  night's `--ink`/`--amber` like the plates (1.129.13); the Radar's Nearest numbers lose the `.rv .num` dark colour (the rows sit on a plate); the Radar's (i)
+  (`.rvTop .iBtn`, on the page, not a plate) and Recent flights' "All N planes today" (`.tlFoot .lnk`) take daylight's dark ink; a plane's card
+  (`#cardBox .cardIn.info`, whose facts, tiles and words are the board's hard-coded light-on-dark colours) keeps the night metal (it was cream with pale
+  text), so the paper rules there are `:not(.info)`. (#289) `.rvLogo img` is `max-width:100%`: the logo box is the grid's 44 px less the row's 16 px
+  padding (a subgrid track includes it), 28 px, and the 40 px image spilled over both edges. (#290) `fsBar`: "Checklist" and the next mission's name
+  (no "Next up ·", no count: the marks carry it; the full text is its aria-label), a 320 px rule shrinks the marks; `fsRecord`'s header reads "Pre-flight
+  record" (it wrapped as "PRE- / FLIGHT"). (#294) `#welcome .cap.big.go` is lit green on every step (only the last had `aria-pressed`, set by `pick()`),
+  and `#welcome .cap.big` is `width:auto` with `white-space:nowrap`. (#295) The Level tab's footer (`logbookSummary()`: counting since, NEW date, points)
+  is gone; `learnFoot()` puts "NEW marks from {date}" in a `.plFoot` at the end of the Your club plate while `learningUntil` is ahead.
+- 1.129.19 (to-dos #286, #288, #291, #292, from "Fifteen ideas"; app and board, no relay change): four small fixes. **#286 Offline is not an empty
+  sky:** `skyState` returns `offline` (`SKY_WORDS.offline`, "Sky view" / "Offline · retrying", dimmed) when there is no plane and `isOffline()`
+  (`held` no longer keeps it for the 3 s grace); `renderRadarList`, `arAroundOpen`, the Sky view's `arCount`, `tlOffline` (Recent flights' empty line)
+  and `nowEmptyNote` say the same words, and Recent's "None in the last hour" is left out while offline. `updateFooter` redraws these once when
+  `offShown` flips (and back). flows.py's `sky_row_checks` has the `offline` / `backOnline` states. **#288 Trophy words:** the ladders that count the
+  scan book (`TROPHY_LADDERS`: planes, types, airlines, different aircraft, countries, special planes, the same aircraft) now say "scanned"; the
+  counts, points and `GAME3_V` / `GAME_V` are untouched. **#291 One order:** Planes, Aircraft, Types, Airlines (Today: Planes, Overhead, Types,
+  Airlines) on the Today plate, the Today in numbers flaps (`placeRow` in the board and main.js), the 2026 / All time plates, the year, month and
+  week panel (`REVIEW_NUMS` reordered; the panel's top row is the plate's four, `.perCard .yNums` four across; `PER_MORE` lost Aircraft and
+  has `.yMore`, three across) and the board's Logbook flaps (`LB_NUMS`, `lp0`..`lp5` widths). **#292 A type's name:** `typeShown(code, n)` (next to
+  `typeLabel`, shared with the app): the name, maker left out, with n letters the whole name, else shorter, else the code; used by `reviewFacts`
+  (Rarest, and the record rows' fallback), `lbWho`, the Logbook's aircraft list in main.js; the board's flaps ask for 10 letters so they keep the code
+  when the name doesn't fit.
+- 1.129.20 (to-do #296, Dave's pick C of three, "The empty list explains", with his change: a choice of the profile's places instead of
+  only Use home; app and test board, no relay change): **live location no longer waits for good.** Shared (`test/index.html`): `liveErr` (set by
+  `liveFail(why, msg)`: the browser's watch and re-ask now have an error callback, code 1 is "deny", anything else, a timeout too, "unav"; the Android
+  app's `hereNow()` rejection is read by its words, "turned down" → "deny", "turned off" → "off", the rest "unav"), `LIVE_LOST_MS` (20 s),
+  `liveLost()` (waiting, and an error or 20 s since `liveRunAt`), `liveWhy()` (`liveErr`, else "approx" when only an old approximate position came
+  (`liveOldAcc`), else "still"). The 2 s interval tracks "lost <why>" as a state, logs it once and calls `liveShow()`; the 60 s toast and
+  `liveToldAt` went. `liveHalt` clears `liveErr`. The board's title says NO POSITION. The app (`main.js`): `skyState` gives "nofix" ("Live location ·
+  No position", dimmed, the key greyed like "finding"; its label opens a sheet), `updateWhere` says ◉ NO POSITION, and `renderRecent` draws `tlNoFix()`
+  instead of `tlFinding()`: the NOW plate's `li.st.find.nofix` with "No position · <reason>" (`NOFIX`), one help line, and `.nfKeys` (two `cBtn`s,
+  the place key amber like `.skyKey.hot`). `nfPlaces()` lists the place before live location (`S.livePrev` without a label, only for a located
+  profile, as "Home", unless a saved place is at the same spot: `liveStop`) and `places.list` (`usePlace`, `S.livePrev` dropped). One: "Use
+  <name>"; more: "Pick a place" opens a plate sheet with a `pickList`; none: "Pick a place" opens Settings → Location (`setOpen("loc")`). Try
+  again: `liveRun()`. `nfSig()` joins Recent flights' signature. Flow `no_position_checks` (flows.py): a made-up geolocation that never answers
+  (Finding you, then after 20 s the row, the title and the plate; several places open the list; a late position ends it) and one that refuses (at
+  once Not allowed; Try again stays so; Use Work turns live off, the row then says Scan needs · Go live).
+- 1.129.21 (to-dos #303–#306, from the 3 Nov performance research; test board and app, no relay change): **Four performance gains.** Measured in headless
+  Chromium against the test relay, CPU throttled through CDP (4× a mid-range phone, 6× the Fire TV board), before and after in the same runs.
+  *Radar (#303):* `paintRadar` draws the sweep with one cone gradient (`radarSweep`; the 28 wedges stay where a canvas lacks `createConicGradient`, e.g.
+  older TV browsers) and the dial's still parts in two cached layers (`radarLayer`, `radarLayers`): "under" the planes (overhead circle, cross, rings,
+  dashed radius, runways with the one in use, the airport's code; drawn without the clip and copied inside it, so the clip's edge applies once) and
+  "over" them (rim, glass, N E S W, your place, engraved range and map credit). A layer's key holds the canvas size and transform, `document.fonts.status`
+  and everything it draws from (range, centre, styles' colours, the runways in use, …); pinching (`radar.live`) and a context without `getTransform`
+  draw straight on. Ring labels and `radar.apBox` are still worked out each frame. Pixel check (same frame, same planes, old vs new `paintRadar` in one
+  page): at most 5 levels of 255 apart, mostly the wedges' steps that became a smooth fade. Radar tab 783 → 375 ms/s at 4×, the TV radar 457 → ~300
+  at 6×. *First plane (#304):* the app's `start()` asks the fonts first, then sends the first `/aircraft` (by `xhrRead`, an XMLHttpRequest: its answer
+  arrives read in one task, where fetch's headers and body each waited for one of the start-up's first frames) and `/sightings` (`sightUrl`); `early(url,
+  make)` in `getAircraft` and `syncSightings` takes such an answer once, within 15 s, if the URL is the same (`earlyKey` ignores a live location's
+  `&fix=` age). `aircraftUrl()` and `acRead` came out of `getAircraft`. Live data handled 754 → 590 ms after opening (warm), 1,342 → 1,234 ms (cold;
+  150 ms round trip, 10 Mbit/s). *Smaller update (#305):* `tools/app/build.py` writes the app through `tools/app/strip.py` (comments out of the inline
+  scripts, the CSS and the HTML; nothing renamed, line breaks between code kept for automatic semicolons); `--keep-comments` writes it with them.
+  `tools/test/strip_check.py` (in `smoke.py --syntax`) builds it with comments too and compares every script token by token with espree, line breaks
+  included. 1.39 MB → 1.14 MB, gzipped 446 → 339 KB (−24%). `codemap.py --build` looks for a block's first line of code in the app. *Tip ring
+  (#306):* `tipNext` places the ring when the tip shows, on resize and on scroll (capture), and checks once a second whether its element (or the bubble)
+  moved, instead of every frame; on `WEAK_TV`/`LITE()` the ring gets `.still` (no `tipPulse`, the glow held). TV board at 6× with a tip: 618 → ~40 ms/s.
+- 1.129.22 (to-do #315; app only, no relay change): **Radar's Nearest reads whole at 360 and 320 px.** The row (`.rv`, a subgrid of `#rvList`) had five
+  columns (logo, name and type, distance, height, pill); with the widest values ("12.3 km NNW", "10,950 m", SUPERJUMBO) the name column kept 26 px at 360
+  px, so a flight number read "OE…" (and 0 px at 320). `tools/app/head.html`, `@media (max-width:380px)` after `.rv .chip`: `#rvList` has four columns
+  (38 px logo track, name, one number column, pill), `.rv>.num:nth-child(3)` (distance) and `:nth-child(4)` (height) sit in the same column on two
+  rows, the logo, name and pill span both rows, the row's right padding is 6 px, the gaps 6 px, the pill's letters tighter; the head row's "Distance" and
+  "Height" stack the same way (the empty spans are hidden). `@media (max-width:340px)`: 32 px logo track, 12 px numbers, an 11 px pill with no letter
+  spacing. At 390 px nothing changed. A 7-character callsign (EZY1234) with the widest distance, height and pill reads whole at 360 and 320 px; the
+  type line may still end in "…" (the brief's exception). Built on top of 1.129.17 and 1.129.18 (#274, #277).
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 
