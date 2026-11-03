@@ -2838,6 +2838,19 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `tlMillRule`, `tlMillDiv`, `lbIn` for the screws) cut the recess in over the app's own opening, ending about 0.55 s after the tap; `tlFold` drops the
   class before the card fades so the moved element doesn't replay it. Checked at 390 and 360 px: no photo, a helicopter without route, a special plane, a
   favourite, long names (the tiles lost their 6 px gaps, so a type is cut no harder), daylight, Realistic look off.
+- 1.129.18 (to-dos #286, #288, #291, #292, from "Fifteen ideas"; app and board, no relay change): four small fixes. **#286 Offline is not an empty
+  sky:** `skyState` returns `offline` (`SKY_WORDS.offline`, "Sky view" / "Offline · retrying", dimmed) when there is no plane and `isOffline()`
+  (`held` no longer keeps it for the 3 s grace); `renderRadarList`, `arAroundOpen`, the Sky view's `arCount`, `tlOffline` (Recent flights' empty line)
+  and `nowEmptyNote` say the same words, and Recent's "None in the last hour" is left out while offline. `updateFooter` redraws these once when
+  `offShown` flips (and back). flows.py's `sky_row_checks` has the `offline` / `backOnline` states. **#288 Trophy words:** the ladders that count the
+  scan book (`TROPHY_LADDERS`: planes, types, airlines, different aircraft, countries, special planes, the same aircraft) now say "scanned"; the
+  counts, points and `GAME3_V` / `GAME_V` are untouched. **#291 One order:** Planes, Aircraft, Types, Airlines (Today: Planes, Overhead, Types,
+  Airlines) on the Today plate, the Today in numbers flaps (`placeRow` in the board and main.js), the 2026 / All time plates, the year, month and
+  week panel (`REVIEW_NUMS` reordered; the panel's top row is the plate's four, `.perCard .yNums` four across; `PER_MORE` lost Aircraft and
+  has `.yMore`, three across) and the board's Logbook flaps (`LB_NUMS`, `lp0`..`lp5` widths). **#292 A type's name:** `typeShown(code, n)` (next to
+  `typeLabel`, shared with the app): the name, maker left out, with n letters the whole name, else shorter, else the code; used by `reviewFacts`
+  (Rarest, and the record rows' fallback), `lbWho`, the Logbook's aircraft list in main.js; the board's flaps ask for 10 letters so they keep the code
+  when the name doesn't fit.
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 

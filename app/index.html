@@ -859,7 +859,7 @@ button.lbPlate:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba
 .yFacts div{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid rgba(255,255,255,.05);font:600 var(--fs-m)/1.3 var(--f-board)}
 .yFacts dt{color:var(--amber);font-size:var(--fs-xs);letter-spacing:.06em;text-transform:uppercase}
 .yFacts dd{margin:0;color:var(--ink);text-align:right}
-.reviewCard .yNums{grid-template-columns:repeat(4,1fr)}
+.reviewCard .yNums,.perCard .yNums:not(.yMore){grid-template-columns:repeat(4,1fr)}
 .rvTools{display:flex;gap:6px;align-items:center;margin:8px 0 2px}.rvTools span{flex:1}
 .yActs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .yActs .cap{width:auto;padding:0 12px;text-decoration:none;display:inline-flex;align-items:center}
@@ -5181,7 +5181,7 @@ def(TODAYP, "stPlanes",   {kind:"chars", n:4, dur:70, drum:DRUM_DIGIT, align:"ri
 def(TODAYP, "stAirlines", {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Airlines",""]});
 def(TODAYP, "stTypes",    {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Types","Typen"]});
 def(TODAYP, "stOver",     {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Overhead",""]});
-placeRow(["stPlanes", "stAirlines", "stTypes", "stOver"], [1.3, 1.3, 1.3], 18, 21.5, 1.3, UM);
+placeRow(["stPlanes", "stOver", "stTypes", "stAirlines"], [1.3, 1.3, 1.3], 18, 21.5, 1.3, UM);
 /* ---------- tiles: each flap face pre-rendered once ---------- */
 // 1.59: the flap finish picked in Styles (the light version has no flaps); 1.61: only with the Classic board
 const FINISH = () => classicLook() && S.finish || "";
@@ -7054,15 +7054,15 @@ function renderTimes(){
 // 1.55 (to-do #55, relay 50): most trophies come in tiers, each tier a trophy of its own; the ladders say what each
 // counts (the relay's trophyCounts, for the progress bar to the next tier) and the description they share.
 const TROPHY_LADDERS = [
-  ["planes", "{n} planes in the logbook", [["century", 100, "Century"], ["thousand", 1000, "Thousand"], ["planes10k", 10000, "Ten thousand"], ["planes50k", 50000, "Fifty thousand"], ["planes100k", 100000, "Hundred thousand"]]],
-  ["types", "{n} aircraft types", [["types50", 50, "Type hunter"], ["types100", 100, "Type collector"], ["types150", 150, "Type expert"], ["types200", 200, "Type master"]]],
-  ["airlines", "{n} airlines", [["airlines25", 25, "Globetrotter"], ["airlines50", 50, "High flyer"], ["airlines100", 100, "Jet setter"], ["airlines150", 150, "Around the world"]]],
-  ["regs", "{n} different aircraft", [["regs1k", 1000, "Fleet watcher"], ["regs5k", 5000, "Fleet expert"], ["regs10k", 10000, "Fleet master"]]],
-  ["countries", "Aircraft from {n} countries", [["countries10", 10, "Passport"], ["countries25", 25, "Diplomat"], ["countries50", 50, "United Nations"]]],
+  ["planes", "{n} planes scanned", [["century", 100, "Century"], ["thousand", 1000, "Thousand"], ["planes10k", 10000, "Ten thousand"], ["planes50k", 50000, "Fifty thousand"], ["planes100k", 100000, "Hundred thousand"]]],
+  ["types", "{n} aircraft types scanned", [["types50", 50, "Type hunter"], ["types100", 100, "Type collector"], ["types150", 150, "Type expert"], ["types200", 200, "Type master"]]],
+  ["airlines", "{n} airlines scanned", [["airlines25", 25, "Globetrotter"], ["airlines50", 50, "High flyer"], ["airlines100", 100, "Jet setter"], ["airlines150", 150, "Around the world"]]],
+  ["regs", "{n} different aircraft scanned", [["regs1k", 1000, "Fleet watcher"], ["regs5k", 5000, "Fleet expert"], ["regs10k", 10000, "Fleet master"]]],
+  ["countries", "Aircraft from {n} countries scanned", [["countries10", 10, "Passport"], ["countries25", 25, "Diplomat"], ["countries50", 50, "United Nations"]]],
   ["points", "{n} points", [["points1k", 1000, "High scorer"], ["points10k", 10000, "Big scorer"], ["points100k", 100000, "Top scorer"]]],
-  ["legendary", "{n} special planes", [["legend10", 10, "Spotter's eye"], ["legend100", 100, "Rare breed"], ["legend500", 500, "Hall of fame"]]],
+  ["legendary", "{n} special planes scanned", [["legend10", 10, "Spotter's eye"], ["legend100", 100, "Rare breed"], ["legend500", 500, "Hall of fame"]]],
   ["today", "{n} planes in one day", [["busyday", 100, "Busy sky"], ["busy300", 300, "Rush hour"], ["busy500", 500, "Gridlock"]]],
-  ["friend", "The same aircraft {n} times", [["oldfriend", 25, "Old friend"], ["regular100", 100, "Regular"]]],
+  ["friend", "The same aircraft scanned {n} times", [["oldfriend", 25, "Old friend"], ["regular100", 100, "Regular"]]],
   ["streak", "Points {n} days running", [["streak7", 7, "On a roll"], ["streak30", 30, "Unstoppable"]]]];
 const TROPHY_SINGLES = ["a320fam", "giants", "jumbochopper", "nightowl", "aroundclock", "lowpass", "bullseye", "stratos", "specialday",
   "daytypes40", "dayairlines40", "beluga", "antonov", "allsets", "bingo", "fullcard"];
@@ -7361,6 +7361,15 @@ function legendGroups(){
 }
 const fmtDay = ts => ts ? new Date(ts).toLocaleDateString(LOC(), {day: "numeric", month: "short"}) : "";
 const typeLabel = (code, name) => TYPES[code] || typeName(code, name).name || code;
+// a model's name in n letters: whole, or without its maker ("Airbus A320neo" → "A320neo"), else its code
+const MAKERS = /^(Airbus Helicopters|De Havilland Canada|De Havilland|McDonnell Douglas|Lockheed Martin|AgustaWestland|Airbus|Boeing|Embraer|Bombardier|Cessna|Dassault|Gulfstream|Pilatus|Beechcraft|Beech|Diamond|Piper|Cirrus|Lockheed|Antonov|Eurocopter|Leonardo|Sikorsky|Robinson|Fokker|Saab|ATR)\s+/i;
+// 1.129.18: a type for a value: its name (the maker left out, "Airbus A320neo" → "A320neo"), never the bare ICAO code; with n letters
+// to fill, the whole name if it fits, else without the maker, else the code
+function typeShown(t, n){
+  t = String(t || "");
+  const full = TYPES[t.toUpperCase()] || t, short = full.replace(MAKERS, "") || full;
+  return !n ? short : full.length <= n ? full : short.length <= n ? short : t;
+}
 function demoLogbook(){
   const now = Date.now(), d = n => now - n * 86400e3, t = (count, first, name) => ({count, first: d(first), name: name || ""});
   return {sample: true, since: new Date(d(41)).toISOString().slice(0, 10), sightings: 2314, regsCount: 1187, learningUntil: d(40),
@@ -7458,11 +7467,11 @@ function reviewSummary(r){
       : T(more > 0 ? (w ? "{p}% more than the week before" : "{p}% more than the month before") : (w ? "{p}% fewer than the week before" : "{p}% fewer than the month before"), {p: Math.abs(more)})));
 }
 // [label, value] for each fact; values in mixed case (the board's flaps show them in capitals).
-function reviewFacts(r){
-  const rc = r.records || {}, who = x => x.callsign || x.reg || x.type || "", b = r.busiest, ra = r.rarest, al = r.topAirline, m = r.mostSeen, f = rc.farthest;
+function reviewFacts(r, n){
+  const rc = r.records || {}, who = x => x.callsign || x.reg || typeShown(x.type, n), b = r.busiest, ra = r.rarest, al = r.topAirline, m = r.mostSeen, f = rc.farthest;
   const fp = f && f.place;
   return [["Busiest day", b ? `${reviewDay(b.day, {weekday: "short", day: "numeric", month: "short"})} · ${nf.format(b.planes)}` : ""],
-    ["Rarest", ra ? `${ra.type || ra.reg} · ${T(TIER_NAME[ra.tier] || "")}` : ""],
+    ["Rarest", ra ? `${typeShown(ra.type, n) || ra.reg} · ${T(TIER_NAME[ra.tier] || "")}` : ""],
     ["Most seen airline", al && al.count > 1 ? `${(AIRLINES[al.code] || [])[1] || al.name || al.code} · ${nf.format(al.count)}` : ""],   // 1.87.2.1: none when nothing came twice
     ["Most seen aircraft", m && m.count > 1 ? `${m.reg} · ${T("{n} times", {n: nf.format(m.count)})}` : ""],
     ["Farthest route", f ? `${who(f)} · ${fp ? fp.code || fp.city : ""} ${nf.format(f.v)} km` : ""],
@@ -7471,7 +7480,7 @@ function reviewFacts(r){
     ["Fastest", rc.fastest ? `${who(rc.fastest)} · ${speedStr(rc.fastest.v).toLowerCase()}` : ""]].map(([k, v]) => [T(k), v]);
 }
 const reviewNewTypes = r => (r.newTypes || []).map(t => t.type).join(", ") + (r.newTypeCount > (r.newTypes || []).length ? " …" : "");
-const REVIEW_NUMS = [["planes", "Planes"], ["types", "Types"], ["airlines", "Airlines"], ["airframes", "Aircraft"], ["newTypeCount", "New types"], ["rare", "Rare"], ["points", "Points"]];
+const REVIEW_NUMS = [["planes", "Planes"], ["airframes", "Aircraft"], ["types", "Types"], ["airlines", "Airlines"], ["newTypeCount", "New types"], ["rare", "Rare"], ["points", "Points"]];
 const API_NOTE = () => apiOn() ? " · flight numbers and routes from Flightradar24" : "";
 const radar = {raf: 0, last: 0, at: 0, planes: [], trails: new Map(), px: 1, disp: new Map(), rep: new Map(), sel: ""};
 const RADAR_COL = {over: "#27a85e", soon: "#f6be35", by: "#4f8fe0", away: "#c8645c", high: "#4a4d53", special: "#b483ff", emergency: "#e0372c", fav: "#ef6fae", ground: "#a19d94", dep: "#27a85e", arr: "#f6be35"};
@@ -7952,6 +7961,7 @@ const SCR2 = '<i class="scr"></i><i class="scr"></i>';
 // The empty list: why, on the rail (the newest-first line it will be)
 const tlState = (head, title, text, find) => `<li class="tg">${SCR2}<b>${escH(head)}</b></li><li class="st${find ? " find" : ""}">${SCR2}${title ? `<b>${escH(title)}</b>` : ""}${escH(text)}</li>`;
 const tlFinding = () => tlState(T("Now"), T("Finding where you are …"), T("The planes show once live location has found you."), true);
+const tlOffline = () => tlState(T("Now"), T("Offline · retrying"), "");   // 1.129.18: not "nothing spotted" when there is no flight data
 const tlNothing = () => tlState(T("Today"), T("Nothing spotted yet"), T("Every plane that comes within {n} km joins this line, the newest on top.", {n: +S.radiusKm || 15}));
 const tlOpenId = {recent: "", svList: ""};      // each list's open card (one at a time)
 let tlTok = 0, tlRunning = 0, tlCap = 0, tlAgain = false;       // the last tap; openings and foldings under way (a redraw waits for them)
@@ -7977,7 +7987,7 @@ function renderRecent(){
   const all = dayList().filter(e => !e.sample || S.demo), list = all.slice(0, 8), L = $("recent");
   // 1.95: the heading counts the last hour; the link at the end goes to Today, with the whole day's count
   const hour = all.filter(e => Date.now() - (e.ts || 0) < 36e5).length, day = Math.max(all.length, spotted.length >= 400 && relayStats ? relayStats.planes || 0 : 0);
-  const head = all.length ? T(hour ? "{n} in the last hour" : "None in the last hour", {n: nf.format(hour)}) : "", link = T(day === 1 ? "1 plane today ›" : "All {n} planes today ›", {n: nf.format(day)});
+  const head = all.length && !(hour === 0 && isOffline()) ? T(hour ? "{n} in the last hour" : "None in the last hour", {n: nf.format(hour)}) : "", link = T(day === 1 ? "1 plane today ›" : "All {n} planes today ›", {n: nf.format(day)});
   if ($("recentN").textContent !== head) $("recentN").textContent = head;
   if ($("recentAll").textContent !== link) $("recentAll").textContent = link;
   $("recentFoot").hidden = !all.length;
@@ -7986,7 +7996,7 @@ function renderRecent(){
   if (!open) tlOpenId.recent = "";
   const ago = open && L.querySelector("li.open [data-ago]"), agoT = open ? tlAgo(open) : "";
   if (ago && ago.textContent !== agoT) ago.textContent = agoT;
-  const sig = list.map(rowSig).join("~") + S.units + liveWaiting() + "|" + Math.floor(Date.now() / 9e5) + "|" + (open ? tlCardSig(open) : "");
+  const sig = list.map(rowSig).join("~") + S.units + liveWaiting() + isOffline() + "|" + Math.floor(Date.now() / 9e5) + "|" + (open ? tlCardSig(open) : "");
   if (sig === recentSig) return;
   for (let i = 0; i < NOW_ROWS; i++) {           // the same, on flaps (the phone on its side)
     const e = list[i], d = i * 150, id = c => `nl${i}${c}`;
@@ -8000,7 +8010,7 @@ function renderRecent(){
   }
   if (tlBusy()) { tlAgain = true; return; }
   recentSig = sig;
-  tlFill(L, list.length ? tlHtml(list, tlOpenId.recent, true) : liveWaiting() ? tlFinding() : tlNothing(), open);
+  tlFill(L, list.length ? tlHtml(list, tlOpenId.recent, true) : liveWaiting() ? tlFinding() : isOffline() ? tlOffline() : tlNothing(), open);
 }
 $("recentAll").onclick = () => { ctlSound.nav(); showTab("today"); };
 let shownPhoto = null;
@@ -8211,7 +8221,7 @@ function renderTodayNumbers(){
     tdSig = sig;
     $("tdPlate").hidden = false;
     const v = x => wait ? null : x;
-    $("tdPlate").innerHTML = lbPlateHtml(T("Today"), [[v(n.planes), "Planes"], [v(n.over), "Overhead"], [v(n.airlines), "Airlines"], [v(n.types), "Types"]], true);
+    $("tdPlate").innerHTML = lbPlateHtml(T("Today"), [[v(n.planes), "Planes"], [v(n.over), "Overhead"], [v(n.types), "Types"], [v(n.airlines), "Airlines"]], true);
   }
   lbStripSync();
 }
@@ -8805,7 +8815,7 @@ function catOpenHtml(k){
     .map(([v, l]) => `<button type="button" data-cv="${v}" aria-pressed="${lbCatView === v}">${escH(T(l))}</button>`).join("") + `</div>`;
   const list = d[lbCatView] || [];
   const row = (x, i) => lbCatView === "types" ? `<button type="button" class="catRow" data-ct="${escH(x.code)}" data-cn="${escH(x.name)}"><span>${i + 1}</span>${escH(typeLabel(x.code, x.name))}<b>${nf.format(x.n)}</b></button>`
-    : lbCatView === "regs" ? `<button type="button" class="catRow" data-cr="${escH(x.reg)}"><span>${i + 1}</span>${escH(x.reg)}${x.type ? ` · ${escH(x.type)}` : ""}<b>${nf.format(x.n)}</b></button>`
+    : lbCatView === "regs" ? `<button type="button" class="catRow" data-cr="${escH(x.reg)}"><span>${i + 1}</span>${escH(x.reg)}${x.type ? ` · ${escH(typeShown(x.type))}` : ""}<b>${nf.format(x.n)}</b></button>`
     : `<button type="button" class="catRow" data-co="${escH(x.icao || "")}" data-cn="${escH(x.name)}" data-ci="${escH(x.iata || "")}"><span>${i + 1}</span>${escH((AIRLINES[x.icao] || [])[1] || x.name)}<b>${nf.format(x.n)}</b></button>`;
   return `<li class="catSub">${seg}${list.length ? list.map(row).join("") : `<p class="sum">${escH(T("Nothing here yet."))}</p>`}</li>`;
 }
@@ -10047,7 +10057,7 @@ function recordsHtml(all, g0, part){
   let html = "";
   const r = all.records;
   if (part !== "bingo" && r && (r.closest || r.lowest || r.fastest || r.farthest)) {           // lifetime records (relay 28; the game's since relay 59)
-    const who = x => x.callsign || x.reg || x.type || "", p = r.farthest && r.farthest.place;
+    const who = x => x.callsign || x.reg || typeShown(x.type), p = r.farthest && r.farthest.place;
     const rows = [["Closest ever", r.closest, x => `${x.v < 10 ? x.v.toFixed(2) : Math.round(x.v)} km`], ["Lowest ever", r.lowest, x => altitudeStr(x.v).toLowerCase()],
       ["Fastest ever", r.fastest, x => speedStr(x.v).toLowerCase()], ["Farthest route", r.farthest, x => `${p ? p.code || p.city : ""} · ${nf.format(x.v)} km`]].filter(x => x[1]);
     html += secPlate(T("Records"), rank(rows.map(([en, x, val]) => li(T(en), val(x), [who(x), x.ts ? fmtDay(x.ts) : ""].filter(Boolean).join(" · "))), true));
@@ -10210,18 +10220,18 @@ function periodHtml(){
   const arrows = `<span class="perArr"><button class="cBtn" type="button" data-pb="1" aria-label="${escH(T("Earlier"))}">◀</button>` +
     `<button class="cBtn" type="button" data-pb="-1" aria-label="${escH(T("Later"))}"${onBack ? "" : " disabled"}>▶</button></span>`;
   const r = per === "year" ? yearReview(yearData && yearData.year === yr ? yearData : null) : reviewData(), f = reviewFacts(r || {}), nt = r ? reviewNewTypes(r) : "";
-  const nums = list => `<div class="yNums">` + list.map(([k, l]) => `<div><b>${r ? nf.format(r[k] || 0) : "–"}</b><span>${escH(T(l))}</span></div>`).join("") + `</div>`;
+  const nums = (list, x = "") => `<div class="yNums${x}">` + list.map(([k, l]) => `<div><b>${r ? nf.format(r[k] || 0) : "–"}</b><span>${escH(T(l))}</span></div>`).join("") + `</div>`;
   const facts = list => `<dl class="yFacts">` + list.map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v || "–")}</dd></div>`).join("") + `</dl>`;
   const csv = relay() && !S.demo && (window.OVERHEAD_RELAY_VERSION || 0) >= 29 ? `<div class="yActs"><a class="cBtn" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
     `<p class="sum">${escH(T("Every sighting as a spreadsheet, for a spotting app or Excel."))}</p>` : "";
   const title = per === "year" ? T("{y} in planes", {y: yr}) : T("{p} in planes", {p: reviewTitle()});
-  const body = nums(REVIEW_NUMS.slice(0, 3)) + facts(f.slice(0, 4)) +
+  const body = nums(REVIEW_NUMS.slice(0, 4)) + facts(f.slice(0, 4)) +
     `<div class="yActs"><button class="cBtn" type="button" id="${per === "year" ? "yShare" : "pShare"}"${r && r.planes ? "" : " disabled"}>${escH(T("Share"))}</button></div>` +
     `<ul class="idx perMore"><li><button type="button" data-pmore aria-expanded="${perMore}"><b>${escH(T(perMore ? "Less" : "More"))}</b><i aria-hidden="true">›</i></button></li></ul>` +
-    (perMore ? `<div class="perMoreIn">${r ? `<p class="sum">${escH(reviewSummary(r))}</p>` : ""}${nums(PER_MORE)}${facts(f.slice(4).concat([[T("New types"), nt]]))}${csv}</div>` : "");
+    (perMore ? `<div class="perMoreIn">${r ? `<p class="sum">${escH(reviewSummary(r))}</p>` : ""}${nums(PER_MORE, " yMore")}${facts(f.slice(4).concat([[T("New types"), nt]]))}${csv}</div>` : "");
   return secPlate(title, `<div class="perHead">${seg}${arrows}</div>${body}`, "perCard");
 }
-const PER_MORE = [["airframes", "Aircraft"], ["newTypeCount", "New types"], ["rare", "Rare"], ["countries", "Countries"], ["days", "Days"], ["points", "Points"]];
+const PER_MORE = [["newTypeCount", "New types"], ["rare", "Rare"], ["countries", "Countries"], ["days", "Days"], ["points", "Points"]];
 document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-pmore], #yCsv");
   if (!b) return;
@@ -10341,7 +10351,7 @@ function skyState(L){
   const game = gameOk();
   if (game && !S.live && liveOk()) return {k: "nolive"};
   if (game && liveWaiting()) return {k: "finding"};
-  if (!feat) return {k: "none"};
+  if (!feat) return {k: isOffline() ? "offline" : "none"};   // 1.129.18: no flight data is not an empty sky
   const o = feat.o, ac = o && o.ac, hex = ac ? ac.hex : "", play = game && S.live && !!gme;
   if (play && ac && ac.alt_baro === "ground") return {k: "ground", hex};
   if (play && gScanGx(hex)) return {k: "done", hex, L};
@@ -10374,9 +10384,9 @@ function skyLookText(L){
   return !on ? T("{d} · {e}° up", {d: L.dir, e: L.up}) : Math.abs(d) <= 8 ? T("Ahead · {e}° up", {e: L.up}) : T(d > 0 ? "Right · {e}° up" : "Left · {e}° up", {e: L.up});
 }
 const skyPut = (el, t) => { if (el.textContent !== t) el.textContent = t; };
-const SKY_DIM = ["away", "passing", "none", "ground", "finding", "far", "nopos", "noheight"];
+const SKY_DIM = ["away", "passing", "none", "offline", "ground", "finding", "far", "nopos", "noheight"];
 const SKY_WORDS = {in: ["Scan", "In range"], closing: ["Scannable in", "{n} km"], passing: ["Closest pass", "{n} km"], away: ["Moving away", "{n} km"],
-  done: ["Scan", "✓ Scanned"], none: ["Sky view", "No planes around"], off: ["Look", ""], ground: ["Scan", "On the ground"],
+  done: ["Scan", "✓ Scanned"], none: ["Sky view", "No planes around"], offline: ["Sky view", "Offline · retrying"], off: ["Look", ""], ground: ["Scan", "On the ground"],
   nolive: ["Scan needs", "Live location"], finding: ["Live location", "Finding you"], far: ["Too far", "{n} km"],
   nopos: ["Position", "Not in yet"], noheight: ["Height", "Not in yet"]};
 function drawLook(){
@@ -10387,7 +10397,7 @@ function drawLook(){
   if (!L && feat && lookWhy && lookWhyLogged !== feat.hex + lookWhy) { lookWhyLogged = feat.hex + lookWhy; dlog(/^error/.test(lookWhy) ? "warn" : "debug", `Where to look: none for ${planeName(feat, feat.o.ac)} (${lookWhy})`); }
   const box = $("look");
   // A moment without a plane between two isn't "no planes"
-  const held = !feat && skyMem.s && skyMem.k !== "none" && Date.now() - skyFeatAt < 3000;
+  const held = !feat && skyMem.s && skyMem.k !== "none" && skyMem.k !== "offline" && Date.now() - skyFeatAt < 3000;
   const s = held ? skyMem.s : skyState(L), K = s.k, fresh = K !== skyMem.k || s.hex !== skyMem.hex;
   const num = held ? skyMem.num : skyNum(s, fresh);
   skyMem.k = K; skyMem.hex = s.hex; skyMem.s = s;
@@ -11041,7 +11051,7 @@ function arLoop(){
   const card = $("arCard"), lift = snap && !card.hidden && !arFull && arP === 0 ? card.offsetHeight + 4 : 0;
   if (lift !== arLift) { arLift = lift; $("arView").style.setProperty("--ar-lift", lift + "px"); }
   // 1.114.6: written only when it changes (every frame, it cost two layouts a frame)
-  const count = inView.length + outs.length ? T("{n} around", {n: inView.length + outs.length}) : T("No planes nearby");   // 1.121: one number
+  const count = inView.length + outs.length ? T("{n} around", {n: inView.length + outs.length}) : isOffline() ? T("Offline · retrying") : T("No planes nearby");   // 1.121: one number
   if ($("arCount").textContent !== count) $("arCount").textContent = count;
   const moved = Math.abs(arOff.h) > .5 || Math.abs(arOff.p) > .5;
   if ($("arAlign").classList.contains("moved") !== moved) $("arAlign").classList.toggle("moved", moved);   // 1.72.7: the labels were moved
@@ -11582,7 +11592,7 @@ function arAroundOpen(){
     (v ? `<em class="arInV">${escH(T("in view"))}</em> · ` : "") + `${escH([arType(s.ac), distText(s.d / 1000) + " " + T(DIR8[Math.round(s.az / 45) % 8])].filter(Boolean).join(" · "))}</small></button></li>`;
   const rows = inView.map(s => row(s, true)).concat(outs.map(s => row(s, false)));
   cardOpen(`<div class="cHead"><div><h3>${escH(T("Planes around"))}</h3><span>${escH($("arCount").textContent)}</span></div></div>` +
-    (rows.length ? `<ul class="idx arAround">${rows.join("")}</ul>` : `<p class="note">${escH(T("No planes around right now"))}</p>`), ci => {
+    (rows.length ? `<ul class="idx arAround">${rows.join("")}</ul>` : `<p class="note">${escH(isOffline() ? T("Offline · retrying") : T("No planes around right now"))}</p>`), ci => {
     for (const b of ci.querySelectorAll("[data-ahex]")) b.onclick = () => { cardClose(); arSel = b.dataset.ahex; arFull = true; ctlSound.nav(); arCardRender(); };
   });
 }
@@ -12178,7 +12188,7 @@ function renderRadarList(){
   });
   // 1.118: the two number columns get their names in a row of small labels (a shared grid lines them up), not with no list
   const head = `<li class="rvHead" aria-hidden="true"><span></span><span></span><span>${escH(T("Distance"))}</span><span>${escH(T("Height"))}</span><span></span></li>`;
-  const html = rows.length ? head + rows.join("") : `<li class="empty">${escH(T("No planes within {n} km right now.", {n: range}))}</li>`;
+  const html = rows.length ? head + rows.join("") : `<li class="empty">${escH(isOffline() ? T("Offline · retrying") : T("No planes within {n} km right now.", {n: range}))}</li>`;
   if (html !== rvSig) { rvSig = html; $("rvList").innerHTML = html; }
 }
 
@@ -13363,7 +13373,7 @@ function nowEmptyNote(){
   const el = $("nowEmpty"), empty = isAcPage(nowPage) && !feat;
   el.hidden = !empty;
   const say = nowPage === "dep" ? "No plane taking off right now" : nowPage === "land" ? "No plane landing right now" : "No plane to show right now";
-  if (empty) el.innerHTML = `${escH(T(say))}<small>${escH(T("The page fills in as soon as there is one."))}</small>`;
+  if (empty) el.innerHTML = isOffline() ? escH(T("Offline · retrying")) : `${escH(T(say))}<small>${escH(T("The page fills in as soon as there is one."))}</small>`;
 }
 // The pages turn every 20 seconds, like the board's (Airport: the lists, Take-off, the lists, Landing), skipping a page
 // with no plane; upright, only the Airport style's Take-off and Landing turn.
@@ -13387,6 +13397,13 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.129.18", date: "2026-11-03", notes: [
+    "Offline, Sky view, the list of planes around and Recent flights say \"Offline · retrying\" instead of claiming the sky is empty.",
+    "Trophies that count scanned planes, types, airlines and aircraft now say \"scanned\".",
+    "The Logbook lists its numbers in one order everywhere: Planes, Aircraft, Types, Airlines (Today: Planes, Overhead, Types, Airlines).",
+    "The week, month and year panels show the same four numbers as their plate first.",
+    "A type shows its name, not its code, in the Logbook's panels and lists.",
+  ]},
   {v: "1.129.16", date: "2026-11-02", notes: [
     "An opened plane in the lists is now milled into its metal plate.",
   ]},
@@ -15664,7 +15681,10 @@ function updateFooter(){
   al.hidden = !bad; al.dataset.state = dot.dataset.state;
   if (bad && al.textContent !== line) al.textContent = line;
   if (!$("t-about").hidden) renderAbout();
+  const off = isOffline();
+  if (off !== offShown) { offShown = off; renderRecent(); nowEmptyNote(); lookSoon(); if (tab === "radar") { rvSig = ""; renderRadarList(); } }   // 1.129.18: Offline, and back
 }
+let offShown = false;
 // The dot opens a card: the relay, the position source, the last update and Flightradar24 (1.38). 1.117 (to-do #210,
 // Dave's pick B): a verdict first, from the dot's state; the facts unfold in place under "Details and the log".
 function statusVerdict(){

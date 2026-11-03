@@ -3687,7 +3687,7 @@ def sky_row_checks(browser, bad):
     pg.goto(BASE + "/app/")
     pg.wait_for_function("window.__e && __e('!!gme')", timeout=20000)
     r = pg.evaluate("""__e(`(() => {
-      const keep = {feat, gme, spotted, liveAt, live: S.live, demo: S.demo, why: lookWhy}, out = {};
+      const keep = {feat, gme, spotted, liveAt, live: S.live, demo: S.demo, why: lookWhy, ok: lastOk}, out = {};
       const mk = (o = {}) => { const {ac, ...r} = o; return {hex: "aa0001", o: {alt: 10000, tcpa: 60, cpa: 2, ...r, ac: {hex: "aa0001", gs: 450, lat: 48, lon: 16, ...ac}}}; };
       const L = km => ({km, brg: 90, up: 20, alt: 10000, dir: "E"});
       const reset = () => { gNearAt.clear(); arScans.clear(); skyMem = {hex: "", k: "", s: null, num: null, numAt: 0, lookAt: 0}; spotted = []; arSpotIdx = {src: null, n: -1, map: null}; gme = {...keep.gme, scan: [], scanKm: 15, km: 15, scanSet: undefined, goldSet: undefined}; S.live = true; S.demo = false; liveAt = 1; lookWhy = ""; };
@@ -3705,6 +3705,9 @@ def sky_row_checks(browser, bad):
         reset(); gme.limits = {uncommon: [3, 3]}; st("pastLimit", mk(), 8);
         reset(); st("ground", mk({ac: {alt_baro: "ground"}}), 8);
         reset(); st("none", null, null);
+        // 1.129.18 (to-do #286): no flight data for over a minute is not an empty sky: "Offline · retrying", and back to normal
+        reset(); lastOk = Date.now() - 120000; st("offline", null, null); out.offWords = SKY_WORDS.offline.join("|"); out.offList = tlOffline().includes("Offline · retrying") && !tlOffline().includes("Nothing");
+        lastOk = Date.now(); st("backOnline", null, null); lastOk = keep.ok;
         reset(); S.demo = true; st("off", mk(), 12);
         reset(); S.live = false; st("nolive", mk(), 12);
         reset(); liveAt = 0; st("finding", mk(), 12);
@@ -3725,12 +3728,12 @@ def sky_row_checks(browser, bad):
         reset(); spotted = [{hex: "aa0001", scan: 1, gs: 5}]; out.starDone = chip({}, 8);
         reset(); spotted = [{hex: "aa0001", scan: 1, gs: 5}]; gme.scan = [{hex: "aa0001"}]; out.starLater = chip({}, 8);
       } catch (e) { out.error = String(e && e.stack || e); }
-      feat = keep.feat; gme = keep.gme; spotted = keep.spotted; liveAt = keep.liveAt; S.live = keep.live; S.demo = keep.demo; lookWhy = keep.why; gNearAt.clear(); arScans.clear();
+      lastOk = keep.ok; feat = keep.feat; gme = keep.gme; spotted = keep.spotted; liveAt = keep.liveAt; S.live = keep.live; S.demo = keep.demo; lookWhy = keep.why; gNearAt.clear(); arScans.clear();
       arSpotIdx = {src: null, n: -1, map: null}; skyMem = {hex: "", k: "", s: null, num: null, numAt: 0, lookAt: 0};
       return out; })()`)""")
     want = {"closing": ["closing", 3.1], "in": ["in", None], "in17": ["in", None], "edge1": ["in", None], "edge2": ["in", None], "edge3": ["closing", .2],
             "passing": ["passing", 22], "away": ["away", 24], "done": ["done", None], "laterPass": ["in", None], "justScanned": ["done", None],
-            "pastLimit": ["in", None], "ground": ["ground", None], "none": ["none", None], "off": ["off", None], "nolive": ["nolive", None],
+            "pastLimit": ["in", None], "ground": ["ground", None], "none": ["none", None], "offline": ["offline", None], "backOnline": ["none", None], "offWords": "Sky view|Offline · retrying", "offList": True, "off": ["off", None], "nolive": ["nolive", None],
             "finding": ["finding", None], "far": ["far", None], "nopos": ["nopos", None], "noheight": ["noheight", None],
             "closingHolds": ["closing", 5], "passingHolds": ["passing", 15.5], "goingHolds": ["closing", 5], "awayHolds": ["away", 20],
             "nums": [3.1, 3.0, 3.0, 3.9], "km": ["3.1", "13"], "star17": "★", "star20": "N", "starGround": "N", "starDone": "✓", "starLater": "★"}
@@ -4040,7 +4043,7 @@ def browser_checks(browser):
     got = e("""(() => { const was = [relayStats, sightRev, spotted, S]; S = {...S, live: false}; showTab('logbook'); const ph = () => [$('tdPlate').hidden, $('tdPlate').textContent];
         spotted = []; relayStats = {planes: 0, airlines: 0, types: 0, overhead: 0}; sightRev = '1'; tdSig = ''; renderTodayNumbers(); const day = ph();
         sightRev = null; tdSig = ''; renderTodayNumbers(); const wait = ph(); [relayStats, sightRev, spotted, S] = was; tdSig = ''; return [day, wait]; })()""")
-    if got != [[False, "Today›0Planes0Overhead0Airlines0Types"], [False, "Today›–Planes–Overhead–Airlines–Types"]]:
+    if got != [[False, "Today›0Planes0Overhead0Types0Airlines"], [False, "Today›–Planes–Overhead–Types–Airlines"]]:
         bad.append(f"the Today plate on an empty day: {got}")
 
     # 1.88: the Remarks in the Overhead style are white and only name a delay over 30 minutes; the Airport style keeps

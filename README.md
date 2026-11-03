@@ -291,7 +291,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   lowest and fastest pass ever and the route from farthest away. The relay keeps them as planes come in and counts
   them once from the saved days of an older logbook. The phone app shows them in its Logbook.
 - **Week, month and year** (the Logbook's period plate; 1.52, relay 46; the year relay 29): the week
-  (Monday to Sunday), month or year in review, like Today in numbers: planes, types, airlines, aircraft, new types and
+  (Monday to Sunday), month or year in review, like Today in numbers: planes, aircraft, types, airlines, new types and
   rare planes (a year: countries and days; and points, in the app); on the plate the busiest day, the most seen aircraft
   and the rarest plane, in its card also the most seen airline, the farthest route, the lowest, closest and fastest
   pass, and the new types. **Week** / **Month** / **Year** switch, ◀ ▶ go to earlier ones. A finished week or month is
@@ -302,7 +302,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   comes within 1 km or below 2,500 ft, and the card shows a line once it has paid, 1.114.5), and **48 trophies** (1.55, relay 50) that are won once and kept for good;
   nothing ever resets. Most come in tiers, a row each with a lamp per tier and a bar to the next one ("6,900 of
   10,000"): planes (100 to 100,000), aircraft types, airlines, different aircraft, countries the aircraft are registered
-  in, points, special planes, planes in one day, the same aircraft again, days running with points. The others
+  in, points, special planes, planes in one day, the same aircraft again, days running with points. The tiers that count planes say so ("100 planes scanned": scans, not the Logbook's sightings). The others
   are one-offs: Odd couple (a 747 and a helicopter on the same day), Night owl, Bullseye, Stratosphere, Whale watcher
   (a Beluga), Heavy lifter (an Antonov), Completionist (every collection) ... An older logbook wins its trophies once
   from its saved days, on the day they were earned (relay 50 does this again for the new ones, keeping the old).
@@ -840,7 +840,7 @@ Five buttons along the bottom:
   In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
   itself every 20 seconds; it stays when one side has no plane), with the runway screen in place of the photo, and the
   take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
-- **Today** (1.123): the Logbook's first plate has four numbers with their names (planes, overhead, airlines, types). A tap raises
+- **Today** (1.123): the Logbook's first plate has four numbers with their names (planes, overhead, types, airlines; every plate and panel lists its numbers in this order). A tap raises
   the day's plate from below (swipe it down, tap beside it or Back to close it): today's
   numbers on flaps, from 21:00 the Plane of the day with the first and last plane and the busiest hour, the lowest and
   highest pass and the fastest (the figure first and the plane under it), the most seen airline, the most seen types as
@@ -875,7 +875,7 @@ Five buttons along the bottom:
   The search (1.65) finds places too since 1.81 (relay 63): a town, an island, a country or a saved place, and each
   result has a line with a pin naming where it was seen, newest first (the aircraft's card says Seen from). Sightings
   on the go from before relay 63 only know their country (their place was guessed from the day's planes).
-  At the top (1.28, relay 29), **the year in planes**: planes, types, airlines, airframes, countries and days, the
+  At the top (1.28, relay 29), **the year in planes**: planes, aircraft, types, airlines, countries and days, the
   busiest day, the most seen aircraft and the rarest, with **Share** (a picture of the card) and **Download the
   logbook (CSV)**, every sighting as a spreadsheet. Collection: points, tiers and the collections. Records: the
   records, this week's bingo and the trophies with their bars. Week & month (1.52, relay 46): **this week or month in
