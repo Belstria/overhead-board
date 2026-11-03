@@ -9838,7 +9838,7 @@ function hangarLoad(){
   fetchJSON(`${relay()}/game/hangar`, {}, 12000).then(j => { hangar = j; renderGame(); if (hgWant && Date.now() - hgWant < 15000) requestAnimationFrame(hgShow); }).catch(() => { hangarAt = Date.now() - 4 * 60000; });
 }
 // 1.129.17 (to-do #299): a type's name as the Logbook's rows say it (A320neo, not A20N); the code only for one nobody has a name for
-const typeShown = (code, name) => shortType(typeLabel(code, name));
+const typeNamed = (code, name) => shortType(typeLabel(code, name));
 // 1.82.2: names as the app's table has them (the relay's are "AIRBUS A-320neo", which Wikipedia doesn't know), the relay's
 // as a second try; the model photo already found for them, else "".
 const hgNames = (code, name) => [...new Set([TYPES[code], name].map(n => String(n || "").trim()).filter(Boolean))];
@@ -9892,7 +9892,7 @@ function hangarHtml(hg){
   const by = new Map((hg.types || []).map(t => [t.code, t])), inSet = new Set((hg.sets || []).flatMap(s => s.types));
   const scanned = c => !!(by.get(c) && by.get(c).scans), seen = c => by.has(c) && !scanned(c);
   const card = (code, heli, eager) => {
-    const t = by.get(code), names = hgNames(code, t && t.name), name = typeShown(code, t && t.name), full = !!(t && t.scans);
+    const t = by.get(code), names = hgNames(code, t && t.name), name = typeNamed(code, t && t.name), full = !!(t && t.scans);
     const img = `<span class="hgPh${heli || SPECIAL_TYPES[code] === "HELICOPTER" ? " heli" : ""}" data-mp="${escH(names.join("|"))}"` +
       `${full ? ` data-own="${escH([t.thumb, t.photo].filter(Boolean).join(" "))}"` : ""}${eager ? ' data-e="1"' : ""}></span>`;
     if (!full) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img}<b>${escH(name)}</b><span>${escH(T(t ? "still to scan" : "still to find"))}</span>` +
@@ -10030,7 +10030,7 @@ function scPin(x, attr){
   const rt = x.route && x.route.length === 2 && x.route.every(Boolean) ? `${x.route[0]} → ${x.route[1]}` : "", tag = attr ? "button" : "div";
   return `<${tag}${attr ? ` type="button"${attr}` : ""} class="hgCard sc" data-scc="${escH(x.code)}" data-scn="${escH(x.name || "")}" style="--t:${TIER_COL[x.tier] || TIER_COL.uncommon}">` +
     (pic ? `<img src="${escH(pic)}" alt="">` : `<span class="hgPh"></span>`) +
-    `<span class="hgT"><em>${escH(T(TIER_NAME[x.tier] || "Uncommon"))}</em><b>${escH(typeShown(x.code, x.name))}</b>` +
+    `<span class="hgT"><em>${escH(T(TIER_NAME[x.tier] || "Uncommon"))}</em><b>${escH(typeNamed(x.code, x.name))}</b>` +
     (rt ? `<span class="scRt">${escH(rt)}</span>` : "") +
     `<span>${escH([x.airline || x.flight, x.ts ? scDate(x.ts) : ""].filter(Boolean).join(" · "))}</span></span></${tag}>`;
 }
