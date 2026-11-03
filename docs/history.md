@@ -2838,6 +2838,14 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `tlMillRule`, `tlMillDiv`, `lbIn` for the screws) cut the recess in over the app's own opening, ending about 0.55 s after the tap; `tlFold` drops the
   class before the card fades so the moved element doesn't replay it. Checked at 390 and 360 px: no photo, a helicopter without route, a special plane, a
   favourite, long names (the tiles lost their 6 px gaps, so a type is cut no harder), daylight, Realistic look off.
+- 1.129.22 (to-do #315; app only, no relay change): **Radar's Nearest reads whole at 360 and 320 px.** The row (`.rv`, a subgrid of `#rvList`) had five
+  columns (logo, name and type, distance, height, pill); with the widest values ("12.3 km NNW", "10,950 m", SUPERJUMBO) the name column kept 26 px at 360
+  px, so a flight number read "OE…" (and 0 px at 320). `tools/app/head.html`, `@media (max-width:380px)` after `.rv .chip`: `#rvList` has four columns
+  (38 px logo track, name, one number column, pill), `.rv>.num:nth-child(3)` (distance) and `:nth-child(4)` (height) sit in the same column on two
+  rows, the logo, name and pill span both rows, the row's right padding is 6 px, the gaps 6 px, the pill's letters tighter; the head row's "Distance" and
+  "Height" stack the same way (the empty spans are hidden). `@media (max-width:340px)`: 32 px logo track, 12 px numbers, an 11 px pill with no letter
+  spacing. At 390 px nothing changed. A 7-character callsign (EZY1234) with the widest distance, height and pill reads whole at 360 and 320 px; the
+  type line may still end in "…" (the brief's exception). Built on top of 1.129.17 and 1.129.18 (#274, #277).
 - 1.129.18 (to-dos #287, #289, #290, #294, #295; app only, no relay change; found in a pass over the phone app, "Fifteen ideas"): **Five small fixes.**
   (#287) Daylight, the rest of dark-on-dark and light-on-light: `html.daylight` gives `#acSec #look` (Now's Sky view row: its key, scan label and value) the
   night's `--ink`/`--amber` like the plates (1.129.13); the Radar's Nearest numbers lose the `.rv .num` dark colour (the rows sit on a plate); the Radar's (i)
@@ -2849,6 +2857,20 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   record" (it wrapped as "PRE- / FLIGHT"). (#294) `#welcome .cap.big.go` is lit green on every step (only the last had `aria-pressed`, set by `pick()`),
   and `#welcome .cap.big` is `width:auto` with `white-space:nowrap`. (#295) The Level tab's footer (`logbookSummary()`: counting since, NEW date, points)
   is gone; `learnFoot()` puts "NEW marks from {date}" in a `.plFoot` at the end of the Your club plate while `learningUntil` is ahead.
+- 1.129.17 (to-dos #297, #298, #299; app only, no relay change): **Three small improvements.** (#297) Now's Recent flights and its "N in the last
+  hour" count are about the last hour, so after midnight they keep the planes from the hour before. `renderRecent` (`tools/app/main.js`) adds
+  `recentPrevRows()`: when `prevDay()` (the day of "an hour ago", from `lblIso`, earlier than `lblToday()`; relay 105 or newer, not in demo or
+  while finding) names yesterday, it reads that day once from the Logbook's own `/logbook/flights?stop=D&until=D` (`recentPrevLoad`, again after
+  two minutes), keeps the rows of the last hour (hidden planes out) and puts them after today's rows, each marked `prev`; `tlHtml` draws a
+  `<li class="tg mid">` title (`lblWord(day)`, "Yesterday") before the first one (`#recent li.tg.mid`). The count, the flaps on the phone's side and
+  the rows share that list; the "All N planes today" link still counts today only and hides while today is empty. While yesterday's rows are on
+  their way and today has none, the list is left as it is (no "Nothing spotted yet" flash); "Nothing spotted yet" shows only when the last hour is
+  empty too. The Logbook's Today and the board's own Recent flights still start empty at midnight. (#298) The first-run tips on Now: the Club
+  key has its own (`TAB_TIPS.game`, shown with the other keys; the old "Your points and level: tap for the Spotters' Club" `gstrip` tip in
+  `gameStart` is gone) and the Sky view row has one (`tip("sky", $("look"))`: "Point your phone at a plane to scan it."). (#299) One name per
+  aircraft type: `typeShown(code, name)` (`shortType(typeLabel(...))`) names the Hangar's cards (a type still to scan used to show its code) and the
+  Club's showcase cards, and Radar's Nearest uses `arType` (as Sky view's labels do). Left as they are: the sheets' own "Code" line, the board's
+  flaps (width-limited), the Logbook's category lists (full model names, not codes), and the fallback to a code where no name is known.
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 

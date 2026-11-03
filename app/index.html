@@ -786,11 +786,32 @@ button.lbPlate:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba
 .rvLogo{min-width:0}
 .rvLogo img{max-width:100%;max-height:16px;object-fit:contain}
 .rv strong{font:700 var(--fs-base)/1 var(--f-board);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rv strong span{display:block;margin-top:4px;font-weight:500;color:var(--muted);font-size:var(--fs-s)}   /* 1.87.2.1: under the flight number, never cut to "A…" */
+.rv strong span{display:block;margin-top:4px;font-weight:500;color:var(--muted);font-size:var(--fs-s);overflow:hidden;text-overflow:ellipsis}   /* 1.87.2.1: under the flight number, never cut to "A…" */
 .rv strong span:empty{display:none}
 .rv .num{font:600 var(--fs-s)/1 var(--f-board);color:#c9c6bf;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .flights li.rv::before{content:"";position:absolute;left:4px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--lamp);box-shadow:0 0 6px var(--lamp)}
 .rv .chip{min-width:78px}
+/* 1.129.22 (to-do #315): on a small phone (360 px and below) the flight number reads whole. Five columns left a long callsign with the widest
+   distance, height and pill 26 px ("OE…"), so the height sits under the distance in one column (the labels over them stack the same way), and the
+   logo, gaps and pill give a little more; at 390 px the row is as it was */
+@media (max-width:380px){
+  #rvList{grid-template-columns:38px minmax(0,1fr) auto auto;column-gap:6px}
+  .flights li.rv{padding-right:6px}
+  .rv>.rvLogo,.rv>strong,.rv>.chip{grid-row:1/3}
+  .rv{row-gap:3px}
+  .rv>.num:nth-child(3){grid-column:3;grid-row:1}
+  .rv>.num:nth-child(4){grid-column:3;grid-row:2}
+  .rv>.chip{grid-column:4;min-width:0;padding:0 6px;letter-spacing:.04em}
+  .rvHead>span:nth-child(1),.rvHead>span:nth-child(2),.rvHead>span:nth-child(5){display:none}
+  .rvHead>span:nth-child(3){grid-column:3;grid-row:1}
+  .rvHead>span:nth-child(4){grid-column:3;grid-row:2;margin-top:3px}
+}
+@media (max-width:340px){
+  #rvList{grid-template-columns:32px minmax(0,1fr) auto auto;column-gap:5px}
+  .rv>.chip{padding:0 4px;letter-spacing:0;font-size:var(--fs-tag)}
+  .rv>.num{font-size:var(--fs-xs)}
+}
+}
 /* buttons above lists, and the tab bar: the board's push buttons */
 .tools{display:flex;flex-wrap:wrap;gap:12px 14px;margin:14px 0 4px;padding:3px;--k:.86}
 .tools .cap{margin:0}
@@ -993,6 +1014,7 @@ body.real{--pl-hi:inset 0 1px 0 rgba(255,255,255,.12);--pl-side:inset 1px 0 0 rg
 .tline li.tg{display:flex;align-items:center;gap:10px;margin:0 9px 6px;padding:0;font:600 var(--fs-s)/1 var(--f-board);letter-spacing:.22em;text-transform:uppercase;color:var(--amber);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
 .tline li.tg::before,.tline li.tg::after,.lbDayH::before,.lbDayH::after{content:"";flex:1;min-width:8px;height:1px;background:rgba(214,208,194,.25)}
 #recent li.tg{margin:-6px 9px 4px}
+#recent li.tg.mid{margin:10px 9px 6px}
 .tline li.tg b{color:inherit;font-weight:600}
 #recent .scr{display:none}
 .tline li.fl{display:block;position:relative;margin:0 0 0 22px;padding:12px 4px;cursor:pointer;box-shadow:0 -1px 0 rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06)}
@@ -7960,7 +7982,9 @@ function tlCardHtml(e){
 const cardLi = (e, now) => `<li class="fl open" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e, now)}">${tlCardHtml(e)}</li>`;
 // 1.115 (Dave's pick B): the rows one after another, newest first; the quarter-hour and hour headings went (every
 // row has its time).
-const tlHtml = (list, open, now) => list.map(e => open && tlKey(e) === open ? cardLi(e, now) : rowHtml(e, now)).join("");
+// 1.129.17: Now's rows from yesterday (`prev`, after midnight) stand under a Yesterday title
+const tlHtml = (list, open, now) => list.map((e, i) => (e.prev && !(list[i - 1] || {}).prev ? `<li class="tg mid"><b>${escH(lblWord(recentPrev.day))}</b></li>` : "") +
+  (open && tlKey(e) === open ? cardLi(e, now) : rowHtml(e, now))).join("");
 // 1.129.12: a pair of the plate's screws (.scr), for the Logbook's day plates and its empty lines' pieces (hidden on Now's plate)
 const SCR2 = '<i class="scr"></i><i class="scr"></i>';
 // The empty list: why, on the rail (the newest-first line it will be)
@@ -7987,14 +8011,50 @@ function tlDone(){ if (!tlBusy() && tlAgain) { tlAgain = false; renderRecent(); 
 
 /* Now: the plane overhead on flaps, its photo and details, and the latest sightings. */
 let recentSig = "";
+// 1.129.17 (to-do #297): the list and its count are about the last hour, so just after midnight they keep the planes of
+// the hour before from yesterday's file (the relay's logbook list), under a Yesterday title. Today's own list and the
+// Logbook's Today still start at 0 at midnight.
+const recentPrev = {day: "", at: 0, busy: false, ok: false, list: []};
+// The earlier day the last hour reaches into ("" when it doesn't, or the relay can't say)
+function prevDay(){
+  if (S.demo || liveWaiting() || !relayV5() || (window.OVERHEAD_RELAY_VERSION || 0) < 105) return "";
+  const d = lblIso(new Date(Date.now() - 36e5));
+  return d < lblToday() ? d : "";
+}
+async function recentPrevLoad(day){
+  const p = recentPrev;
+  p.busy = true; p.at = Date.now();
+  try {
+    const j = await fetchJSON(`${relay()}/logbook/flights?over=${overKm()}&deg=${OVER_DEG}${apiWanted() ? "&api=1" : ""}${sightPlaceQ()}&stop=${day}&until=${day}`, {}, 8000);
+    if (p.day !== day) return;
+    p.list = (j.entries || []).map(r => ({...fromRelay(r), prev: true}));
+    p.ok = true;
+  } catch (e) {
+    dlog("warn", `Couldn't read the last hour of yesterday from the relay: ${netError(e, "relay")}`);
+    if (p.day === day) p.ok = true;
+  }
+  finally { p.busy = false; }
+  if (p.day === day) renderRecent();
+}
+// Yesterday's rows of the last hour; null while they are still on their way (the list then stays as it is)
+function recentPrevRows(){
+  const day = prevDay(), p = recentPrev;
+  if (!day) { p.day = ""; return []; }
+  if (p.day !== day) Object.assign(p, {day, at: 0, ok: false, list: []});
+  if (!p.busy && Date.now() - p.at > 120e3) recentPrevLoad(day);
+  if (!p.ok) return null;
+  return p.list.filter(e => Date.now() - (e.ts || 0) < 36e5 && !(userLists.hide.length && isHidden(e)));
+}
 function renderRecent(){
-  const all = dayList().filter(e => !e.sample || S.demo), list = all.slice(0, 8), L = $("recent");
+  const today = dayList().filter(e => !e.sample || S.demo), prev = recentPrevRows();
+  if (prev === null && !today.length) return;      // midnight: yesterday's last hour isn't in yet, so "Nothing spotted yet" would be wrong
+  const all = today.concat(prev || []), list = all.slice(0, 8), L = $("recent");
   // 1.95: the heading counts the last hour; the link at the end goes to Today, with the whole day's count
-  const hour = all.filter(e => Date.now() - (e.ts || 0) < 36e5).length, day = Math.max(all.length, spotted.length >= 400 && relayStats ? relayStats.planes || 0 : 0);
+  const hour = all.filter(e => Date.now() - (e.ts || 0) < 36e5).length, day = Math.max(today.length, spotted.length >= 400 && relayStats ? relayStats.planes || 0 : 0);
   const head = all.length ? T(hour ? "{n} in the last hour" : "None in the last hour", {n: nf.format(hour)}) : "", link = T(day === 1 ? "1 plane today ›" : "All {n} planes today ›", {n: nf.format(day)});
   if ($("recentN").textContent !== head) $("recentN").textContent = head;
   if ($("recentAll").textContent !== link) $("recentAll").textContent = link;
-  $("recentFoot").hidden = !all.length;
+  $("recentFoot").hidden = !today.length;
   tlAhead(list);
   const open = list.find(e => tlKey(e) === tlOpenId.recent);
   if (!open) tlOpenId.recent = "";
@@ -9788,6 +9848,8 @@ function hangarLoad(){
   hangarAt = Date.now();
   fetchJSON(`${relay()}/game/hangar`, {}, 12000).then(j => { hangar = j; renderGame(); if (hgWant && Date.now() - hgWant < 15000) requestAnimationFrame(hgShow); }).catch(() => { hangarAt = Date.now() - 4 * 60000; });
 }
+// 1.129.17 (to-do #299): a type's name as the Logbook's rows say it (A320neo, not A20N); the code only for one nobody has a name for
+const typeShown = (code, name) => shortType(typeLabel(code, name));
 // 1.82.2: names as the app's table has them (the relay's are "AIRBUS A-320neo", which Wikipedia doesn't know), the relay's
 // as a second try; the model photo already found for them, else "".
 const hgNames = (code, name) => [...new Set([TYPES[code], name].map(n => String(n || "").trim()).filter(Boolean))];
@@ -9841,10 +9903,10 @@ function hangarHtml(hg){
   const by = new Map((hg.types || []).map(t => [t.code, t])), inSet = new Set((hg.sets || []).flatMap(s => s.types));
   const scanned = c => !!(by.get(c) && by.get(c).scans), seen = c => by.has(c) && !scanned(c);
   const card = (code, heli, eager) => {
-    const t = by.get(code), names = hgNames(code, t && t.name), name = typeLabel(code, t && t.name), full = !!(t && t.scans);
+    const t = by.get(code), names = hgNames(code, t && t.name), name = typeShown(code, t && t.name), full = !!(t && t.scans);
     const img = `<span class="hgPh${heli || SPECIAL_TYPES[code] === "HELICOPTER" ? " heli" : ""}" data-mp="${escH(names.join("|"))}"` +
       `${full ? ` data-own="${escH([t.thumb, t.photo].filter(Boolean).join(" "))}"` : ""}${eager ? ' data-e="1"' : ""}></span>`;
-    if (!full) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img}<b>${escH(code)}</b><span>${escH(T(t ? "still to scan" : "still to find"))}</span>` +
+    if (!full) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img}<b>${escH(name)}</b><span>${escH(T(t ? "still to scan" : "still to find"))}</span>` +
       (t && t.last ? `<small>${escH(T("Last overhead {d}", {d: fmtDay(t.last)}))}</small>` : "") + `</button>`;
     const mk = mstOf(t.scans, t.m), nx = t.scans ? mstNext(t.scans, t.m, t.mt) : null;
     return `<button type="button" class="hgCard${mk ? " mk" + mk : ""}" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` + img +
@@ -9979,7 +10041,7 @@ function scPin(x, attr){
   const rt = x.route && x.route.length === 2 && x.route.every(Boolean) ? `${x.route[0]} → ${x.route[1]}` : "", tag = attr ? "button" : "div";
   return `<${tag}${attr ? ` type="button"${attr}` : ""} class="hgCard sc" data-scc="${escH(x.code)}" data-scn="${escH(x.name || "")}" style="--t:${TIER_COL[x.tier] || TIER_COL.uncommon}">` +
     (pic ? `<img src="${escH(pic)}" alt="">` : `<span class="hgPh"></span>`) +
-    `<span class="hgT"><em>${escH(T(TIER_NAME[x.tier] || "Uncommon"))}</em><b>${escH(typeLabel(x.code, x.name))}</b>` +
+    `<span class="hgT"><em>${escH(T(TIER_NAME[x.tier] || "Uncommon"))}</em><b>${escH(typeShown(x.code, x.name))}</b>` +
     (rt ? `<span class="scRt">${escH(rt)}</span>` : "") +
     `<span>${escH([x.airline || x.flight, x.ts ? scDate(x.ts) : ""].filter(Boolean).join(" · "))}</span></span></${tag}>`;
 }
@@ -12187,7 +12249,7 @@ function renderRadarList(){
     const info = radarInfo(o), name = radarName(o);
     const code = airlineCodeOf(info), L = code ? logo(code, true) : null, g = o.ac.alt_baro === "ground" ? gateFor(info) : "";
     const lg = L && L.state === "ok" ? `<img src="${escH(L.img.src)}" alt="">` : code ? escH(code) : "";
-    return `<li class="rv${radar.sel === o.ac.hex ? " sel" : ""}" data-hex="${escH(o.ac.hex)}" style="--lamp:${radarColor(o)}"><span class="rvLogo${L && L.state === "ok" ? " ok" : ""}">${lg}</span><strong>${escH(name)}<span>${escH(String(o.ac.t || ""))}</span></strong>` +
+    return `<li class="rv${radar.sel === o.ac.hex ? " sel" : ""}" data-hex="${escH(o.ac.hex)}" style="--lamp:${radarColor(o)}"><span class="rvLogo${L && L.state === "ok" ? " ok" : ""}">${lg}</span><strong>${escH(name)}<span>${escH(arType(o.ac, info))}</span></strong>` +
       `<span class="num">${distText(dist)} ${dir}</span><span class="num">${escH(altShort(o.alt))}</span>${chip(st, g && (st ? g : T("GATE {g}", {g})))}</li>`;   // 1.65: with its gate while on the ground
   });
   // 1.118: the two number columns get their names in a row of small labels (a shared grid lines them up), not with no list
@@ -13401,12 +13463,20 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.129.22", date: "2026-11-03", notes: [
+    "The Radar's list shows flight numbers whole on small phones.",
+  ]},
   {v: "1.129.18", date: "2026-11-03", notes: [
     "Daylight: the Sky view row, the Radar's list, its (i), a plane's card and the \"All planes today\" link are readable.",
     "The Radar's list shows airline logos whole.",
     "The checklist bar on Now and the Flight school's header fit on a small phone.",
     "The welcome's main key is lit on every step, and \"Yes, turn them on\" stays on one line.",
     "The Club's footer is gone; only the date first sightings are marked NEW from stays, while it applies.",
+  ]},
+  {v: "1.129.17", date: "2026-11-03", notes: [
+    "Recent flights keeps the last hour across midnight, with yesterday's planes under their own title.",
+    "The first tips point at the Sky view row and the Club key.",
+    "Radar's nearest planes and the Hangar's cards name the aircraft type, as the Logbook does.",
   ]},
   {v: "1.129.16", date: "2026-11-02", notes: [
     "An opened plane in the lists is now milled into its metal plate.",
@@ -15584,6 +15654,7 @@ function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); i
 // each, pointing at one thing; the app's own words for the styles and Now's pages (the board keeps MODE_TIP, PAGE_TIPS).
 const TAB_TIPS = {now: "This is Now: the plane over you. Tap the board for its card.",
   logbook: "Logbook: today's planes, and every plane you've ever spotted.",
+  game: "Club: your points, your level and the league.",
   radar: "Radar: the planes around you right now.",
   settings: "Settings: your place, the look and the sounds."};
 const NOW_TIPS = {mode: "Switch between Overhead, the planes over you, and Airport, the take-offs and landings.",
@@ -15601,6 +15672,7 @@ function appTips(t){
   if (TAB_TIPS[t]) tip("tab-" + t, tabBtn(t), T(TAB_TIPS[t]));
   if (t === "now") {
     tip("mode", () => $("modes"), T(NOW_TIPS.mode));
+    tip("sky", () => $("look"), T("Point your phone at a plane to scan it."));      // 1.129.17 (to-do #298)
     const pageBtn = p => () => vis($("apPick").querySelector(`[data-page="${p}"]`)) || vis($("nowPages").querySelector(`[data-page="${p}"]`));
     if (airportMode()) for (const [p, k] of [["lists", "aplists"], ["dep", "apdep"], ["land", "apland"]]) tip("ap-" + p, pageBtn(p), T(NOW_TIPS[k]));
     else for (const [p, k] of [["lists", "spotted"], ["ac", "aircraft"]]) tip("pg-" + p, pageBtn(p), T(NOW_TIPS[k]));
@@ -17664,7 +17736,6 @@ function gameStart(){
   gRefresh(true); gLeagueLoad();
   setInterval(() => gRefresh(), 2500);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) gRefresh(true); });
-  setTimeout(() => tip("gstrip", () => $("gHead"), T("Your points and level: tap for the Spotters' Club.")), 4000);
 }
 function run(){
   if (booted) return;
