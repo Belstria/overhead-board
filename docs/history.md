@@ -2838,6 +2838,59 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `tlMillRule`, `tlMillDiv`, `lbIn` for the screws) cut the recess in over the app's own opening, ending about 0.55 s after the tap; `tlFold` drops the
   class before the card fades so the moved element doesn't replay it. Checked at 390 and 360 px: no photo, a helicopter without route, a special plane, a
   favourite, long names (the tiles lost their 6 px gaps, so a type is cut no harder), daylight, Realistic look off.
+- 1.129.17 (to-dos #297, #298, #299; app only, no relay change): **Three small improvements.** (#297) Now's Recent flights and its "N in the last
+  hour" count are about the last hour, so after midnight they keep the planes from the hour before. `renderRecent` (`tools/app/main.js`) adds
+  `recentPrevRows()`: when `prevDay()` (the day of "an hour ago", from `lblIso`, earlier than `lblToday()`; relay 105 or newer, not in demo or
+  while finding) names yesterday, it reads that day once from the Logbook's own `/logbook/flights?stop=D&until=D` (`recentPrevLoad`, again after
+  two minutes), keeps the rows of the last hour (hidden planes out) and puts them after today's rows, each marked `prev`; `tlHtml` draws a
+  `<li class="tg mid">` title (`lblWord(day)`, "Yesterday") before the first one (`#recent li.tg.mid`). The count, the flaps on the phone's side and
+  the rows share that list; the "All N planes today" link still counts today only and hides while today is empty. While yesterday's rows are on
+  their way and today has none, the list is left as it is (no "Nothing spotted yet" flash); "Nothing spotted yet" shows only when the last hour is
+  empty too. The Logbook's Today and the board's own Recent flights still start empty at midnight. (#298) The first-run tips on Now: the Club
+  key has its own (`TAB_TIPS.game`, shown with the other keys; the old "Your points and level: tap for the Spotters' Club" `gstrip` tip in
+  `gameStart` is gone) and the Sky view row has one (`tip("sky", $("look"))`: "Point your phone at a plane to scan it."). (#299) One name per
+  aircraft type: `typeShown(code, name)` (`shortType(typeLabel(...))`) names the Hangar's cards (a type still to scan used to show its code) and the
+  Club's showcase cards, and Radar's Nearest uses `arType` (as Sky view's labels do). Left as they are: the sheets' own "Code" line, the board's
+  flaps (width-limited), the Logbook's category lists (full model names, not codes), and the fallback to a code where no name is known.
+- 1.129.18 (to-dos #287, #289, #290, #294, #295; app only, no relay change; found in a pass over the phone app, "Fifteen ideas"): **Five small fixes.**
+  (#287) Daylight, the rest of dark-on-dark and light-on-light: `html.daylight` gives `#acSec #look` (Now's Sky view row: its key, scan label and value) the
+  night's `--ink`/`--amber` like the plates (1.129.13); the Radar's Nearest numbers lose the `.rv .num` dark colour (the rows sit on a plate); the Radar's (i)
+  (`.rvTop .iBtn`, on the page, not a plate) and Recent flights' "All N planes today" (`.tlFoot .lnk`) take daylight's dark ink; a plane's card
+  (`#cardBox .cardIn.info`, whose facts, tiles and words are the board's hard-coded light-on-dark colours) keeps the night metal (it was cream with pale
+  text), so the paper rules there are `:not(.info)`. (#289) `.rvLogo img` is `max-width:100%`: the logo box is the grid's 44 px less the row's 16 px
+  padding (a subgrid track includes it), 28 px, and the 40 px image spilled over both edges. (#290) `fsBar`: "Checklist" and the next mission's name
+  (no "Next up ·", no count: the marks carry it; the full text is its aria-label), a 320 px rule shrinks the marks; `fsRecord`'s header reads "Pre-flight
+  record" (it wrapped as "PRE- / FLIGHT"). (#294) `#welcome .cap.big.go` is lit green on every step (only the last had `aria-pressed`, set by `pick()`),
+  and `#welcome .cap.big` is `width:auto` with `white-space:nowrap`. (#295) The Level tab's footer (`logbookSummary()`: counting since, NEW date, points)
+  is gone; `learnFoot()` puts "NEW marks from {date}" in a `.plFoot` at the end of the Your club plate while `learningUntil` is ahead.
+- 1.129.19 (to-dos #286, #288, #291, #292, from "Fifteen ideas"; app and board, no relay change): four small fixes. **#286 Offline is not an empty
+  sky:** `skyState` returns `offline` (`SKY_WORDS.offline`, "Sky view" / "Offline · retrying", dimmed) when there is no plane and `isOffline()`
+  (`held` no longer keeps it for the 3 s grace); `renderRadarList`, `arAroundOpen`, the Sky view's `arCount`, `tlOffline` (Recent flights' empty line)
+  and `nowEmptyNote` say the same words, and Recent's "None in the last hour" is left out while offline. `updateFooter` redraws these once when
+  `offShown` flips (and back). flows.py's `sky_row_checks` has the `offline` / `backOnline` states. **#288 Trophy words:** the ladders that count the
+  scan book (`TROPHY_LADDERS`: planes, types, airlines, different aircraft, countries, special planes, the same aircraft) now say "scanned"; the
+  counts, points and `GAME3_V` / `GAME_V` are untouched. **#291 One order:** Planes, Aircraft, Types, Airlines (Today: Planes, Overhead, Types,
+  Airlines) on the Today plate, the Today in numbers flaps (`placeRow` in the board and main.js), the 2026 / All time plates, the year, month and
+  week panel (`REVIEW_NUMS` reordered; the panel's top row is the plate's four, `.perCard .yNums` four across; `PER_MORE` lost Aircraft and
+  has `.yMore`, three across) and the board's Logbook flaps (`LB_NUMS`, `lp0`..`lp5` widths). **#292 A type's name:** `typeShown(code, n)` (next to
+  `typeLabel`, shared with the app): the name, maker left out, with n letters the whole name, else shorter, else the code; used by `reviewFacts`
+  (Rarest, and the record rows' fallback), `lbWho`, the Logbook's aircraft list in main.js; the board's flaps ask for 10 letters so they keep the code
+  when the name doesn't fit.
+- 1.129.20 (to-do #296, Dave's pick C of three, "The empty list explains", with his change: a choice of the profile's places instead of
+  only Use home; app and test board, no relay change): **live location no longer waits for good.** Shared (`test/index.html`): `liveErr` (set by
+  `liveFail(why, msg)`: the browser's watch and re-ask now have an error callback, code 1 is "deny", anything else, a timeout too, "unav"; the Android
+  app's `hereNow()` rejection is read by its words, "turned down" → "deny", "turned off" → "off", the rest "unav"), `LIVE_LOST_MS` (20 s),
+  `liveLost()` (waiting, and an error or 20 s since `liveRunAt`), `liveWhy()` (`liveErr`, else "approx" when only an old approximate position came
+  (`liveOldAcc`), else "still"). The 2 s interval tracks "lost <why>" as a state, logs it once and calls `liveShow()`; the 60 s toast and
+  `liveToldAt` went. `liveHalt` clears `liveErr`. The board's title says NO POSITION. The app (`main.js`): `skyState` gives "nofix" ("Live location ·
+  No position", dimmed, the key greyed like "finding"; its label opens a sheet), `updateWhere` says ◉ NO POSITION, and `renderRecent` draws `tlNoFix()`
+  instead of `tlFinding()`: the NOW plate's `li.st.find.nofix` with "No position · <reason>" (`NOFIX`), one help line, and `.nfKeys` (two `cBtn`s,
+  the place key amber like `.skyKey.hot`). `nfPlaces()` lists the place before live location (`S.livePrev` without a label, only for a located
+  profile, as "Home", unless a saved place is at the same spot: `liveStop`) and `places.list` (`usePlace`, `S.livePrev` dropped). One: "Use
+  <name>"; more: "Pick a place" opens a plate sheet with a `pickList`; none: "Pick a place" opens Settings → Location (`setOpen("loc")`). Try
+  again: `liveRun()`. `nfSig()` joins Recent flights' signature. Flow `no_position_checks` (flows.py): a made-up geolocation that never answers
+  (Finding you, then after 20 s the row, the title and the plate; several places open the list; a late position ends it) and one that refuses (at
+  once Not allowed; Try again stays so; Use Work turns live off, the row then says Scan needs · Go live).
 - 1.129.21 (to-dos #303–#306, from the 3 Nov performance research; test board and app, no relay change): **Four performance gains.** Measured in headless
   Chromium against the test relay, CPU throttled through CDP (4× a mid-range phone, 6× the Fire TV board), before and after in the same runs.
   *Radar (#303):* `paintRadar` draws the sweep with one cone gradient (`radarSweep`; the 28 wedges stay where a canvas lacks `createConicGradient`, e.g.
