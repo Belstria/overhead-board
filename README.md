@@ -837,6 +837,13 @@ Five buttons along the bottom:
   the time engraved with its line running to a round metal knob (⌃), the photo in a window cut into the metal, an engraved line
   from each airport to the plane, and Aircraft, Closest and Height between machined lines; as it opens the lines draw in. The photo (Planespotters' first, its credit a link to the photo's page) opens the
   plane's whole card, the airline, the places and the aircraft type theirs, and the knob, the bar it sits in or another plane folds it back.
+  Since 1.130 (relay 109) the card also says **where that aircraft is right now**, in a box across under the three:
+  **Where now** "Over Serbia · 11,300 m", "On the ground · Dubai", or **Not seen now** when the free tracking networks
+  can't hear it ("/" when the relay can't ask just then); a tap on it explains it. The relay looks it up only when a card
+  opens and keeps the answer a minute (adsb.fi, adsb.lol in reserve; the country is the one of the nearest airport, the
+  place on the ground the airport it stands at). Under each city of the route it shows the **weather and local time
+  there**, "21° · 14:35 local" (Open-Meteo, asked by the relay for the airport's own position and kept an hour; nothing
+  about your place is sent). Both lines are there from the start ("···" while asked), so the card doesn't move.
   In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
   itself every 20 seconds; it stays when one side has no plane), with the runway screen in place of the photo, and the
   take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
@@ -966,6 +973,10 @@ Five buttons along the bottom:
   seen and how close it came; a flight lists the aircraft that flew it, an aircraft the flights it flew. Since relay 63
   it also finds where a plane was seen: a saved place's name, or on the go the town, the area round it or the country
   ("Oia", "Santorini", "Greece"; the relay names the phone's place, to about a kilometre, in the background).
+  Since 1.130 tapping the empty search shows your **last three searches** as chips; one tap searches again, and they go
+  as soon as you type. Typing on refines the newest ("A3", "A38", "A380" keep only "A380"); they are kept on the phone,
+  for each profile. The relay keeps the saved days it has read in memory (relay 109; the newest 8,000 sightings, about
+  7 MB, each day until its file changes), so a search answers several times faster.
 - **Notices** (1.65): saving answers with a notice: since 1.115 a full-width bar at the bottom, above the tabs (at the
   top while a card is open, above a ticket or pass while one shows), the message on the left and its one action on the
   right, red for a problem: Favourite and Hide with **Undo**, a failed save with **Retry**. Settings that can't reach the relay wait on the device and are sent
@@ -1148,6 +1159,11 @@ asking every 10 minutes. Only when all three fail or rest does it ask
 AvioADSB, the emergency backup: its free tier allows one request every 10 seconds and 100 a day, so the relay asks it
 at most every 15 seconds and 90 times a day (its day starts at midnight UTC) and serves the last good data in between. Problems are printed in the relay's
 window and appear in the board's diagnostics panel.
+Where one aircraft is right now (an opened card in the app, relay 109) is asked of adsb.fi by its transponder code, with
+the same spacing and rests as the positions; adsb.lol only when adsb.fi can't answer and while it has been asked fewer
+than 350 times that day, so its reserve for positions stays. A plane the relay fetched in the last minute anyway is
+answered from that. The weather and local time at a route's airports come from Open-Meteo (free, no key; at most 2,000
+calls a day, each airport at most once an hour; only the airport's coordinates are sent).
 
 **Friends and family (relay version 19).** The phone app can be shared with friends and family over the internet,
 each with a profile of their own: their own location, settings, Spotted today and lifetime logbook. Open

@@ -571,6 +571,11 @@ html.daylight :is(#svList,#recent) .tlCard.cardish{background:none!important;--i
 .tlMill .cInfo .cTiles{animation:tlMillRule .3s .2s cubic-bezier(.33,1,.68,1) backwards}
 .tlMill .cInfo .cTile+.cTile{animation:tlMillDiv .3s .29s cubic-bezier(.33,1,.68,1) backwards}
 .tlMill .cInfo .cTile+.cTile+.cTile{animation-delay:.33s}
+/* 1.130 (to-do #300, #301): the route's weather and local time under each city (its line kept while it is asked or
+   unknown, so nothing moves), and Where now as one box across, between machined lines under the three */
+.cRbEnd .cWx{min-height:1.3em;margin-top:2px;font-variant-numeric:tabular-nums}
+.cardish .cInfo .cTiles.cWhere{grid-template-columns:minmax(0,1fr)}
+.cInfo .cWhere .cTile b{white-space:normal}
 .tlMill>.scr{animation:lbIn .2s .26s backwards}
 .tlMill>.scr:nth-of-type(2){animation-delay:.285s}.tlMill>.scr:nth-of-type(3){animation-delay:.31s}.tlMill>.scr:nth-of-type(4){animation-delay:.335s}
 @keyframes tlMillBg{from{box-shadow:inset 0 2px 6px transparent,inset 0 1px 0 transparent,inset 0 -1px 0 transparent,0 1px 0 transparent,0 -1px 0 transparent}}
@@ -1901,6 +1906,10 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
 .lbfRead{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0}
 .lbfRead .lbfChip{border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:4px 10px;font:600 var(--fs-s)/1 var(--f-board);color:var(--ink)}
 .lbfRead .lbfChip:first-child{border-color:#8fa05a;background:rgba(143,160,90,.15)}
+/* 1.130 (to-do #302): the last searches, the same chips as buttons (none green: they name no category) */
+.lbfLast .lbfChip,.lbfLast .lbfChip:first-child{appearance:none;background:none;border-color:rgba(255,255,255,.18);padding:8px 12px;cursor:pointer}
+.lbfLast .lbfChip:active{background:rgba(255,255,255,.06)}
+.lbfRead.lbfLast{margin-bottom:12px}
 #lbFound li b .cLink{display:inline-block;padding:1px 9px;margin:1px 0;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:none;color:var(--ink);font:700 var(--fs-m)/1.35 var(--f-board);cursor:pointer}
 /* the boarding pass for a Sky view lock-on: band and stub in the plane's rarity colour */
 .pF{display:flex;filter:drop-shadow(0 12px 20px rgba(0,0,0,.38));text-align:left;animation:pfIn .5s cubic-bezier(.2,1.5,.4,1) both;

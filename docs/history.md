@@ -2838,6 +2838,37 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `tlMillRule`, `tlMillDiv`, `lbIn` for the screws) cut the recess in over the app's own opening, ending about 0.55 s after the tap; `tlFold` drops the
   class before the card fades so the moved element doesn't replay it. Checked at 390 and 360 px: no photo, a helicopter without route, a special plane, a
   favourite, long names (the tiles lost their 6 px gaps, so a type is cut no harder), daylight, Realistic look off.
+- 1.130 / relay 109 (to-dos #300, #301, #302, #307, from the "ten and five" research of 3 Nov; built on Dave's "build everything you
+  can"): **Where now, the route's weather, the last searches and a faster search.**
+  **#300 Where now:** `tlCardHtml` passes `infoCard` an `afterTiles` row `.cTiles.cWhere` (one column: `.cardish .cInfo .cTiles.cWhere`, the
+  value may wrap) with a `button.cTile[data-wn=hex]`, label "Where now"; its tap opens a two-line `plateSheet`. `nowFill(root)` (called by `tlWire` and where
+  the open card's `data-ago` is refreshed, three places) writes `wnText` and asks `wnAsk` (`/wherenow?hex=`, kept a minute in `wnMem`, a failure retried
+  after 15 s). Values: "Over {country}" (`countryName` of the relay's `cc`) · `altText(alt)` (feet from the relay), "In the air" without a country,
+  "On the ground" · the airport's city (or country), "Not seen now", `NA` when the relay can't ask, "···" while asked. Relay: `where_now(hx)`, kept
+  `WHERE_NOW_S` (60 s) in `_wherenow`; first the bodies of `_positions` younger than a minute (`_hex_in`), then `_where_fetch` over `HEX_SOURCES`
+  (adsb.fi `/api/v2/hex/`, adsb.lol `/v2/hex/`) under `_fetch_lock`, sharing `STATE`'s `last_call`, `SOURCE_GAP_S`, `cooldown_until` (a 429 rests the
+  source for positions too, `rest_for`) and the day's `asked` count; adsb.lol only below `WHERE_LOL_MAX` (350) asks that UTC day. With `--source`
+  (STATE cleared) the pacing lives in `_hex_own`. Names: `_nearest_airport(lat, lon, km)` over the airport list (equirectangular, a latitude band):
+  on the ground the airport within `WHERE_GROUND_KM` (8), else the country of the nearest within `WHERE_AIR_KM` (600). `/wherenow`: 400 without six hex
+  digits, `allow("wherenow:"+profile, 0.2, 6)`, 503 while the airport list loads or no source can be asked.
+  **#301 weather:** `infoCard`'s band ends take a fourth part (HTML under the city); the app's ends carry `small.cWx[data-wx=IATA]` (min-height, so the
+  line is there while asked or unknown). `wxAsk` asks `/weather?ap=A,B` for the codes due (`wxMem`, an hour; failure 15 s); `wxText`: "{t}° · {time} local",
+  the time by `toLocaleTimeString` in the answer's `tz` (else `off`), refreshed with the card. Relay `weather_at(code)`: `OPEN_METEO` (`current=temperature_2m`,
+  `timezone=auto`) for the airport list's coordinates only, `WEATHER_S` an hour, a failure `WEATHER_FAIL_S` (10 min), one call at a time
+  (`_weather_lock`), at most `WEATHER_DAY_CAP` (2,000) a UTC day. `/weather`: two codes at most, `allow("weather:"+profile, 0.5, 10)`.
+  **#302 last searches:** `lbLastAdd` keeps the answered query (`lbFind`, after the answer) in `localStorage[LBQ_KEY]` ("od.lbq." + the profile id),
+  three at most, newest first, without repeats; while `lbLastNew` is false the next one replaces the newest (typing on refines it), and clearing the
+  box or a chip (`lbFindSet`) starts a new one. `lbLastSync` shows them as `.lbfRead.lbfLast` buttons (`.lbfChip`, none green) in `#lbFound` while the
+  box is empty and focused (on focus, 300 ms after blur, on input); typing hides them.
+  **#307 search cache:** `search_json` reads each past day through `_search_day(spot, f, day)`: the rows of `_search_rows(entries)` kept in `_search_kept`
+  by (spot dir, day) with the file's mtime and size, at most `SEARCH_KEEP` (8,000) sightings over every profile, the oldest day dropped first (every
+  search reads the days in order, so least-recently-used would drop each day just before it is read); a day with a place on the go not named yet isn't
+  kept. A row is (`SEARCH_FIELDS`' values, interned, the route as code and city; the words without gaps; place; where; category), 855 bytes a sighting
+  (tracemalloc on the dense logbook), so about 7 MB at the cap. A word now only checks the gapless words (a word found in the words is found there too,
+  so answers are the same: 14 queries compared with relay 108's `search_json`, none different). Measured on the test relay (`--logbook dense`, 4,800
+  sightings over 24 days), median of five: A320 70 → 18 ms, Ryanair 62 → 8, OE-L 56 → 5, military 43 → 2, "vienna" 52 → 3 ms; the first search after a
+  start reads them (106 ms). Test relay: fakes for adsb.fi's and adsb.lol's `/hex` (`hex_plane`: the hex number mod 3 is over Serbia, in Dubai or
+  unseen; `HEX_FI_DOWN`) and Open-Meteo (`meteo`), `/hex/asked`; the airport list gains BGY, SOF, AMS, IST, BEG. Flows: `now_extras_checks`.
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 

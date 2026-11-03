@@ -85,7 +85,7 @@ missing region).
 adsb.fi, adsb.lol (in reserve for its 500 a day, relay 68), airplanes.live, AvioADSB emergency only), sightings, logbook and game, Web Push, Flightradar24
 (Explorer plan, pacing and per-profile daily limits; boards fall back to free sources when off; relay 66: away from
 home it fills in the low planes the free sources miss for the owner's screens, `fill_*`; relay 67: one record per
-profile, not for pages in the background), cards' data, geo search, a health watch that pushes the owner (relay 45), week/month review (`/review`, push; relay 46),
+profile, not for pages in the background), cards' data (relay 109: where an aircraft is now, `/wherenow`, and a route's weather and local time, `/weather` from Open-Meteo), geo search, a health watch that pushes the owner (relay 45), week/month review (`/review`, push; relay 46),
 photos for the share picture (`/photo`) and the owner's Hue light pulse (`data/hue.json`, admin page; relay 47), QR sign-in, and since relay 48 board files named by version (`i18n.js?v=<sha256 start>`) with a year's cache when the copy matches. Credit links are in About.
 
 **Profiles and access (relay 42+)**: there is no Home. Every visitor is a profile's device (cookie from a personal invite
