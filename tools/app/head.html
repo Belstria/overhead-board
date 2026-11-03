@@ -283,9 +283,11 @@ button.lbPlate:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba
 .rv{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto auto;gap:10px;align-items:center}
 .rvLogo{display:flex;align-items:center;justify-content:center;height:20px;border-radius:3px;background:#2a2b2f;font:700 var(--fs-xs)/1 var(--f-board);color:var(--amber)}
 .rvLogo.ok{background:linear-gradient(#f4f1ea,#dad6ca)}
-.rvLogo img{max-width:40px;max-height:16px;object-fit:contain}
+/* 1.129.18 (to-do #289): the whole logo inside its box (the box is the grid's 44px less the row's padding), as on the cards */
+.rvLogo{min-width:0}
+.rvLogo img{max-width:100%;max-height:16px;object-fit:contain}
 .rv strong{font:700 var(--fs-base)/1 var(--f-board);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rv strong span{display:block;margin-top:4px;font-weight:500;color:var(--muted);font-size:var(--fs-s)}   /* 1.87.2.1: under the flight number, never cut to "A…" */
+.rv strong span{display:block;margin-top:4px;font-weight:500;color:var(--muted);font-size:var(--fs-s);overflow:hidden;text-overflow:ellipsis}   /* 1.87.2.1: under the flight number, never cut to "A…" */
 .rv strong span:empty{display:none}
 .rv .num{font:600 var(--fs-s)/1 var(--f-board);color:#c9c6bf;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .flights li.rv::before{content:"";position:absolute;left:4px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--lamp);box-shadow:0 0 6px var(--lamp)}
@@ -360,7 +362,7 @@ button.lbPlate:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba
 .yFacts div{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid rgba(255,255,255,.05);font:600 var(--fs-m)/1.3 var(--f-board)}
 .yFacts dt{color:var(--amber);font-size:var(--fs-xs);letter-spacing:.06em;text-transform:uppercase}
 .yFacts dd{margin:0;color:var(--ink);text-align:right}
-.reviewCard .yNums{grid-template-columns:repeat(4,1fr)}
+.reviewCard .yNums,.perCard .yNums:not(.yMore){grid-template-columns:repeat(4,1fr)}
 .rvTools{display:flex;gap:6px;align-items:center;margin:8px 0 2px}.rvTools span{flex:1}
 .yActs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .yActs .cap{width:auto;padding:0 12px;text-decoration:none;display:inline-flex;align-items:center}
@@ -492,6 +494,7 @@ body.real{--pl-hi:inset 0 1px 0 rgba(255,255,255,.12);--pl-side:inset 1px 0 0 rg
 .tline li.tg{display:flex;align-items:center;gap:10px;margin:0 9px 6px;padding:0;font:600 var(--fs-s)/1 var(--f-board);letter-spacing:.22em;text-transform:uppercase;color:var(--amber);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
 .tline li.tg::before,.tline li.tg::after,.lbDayH::before,.lbDayH::after{content:"";flex:1;min-width:8px;height:1px;background:rgba(214,208,194,.25)}
 #recent li.tg{margin:-6px 9px 4px}
+#recent li.tg.mid{margin:10px 9px 6px}
 .tline li.tg b{color:inherit;font-weight:600}
 #recent .scr{display:none}
 .tline li.fl{display:block;position:relative;margin:0 0 0 22px;padding:12px 4px;cursor:pointer;box-shadow:0 -1px 0 rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06)}
@@ -827,12 +830,15 @@ html.daylight{color-scheme:light;--housing:#efe9dc;--muted:#55524b;--label2:#5a5
 html.daylight body{background-color:#efe9dc}
 /* 1.129.13 (to-do #282): a plate stays metal in daylight, so on it the night's ink, greys and amber (daylight's dark ink
    and deep amber are for the paper); a paper card on a plate, or a plate that is paper (.cardish: Favourites & hidden), has daylight's again */
-html.daylight .plate,html.daylight #recentPl,html.daylight #svList>li{--ink:#f3f0e8;--muted:#959aa3;--label2:#6d7179;--amber:#f0b429;--line:#26272b;color:var(--ink)}
+html.daylight .plate,html.daylight #recentPl,html.daylight #svList>li,html.daylight #acSec #look{--ink:#f3f0e8;--muted:#959aa3;--label2:#6d7179;--amber:#f0b429;--line:#26272b;color:var(--ink)}
 html.daylight .plate.cardish,html.daylight .plate .cardish,html.daylight #recentPl .cardish,html.daylight #svList .cardish{--ink:#191919;--muted:#55524b;--label2:#5a5650;--amber:#a85300;--line:#d3cab7}
 html.daylight .panel{background:#e2d9c6;border-radius:6px}
-html.daylight .rvCard,html.daylight .cardish,html.daylight #cardBox .cardIn{background:#fbf8f1!important;color:#191919;border-color:#d3cab7}
-html.daylight #cardBox .cardIn *,html.daylight .cardish *{border-color:#d3cab7}
-html.daylight #cardBox h3,html.daylight #cardBox .cFacts dd,html.daylight .cardish .cFacts dd,html.daylight .cardish h3{color:#191919}
+html.daylight .rvCard,html.daylight .cardish,html.daylight #cardBox .cardIn:not(.info){background:#fbf8f1!important;color:#191919;border-color:#d3cab7}
+html.daylight #cardBox .cardIn:not(.info) *,html.daylight .cardish *{border-color:#d3cab7}
+/* 1.129.18 (to-do #287): a plane's card (the sheet a tap on the Radar's list opens) is written in the night's light-on-dark colours throughout
+   (the board's #cardBox .cInfo rules), so on paper its facts vanished: it keeps the night metal, like the plates and the list cards (1.129.13) */
+html.daylight #cardBox .cardIn.info{--ink:#f3f0e8;--muted:#959aa3;--label2:#6d7179;--amber:#f0b429;--line:#26272b;color:var(--ink)}
+html.daylight #cardBox .cardIn:not(.info) h3,html.daylight #cardBox .cardIn:not(.info) .cFacts dd,html.daylight .cardish .cFacts dd,html.daylight .cardish h3{color:#191919}
 html.daylight .chip{border-color:#c9bfaa;color:#191919}
 html.daylight .flights li,html.daylight #lbFound li{border-color:#d3cab7}
 html.daylight .svFind input{background:#fbf8f1;color:#191919;border-color:#c9bfaa}
@@ -842,7 +848,10 @@ html.daylight .cLink{color:#2a2620;border-color:#c9bfaa}
 html.daylight .fl .rt .no{color:rgba(0,0,0,.3)}
 html.daylight .fl .meta span:last-child{color:#4a463f}
 html.daylight .svFind input::placeholder,html.daylight #welcome input::placeholder{color:rgba(25,25,25,.45)}
-html.daylight .rv .num{color:#3b3832}
+/* 1.129.18 (to-do #287): Radar's (i) sits on the page, not on a plate (the rest of its row is the dark chip) */
+html.daylight .rvTop .iBtn{border-color:rgba(25,25,25,.45);color:#3b3832}
+/* Recent flights' "All N planes today" link sits on the page too: gold on cream was light on light */
+html.daylight .tlFoot .lnk{color:var(--amber)}
 html.daylight .acCheck b,html.daylight .devTile{color:#191919}
 html.daylight .devTile{background:#fbf8f1;border-color:#d3cab7}
 html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} html.daylight .cups li.m2{--m:#b07d0c} html.daylight .cups li.m3{--m:#23806f} html.daylight .cups li.m4{--m:#4467cc}
@@ -1004,6 +1013,11 @@ html:has(#t-game:not([hidden]),#t-logbook:not([hidden])){overscroll-behavior-x:n
 .vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 #welcome p{margin:0 0 16px;color:var(--muted);line-height:1.45}
 #welcome .cap{margin:0 auto 6px}
+/* 1.129.18 (to-do #294): the welcome's main key is lit on every step (it was lit only on the last, where pick() sets aria-pressed; the keys
+   before it, and the account step's Create account, stayed grey like a switched-off one), and wide enough for its words on one line ("Yes, turn them on") */
+#welcome .cap.big{width:auto;min-width:calc(150px*var(--k));padding:0 20px;white-space:nowrap}
+#welcome .cap.big.go{color:#17140e;transform:translateY(calc(2.5px*var(--k)));background:radial-gradient(75% 70% at 50% 44%,#eaffd8,#9be07f 58%,#55a443);
+  box-shadow:0 0 0 calc(3px*var(--k)) #050505,0 calc(1.5px*var(--k)) 0 calc(3px*var(--k)) #000,0 0 calc(24px*var(--k)) calc(3px*var(--k)) rgba(140,235,110,.3),inset 0 0 calc(12px*var(--k)) rgba(40,120,20,.4)}
 #welcome .note{min-height:1.4em;font-size:var(--fs-m)}
 #welcome .wlab{display:block;margin:4px 0 6px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
 #welcome input{width:100%;box-sizing:border-box;margin-bottom:14px;padding:11px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:#0f1012;color:var(--ink);font:600 var(--fs-l) var(--f-board);text-align:center}
@@ -1739,6 +1753,7 @@ html:has(#t-game:not([hidden]),#t-logbook:not([hidden])){overscroll-behavior-x:n
 #fsBar .bx{display:flex;gap:3px;flex:none;overflow:visible}
 #fsBar .bx u{width:16px;height:12px;border:1.5px solid #b5ac98;border-radius:2px;box-sizing:border-box}
 #fsBar .bx u.on{border-color:#c0262d;background:repeating-linear-gradient(90deg,#c0262d 0 2px,transparent 2px 4px);opacity:.85;transform:rotate(-6deg)}
+@media (max-width:340px){#fsBar{gap:6px;padding:7px 8px;letter-spacing:0}#fsBar .bx{gap:2px}#fsBar .bx u{width:12px}}   /* 1.129.18: a 320 px phone: the longest mission still whole */
 /* a mission done: its line slides in at the top, then the big stamp comes down on its box */
 #fsStamp{position:fixed;left:14px;right:14px;top:calc(env(safe-area-inset-top) + 140px);z-index:58;max-width:480px;margin:0 auto;filter:drop-shadow(0 14px 26px rgba(0,0,0,.6));
   animation:fsSlip .35s cubic-bezier(.2,1.2,.4,1) both}

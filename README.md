@@ -291,7 +291,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   lowest and fastest pass ever and the route from farthest away. The relay keeps them as planes come in and counts
   them once from the saved days of an older logbook. The phone app shows them in its Logbook.
 - **Week, month and year** (the Logbook's period plate; 1.52, relay 46; the year relay 29): the week
-  (Monday to Sunday), month or year in review, like Today in numbers: planes, types, airlines, aircraft, new types and
+  (Monday to Sunday), month or year in review, like Today in numbers: planes, aircraft, types, airlines, new types and
   rare planes (a year: countries and days; and points, in the app); on the plate the busiest day, the most seen aircraft
   and the rarest plane, in its card also the most seen airline, the farthest route, the lowest, closest and fastest
   pass, and the new types. **Week** / **Month** / **Year** switch, ◀ ▶ go to earlier ones. A finished week or month is
@@ -302,7 +302,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   comes within 1 km or below 2,500 ft, and the card shows a line once it has paid, 1.114.5), and **48 trophies** (1.55, relay 50) that are won once and kept for good;
   nothing ever resets. Most come in tiers, a row each with a lamp per tier and a bar to the next one ("6,900 of
   10,000"): planes (100 to 100,000), aircraft types, airlines, different aircraft, countries the aircraft are registered
-  in, points, special planes, planes in one day, the same aircraft again, days running with points. The others
+  in, points, special planes, planes in one day, the same aircraft again, days running with points. The tiers that count planes say so ("100 planes scanned": scans, not the Logbook's sightings). The others
   are one-offs: Odd couple (a 747 and a helicopter on the same day), Night owl, Bullseye, Stratosphere, Whale watcher
   (a Beluga), Heavy lifter (an Antonov), Completionist (every collection) ... An older logbook wins its trophies once
   from its saved days, on the day they were earned (relay 50 does this again for the new ones, keeping the old).
@@ -565,8 +565,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   catch an uncommon (or rarer) plane that scores. Each pays **+50 once** (in the day, the week's league and the level);
   all five earn the **wings** (nothing more paid; the rank shows a wings pin). The Spotters' Club shows a cream training
   record: a line per mission with its stamp box (a red "FLIGHT SCHOOL · PASSED · 29 OCT · +50" stamp once done, a hint
-  for the next one only); Now shows a small bar "CHECKLIST 2/5 · NEXT UP · SCAN A PLANE" with five marks until the
-  wings. A mission done slides its line in at the top and a big stamp comes down on it with a thud; the fifth then signs
+  for the next one only); Now shows a small bar "CHECKLIST · SCAN A PLANE" with five marks (stamped as they are done) until the
+  wings (since 1.129.18 the count is in the marks, so the longest mission fits a 320 px phone). A mission done slides its line in at the top and a big stamp comes down on it with a thud; the fifth then signs
   the record's WINGS line with your first name, written stroke by stroke as with a pen, and "Cleared for take-off"
   comes with the wings; the signed record moves to the end of the club. Recent points lists the missions in a Flight
   school row. With reduced motion the stamps and the signature appear without moving. A player already at level 4 when
@@ -829,7 +829,7 @@ Five buttons along the bottom:
   latest planes spotted. The photo and the **Sky view row** (the key, the scan, which way to look, the compass) are one card under the board
   (1.115, 1.128). **Recent flights** (1.95) is a timeline: a line down the left with a dot for each plane in the
   colour of its remark, since 1.129.12 on **one metal plate** like Settings' (screws, the planes between engraved lines, the line a groove with a lamp for each plane), since 1.115 **one line a plane**: time, flight, route and
-  type, "8 in the last hour" at the top and "All 64 planes today ›" at the end, which goes to Today. A flight's status
+  type, "8 in the last hour" at the top and "All 64 planes today ›" at the end, which goes to Today. Since 1.129.17 the hour carries on across midnight: just after 00:00 the planes of the last hour from yesterday stay, under a YESTERDAY title (Today itself starts at 0). A flight's status
   is a coloured pill on Recent flights (every status word since 1.122: ARRIVING, DEPARTING, SUPERJUMBO ...); at the end of the
   row, always in this order, Today's **target** for a plane you scanned, a **★** for a type or
   airline new to the logbook, a **flag** in its colour for an unusual plane (military, a giant such as SUPERJUMBO, a
@@ -845,7 +845,7 @@ Five buttons along the bottom:
   In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
   itself every 20 seconds; it stays when one side has no plane), with the runway screen in place of the photo, and the
   take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
-- **Today** (1.123): the Logbook's first plate has four numbers with their names (planes, overhead, airlines, types). A tap raises
+- **Today** (1.123): the Logbook's first plate has four numbers with their names (planes, overhead, types, airlines; every plate and panel lists its numbers in this order). A tap raises
   the day's plate from below (swipe it down, tap beside it or Back to close it): today's
   numbers on flaps, from 21:00 the Plane of the day with the first and last plane and the busiest hour, the lowest and
   highest pass and the fastest (the figure first and the plane under it), the most seen airline, the most seen types as
@@ -880,7 +880,7 @@ Five buttons along the bottom:
   The search (1.65) finds places too since 1.81 (relay 63): a town, an island, a country or a saved place, and each
   result has a line with a pin naming where it was seen, newest first (the aircraft's card says Seen from). Sightings
   on the go from before relay 63 only know their country (their place was guessed from the day's planes).
-  At the top (1.28, relay 29), **the year in planes**: planes, types, airlines, airframes, countries and days, the
+  At the top (1.28, relay 29), **the year in planes**: planes, aircraft, types, airlines, countries and days, the
   busiest day, the most seen aircraft and the rarest, with **Share** (a picture of the card) and **Download the
   logbook (CSV)**, every sighting as a spreadsheet. Collection: points, tiers and the collections. Records: the
   records, this week's bingo and the trophies with their bars. Week & month (1.52, relay 46): **this week or month in

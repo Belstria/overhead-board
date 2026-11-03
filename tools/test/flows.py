@@ -3479,6 +3479,60 @@ def logbook_list_checks(browser, bad):
     ctx.close()
 
 
+def recent_midnight_checks(browser, bad):
+    """1.129.17 (to-do #297): Now's Recent flights and its "N in the last hour" are about the last hour, so at 00:01 they keep
+    the planes from 23:02 on, under a Yesterday title (older ones stay out); at 23:59 there is no title; with nothing in the
+    last hour the empty line says so (and only then)."""
+    import datetime
+    from zoneinfo import ZoneInfo
+    vie = ZoneInfo("Europe/Vienna")
+    at = lambda d, h, m: datetime.datetime(2026, 11, d, h, m, tzinfo=vie)      # noqa: E731
+    stamps = [(22, 20), (22, 35), (22, 48), (22, 55), (23, 2), (23, 9), (23, 18), (23, 27), (23, 34), (23, 41), (23, 49), (23, 56)]
+
+    def rows_of(old_only):
+        out = []
+        for i, (h, m) in enumerate(stamps):
+            if old_only and h == 23:
+                continue
+            ts = int(at(3, h, m).timestamp() * 1000)
+            out.append({"id": f"mn{i}", "hex": f"{0xb00000 + i:06x}", "ts": ts, "time": f"{h:02d}:{m:02d}", "callsign": f"AUA{300 + i}", "typeCode": "A320", "reg": "OE-LBM",
+                        "minDist": 2.0, "altAtMin": 9000, "looked": True, "day": "2026-11-03"})
+        return sorted(out, key=lambda r: -r["ts"])
+
+    def run(label, when, day, today, old_only, expect_head, expect_rows, expect_title, expect_empty):
+        ctx = browser.new_context(viewport={"width": 390, "height": 844}, timezone_id="Europe/Vienna")
+        ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: bad.append(f"recent midnight page error: {e}"))
+        pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
+        rows = rows_of(old_only)
+
+        def sightings(route):
+            res = route.fetch()
+            j = res.json()
+            j.update(date=day, entries=rows if today else [])
+            route.fulfill(response=res, body=json.dumps(j), headers={**res.headers, "content-encoding": "identity"})
+
+        def flights(route):
+            res = route.fetch()
+            j = res.json()
+            j.update(date=day, entries=rows if "stop=2026-11-03" in route.request.url else j.get("entries", []))
+            route.fulfill(response=res, body=json.dumps(j), headers={**res.headers, "content-encoding": "identity"})
+        pg.route("**/sightings?*", sightings)
+        pg.route("**/logbook/flights?*", flights)
+        pg.clock.set_fixed_time(when)
+        pg.goto(BASE + "/app/")
+        pg.wait_for_timeout(5000)
+        got = pg.evaluate("""({n: document.getElementById("recentN").textContent, rows: document.querySelectorAll("#recent li.fl").length,
+            title: [...document.querySelectorAll("#recent li.tg.mid")].map(x => x.textContent).join(), empty: !!document.querySelector("#recent li.st b")})""")
+        if got["n"] != expect_head or got["rows"] != expect_rows or (got["title"] == "Yesterday") != expect_title or got["empty"] != expect_empty:
+            bad.append(f"Recent flights at {label}: {got}, expected {expect_head!r}, {expect_rows} rows, title {expect_title}, empty line {expect_empty}")
+        ctx.close()
+    run("23:59", at(3, 23, 59), "2026-11-03", True, False, "8 in the last hour", 8, False, False)
+    run("00:01", at(4, 0, 1), "2026-11-04", False, False, "8 in the last hour", 8, True, False)
+    run("00:01 with nothing since 23:01", at(4, 0, 1), "2026-11-04", False, True, "", 0, False, True)
+
+
 def logbook_lead_checks(browser, bad):
     """1.129.5 (to-do #271, #270): Today's amber headline stands at the top of the unfiltered Logbook lists with no flight
     today (2026 and All time: an empty day, then Yesterday), once when the day's first flight comes, again at midnight,
@@ -3687,7 +3741,7 @@ def sky_row_checks(browser, bad):
     pg.goto(BASE + "/app/")
     pg.wait_for_function("window.__e && __e('!!gme')", timeout=20000)
     r = pg.evaluate("""__e(`(() => {
-      const keep = {feat, gme, spotted, liveAt, live: S.live, demo: S.demo, why: lookWhy}, out = {};
+      const keep = {feat, gme, spotted, liveAt, live: S.live, demo: S.demo, why: lookWhy, ok: lastOk}, out = {};
       const mk = (o = {}) => { const {ac, ...r} = o; return {hex: "aa0001", o: {alt: 10000, tcpa: 60, cpa: 2, ...r, ac: {hex: "aa0001", gs: 450, lat: 48, lon: 16, ...ac}}}; };
       const L = km => ({km, brg: 90, up: 20, alt: 10000, dir: "E"});
       const reset = () => { gNearAt.clear(); arScans.clear(); skyMem = {hex: "", k: "", s: null, num: null, numAt: 0, lookAt: 0}; spotted = []; arSpotIdx = {src: null, n: -1, map: null}; gme = {...keep.gme, scan: [], scanKm: 15, km: 15, scanSet: undefined, goldSet: undefined}; S.live = true; S.demo = false; liveAt = 1; lookWhy = ""; };
@@ -3705,6 +3759,9 @@ def sky_row_checks(browser, bad):
         reset(); gme.limits = {uncommon: [3, 3]}; st("pastLimit", mk(), 8);
         reset(); st("ground", mk({ac: {alt_baro: "ground"}}), 8);
         reset(); st("none", null, null);
+        // 1.129.19 (to-do #286): no flight data for over a minute is not an empty sky: "Offline · retrying", and back to normal
+        reset(); lastOk = Date.now() - 120000; st("offline", null, null); out.offWords = SKY_WORDS.offline.join("|"); out.offList = tlOffline().includes("Offline · retrying") && !tlOffline().includes("Nothing");
+        lastOk = Date.now(); st("backOnline", null, null); lastOk = keep.ok;
         reset(); S.demo = true; st("off", mk(), 12);
         reset(); S.live = false; st("nolive", mk(), 12);
         reset(); liveAt = 0; st("finding", mk(), 12);
@@ -3725,12 +3782,12 @@ def sky_row_checks(browser, bad):
         reset(); spotted = [{hex: "aa0001", scan: 1, gs: 5}]; out.starDone = chip({}, 8);
         reset(); spotted = [{hex: "aa0001", scan: 1, gs: 5}]; gme.scan = [{hex: "aa0001"}]; out.starLater = chip({}, 8);
       } catch (e) { out.error = String(e && e.stack || e); }
-      feat = keep.feat; gme = keep.gme; spotted = keep.spotted; liveAt = keep.liveAt; S.live = keep.live; S.demo = keep.demo; lookWhy = keep.why; gNearAt.clear(); arScans.clear();
+      lastOk = keep.ok; feat = keep.feat; gme = keep.gme; spotted = keep.spotted; liveAt = keep.liveAt; S.live = keep.live; S.demo = keep.demo; lookWhy = keep.why; gNearAt.clear(); arScans.clear();
       arSpotIdx = {src: null, n: -1, map: null}; skyMem = {hex: "", k: "", s: null, num: null, numAt: 0, lookAt: 0};
       return out; })()`)""")
     want = {"closing": ["closing", 3.1], "in": ["in", None], "in17": ["in", None], "edge1": ["in", None], "edge2": ["in", None], "edge3": ["closing", .2],
             "passing": ["passing", 22], "away": ["away", 24], "done": ["done", None], "laterPass": ["in", None], "justScanned": ["done", None],
-            "pastLimit": ["in", None], "ground": ["ground", None], "none": ["none", None], "off": ["off", None], "nolive": ["nolive", None],
+            "pastLimit": ["in", None], "ground": ["ground", None], "none": ["none", None], "offline": ["offline", None], "backOnline": ["none", None], "offWords": "Sky view|Offline · retrying", "offList": True, "off": ["off", None], "nolive": ["nolive", None],
             "finding": ["finding", None], "far": ["far", None], "nopos": ["nopos", None], "noheight": ["noheight", None],
             "closingHolds": ["closing", 5], "passingHolds": ["passing", 15.5], "goingHolds": ["closing", 5], "awayHolds": ["away", 20],
             "nums": [3.1, 3.0, 3.0, 3.9], "km": ["3.1", "13"], "star17": "★", "star20": "N", "starGround": "N", "starDone": "✓", "starLater": "★"}
@@ -4120,7 +4177,7 @@ def browser_checks(browser):
     got = e("""(() => { const was = [relayStats, sightRev, spotted, S]; S = {...S, live: false}; showTab('logbook'); const ph = () => [$('tdPlate').hidden, $('tdPlate').textContent];
         spotted = []; relayStats = {planes: 0, airlines: 0, types: 0, overhead: 0}; sightRev = '1'; tdSig = ''; renderTodayNumbers(); const day = ph();
         sightRev = null; tdSig = ''; renderTodayNumbers(); const wait = ph(); [relayStats, sightRev, spotted, S] = was; tdSig = ''; return [day, wait]; })()""")
-    if got != [[False, "Today›0Planes0Overhead0Airlines0Types"], [False, "Today›–Planes–Overhead–Airlines–Types"]]:
+    if got != [[False, "Today›0Planes0Overhead0Types0Airlines"], [False, "Today›–Planes–Overhead–Types–Airlines"]]:
         bad.append(f"the Today plate on an empty day: {got}")
 
     # 1.88: the Remarks in the Overhead style are white and only name a delay over 30 minutes; the Airport style keeps
@@ -4225,6 +4282,7 @@ def browser_checks(browser):
     ctx.close()
     logbook_list_checks(browser, bad)
     logbook_lead_checks(browser, bad)
+    recent_midnight_checks(browser, bad)
     demo_rows_checks(browser, bad)
     sky_sizes_checks(browser, bad)
     styles_cell_checks(browser, bad)
