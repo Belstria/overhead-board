@@ -471,16 +471,21 @@ The main board has everything below. New features are tried on `/test/` first; o
     reads "On the go". Until the phone has found where it is (and if it hasn't for five minutes), the line under the
     title says FINDING YOU … and its planes don't count or score; since 1.90 the board stays empty until this page has
     found the phone once (the saved spot may be far away): no plane on top, no last known board, no rows in the lists,
-    just "Finding where you are …"; after a minute without a position a note says live
-    location isn't working on this device, with a button to Settings. Since 1.93.0.1 a town's name only shows within
+    just "Finding where you are …". Since 1.129.20 it waits only 20 seconds (none at all when the browser or the
+    phone refuses or has no position): then the title says NO POSITION, the Sky view row "Live location · No position",
+    and Recent flights says why in one line (Still looking, Not allowed: allow location in the site settings, Not
+    available, Location off on the Android app, Not precise) with two keys: the place before live location and the
+    profile's saved places (one: **Use** and its name; more: **Pick a place** opens them as a list; none: **Pick a
+    place** opens Settings → Location), and **Try again**. A place turns live location off; a position that comes
+    after all puts everything back by itself. Since 1.93.0.1 a town's name only shows within
     2 km of where it was found (the airport within 15 km): until the new name comes, the title says ON THE GO and City
     reads "On the go", and neither an old name nor an old airport goes to the profile; a lookup the relay didn't answer
     is made again on a later position, a minute on. Since 1.93.1 live location asks the browser for the precise
     position (Chrome on Android otherwise shares only an approximate one, a new one at most every 15 minutes) and takes
     no position more than two minutes old: a browser hands over the last one it kept, which can be days old and far
     away, say from a trip, so FINDING YOU … stays until a fresh one comes, and the Log (Settings → About → Log) says
-    how old, how exact and how far away each refused one was. When only an old approximate position came, the note
-    after a minute says to allow precise location for the site in the browser's site settings (in Chrome: ⋮ →
+    how old, how exact and how far away each refused one was. When only an old approximate position came, Recent flights
+    says Not precise: allow precise location for the site in the browser's site settings (in Chrome: ⋮ →
     Settings → Site settings → Location: "Allowed • Precise"). **Use current location** waits for a fresh position too.
     Turning live location off asks (1.93.1): **Stay here** watches the last position live location found, with its
     town and airport and no place name, **Back to …** goes back to the place before; closing the card (×, Back, beside
