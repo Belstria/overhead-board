@@ -67,6 +67,9 @@ def syntax():
     import lint                                    # 1.68: no undefined names in the pages' code (ESLint)
     if not lint.check():
         bad += 1
+    import strip_check                             # 1.129.21: the app without comments is the same code
+    if not strip_check.check():
+        bad += 1
     import codemap                                 # to-do #109: every function and CSS rule is in an area of the code map
     if not codemap.check():
         bad += 1
