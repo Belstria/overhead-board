@@ -287,7 +287,7 @@ button.lbPlate:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba
 .rvLogo{min-width:0}
 .rvLogo img{max-width:100%;max-height:16px;object-fit:contain}
 .rv strong{font:700 var(--fs-base)/1 var(--f-board);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rv strong span{display:block;margin-top:4px;font-weight:500;color:var(--muted);font-size:var(--fs-s)}   /* 1.87.2.1: under the flight number, never cut to "A…" */
+.rv strong span{display:block;margin-top:4px;font-weight:500;color:var(--muted);font-size:var(--fs-s);overflow:hidden;text-overflow:ellipsis}   /* 1.87.2.1: under the flight number, never cut to "A…" */
 .rv strong span:empty{display:none}
 .rv .num{font:600 var(--fs-s)/1 var(--f-board);color:#c9c6bf;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .flights li.rv::before{content:"";position:absolute;left:4px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--lamp);box-shadow:0 0 6px var(--lamp)}
@@ -494,6 +494,7 @@ body.real{--pl-hi:inset 0 1px 0 rgba(255,255,255,.12);--pl-side:inset 1px 0 0 rg
 .tline li.tg{display:flex;align-items:center;gap:10px;margin:0 9px 6px;padding:0;font:600 var(--fs-s)/1 var(--f-board);letter-spacing:.22em;text-transform:uppercase;color:var(--amber);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
 .tline li.tg::before,.tline li.tg::after,.lbDayH::before,.lbDayH::after{content:"";flex:1;min-width:8px;height:1px;background:rgba(214,208,194,.25)}
 #recent li.tg{margin:-6px 9px 4px}
+#recent li.tg.mid{margin:10px 9px 6px}
 .tline li.tg b{color:inherit;font-weight:600}
 #recent .scr{display:none}
 .tline li.fl{display:block;position:relative;margin:0 0 0 22px;padding:12px 4px;cursor:pointer;box-shadow:0 -1px 0 rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06)}
