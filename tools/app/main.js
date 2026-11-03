@@ -682,7 +682,7 @@ function renderRecent(){
   if (!open) tlOpenId.recent = "";
   const ago = open && L.querySelector("li.open [data-ago]"), agoT = open ? tlAgo(open) : "";
   if (ago && ago.textContent !== agoT) ago.textContent = agoT;
-  const sig = list.map(rowSig).join("~") + S.units + liveWaiting() + isOffline() + "|" + Math.floor(Date.now() / 9e5) + "|" + (open ? tlCardSig(open) : "");
+  const sig = list.map(rowSig).join("~") + S.units + liveWaiting() + nfSig() + isOffline() + "|" + Math.floor(Date.now() / 9e5) + "|" + (open ? tlCardSig(open) : "");
   if (sig === recentSig) return;
   for (let i = 0; i < NOW_ROWS; i++) {           // the same, on flaps (the phone on its side)
     const e = list[i], d = i * 150, id = c => `nl${i}${c}`;
@@ -696,8 +696,47 @@ function renderRecent(){
   }
   if (tlBusy()) { tlAgain = true; return; }
   recentSig = sig;
-  tlFill(L, list.length ? tlHtml(list, tlOpenId.recent, true) : liveWaiting() ? tlFinding() : isOffline() ? tlOffline() : tlNothing(), open);
+  tlFill(L, list.length ? tlHtml(list, tlOpenId.recent, true) : liveWaiting() ? (liveLost() ? tlNoFix() : tlFinding()) : isOffline() ? tlOffline() : tlNothing(), open);
 }
+/* 1.129.20 (to-do #296, Dave's pick C, with the profile's places): live location without a position (liveLost) says why
+   on Recent flights' plate, one line, and offers a way out: the place before live location (Home, liveStop) and the
+   saved places, as Settings → Location lists them (one: a key with its name; more: Pick a place opens them as a list;
+   none: Pick a place opens Settings → Location), and Try again (live location starts looking again). A place turns
+   live location off. */
+const NOFIX = {still: ["Still looking", "Indoors, or location is off."], deny: ["Not allowed", "Allow location in the site settings."],
+  unav: ["Not available", "Turn location on, or step outside."], off: ["Location off", "Turn it on in the quick settings."],
+  approx: ["Not precise", "Allow precise location in the site settings."]};
+// The places to choose from: {name, sub, go}; the place before live location first, unless a saved place is the same spot.
+function nfPlaces(){
+  const was = S.livePrev && typeof S.livePrev === "object" ? S.livePrev : null, list = placesRelay() ? places.list || [] : [];
+  const out = list.map(p => ({name: p.k, sub: [p.n !== p.k ? p.n : "", p.home].filter(Boolean).join(" · "), go: () => { delete S.livePrev; usePlace(p); }}));
+  if (was && !was.k && was.lat != null && located() && !list.some(p => placeAt(p, was.lat, was.lon)))
+    out.unshift({name: T("Home"), sub: [was.n, was.home].filter(Boolean).join(" · "), go: liveStop});
+  return out;
+}
+const nfSig = () => liveLost() ? liveWhy() + nfPlaces().map(p => p.name).join("\n") : "";
+function tlNoFix(){
+  const w = liveWhy(), [what, line] = NOFIX[w], pl = nfPlaces(), android = !!(window.OverheadAndroid && window.OverheadAndroid.locate);
+  const help = w === "deny" && android ? "Allow location in the app's settings." : line;
+  const key = pl.length === 1 ? T("Use {place}", {place: pl[0].name}) : T("Pick a place");
+  return `<li class="tg">${SCR2}<b>${escH(T("Now"))}</b></li><li class="st find nofix">${SCR2}<b>${escH(T("No position · {why}", {why: T(what)}))}</b>${escH(T(help))}` +
+    `<span class="nfKeys"><button class="cBtn hot" type="button" data-nf="place">${escH(key)}</button><button class="cBtn" type="button" data-nf="again">${escH(T("Try again"))}</button></span></li>`;
+}
+$("recent").addEventListener("click", e => {
+  const b = e.target.closest("[data-nf]");
+  if (!b) return;
+  e.stopPropagation();
+  if (b.dataset.nf === "again") { ctlSound.click(); if (S.live && liveOk()) { liveRun(); liveShow(); } return; }
+  const pl = nfPlaces();
+  if (!pl.length) return setOpen("loc");
+  if (pl.length === 1) { ctlSound.click(); return pl[0].go(); }
+  ctlSound.nav();
+  cardOpen(`<div class="lbIn">${secPlate(T("Pick a place"), `<div class="pickList">` + pl.map((p, i) =>
+    `<button class="cBtn" type="button" data-nfp="${i}"><b>${escH(p.name)}</b>${p.sub ? `<small>${escH(p.sub)}</small>` : ""}</button>`).join("") + `</div>`)}</div>`, ci => {
+    ci.classList.add("tdSheet", "lbSheet");
+    for (const x of ci.querySelectorAll("[data-nfp]")) x.onclick = () => { ctlSound.click(); cardClose(); if (S.live) pl[+x.dataset.nfp].go(); };
+  });
+});
 $("recentAll").onclick = () => { ctlSound.nav(); showTab("today"); };
 let shownPhoto = null;
 function renderAircraftInfo(){
@@ -2969,7 +3008,7 @@ function skyState(L){
   if (feat) skyFeatAt = Date.now();
   const game = gameOk();
   if (game && !S.live && liveOk()) return {k: "nolive"};
-  if (game && liveWaiting()) return {k: "finding"};
+  if (game && liveWaiting()) return {k: liveLost() ? "nofix" : "finding"};      // 1.129.20: No position after 20 s or an error
   if (!feat) return {k: isOffline() ? "offline" : "none"};   // 1.129.19: no flight data is not an empty sky
   const o = feat.o, ac = o && o.ac, hex = ac ? ac.hex : "", play = game && S.live && !!gme;
   if (play && ac && ac.alt_baro === "ground") return {k: "ground", hex};
@@ -3003,10 +3042,10 @@ function skyLookText(L){
   return !on ? T("{d} · {e}° up", {d: L.dir, e: L.up}) : Math.abs(d) <= 8 ? T("Ahead · {e}° up", {e: L.up}) : T(d > 0 ? "Right · {e}° up" : "Left · {e}° up", {e: L.up});
 }
 const skyPut = (el, t) => { if (el.textContent !== t) el.textContent = t; };
-const SKY_DIM = ["away", "passing", "none", "offline", "ground", "finding", "far", "nopos", "noheight"];
+const SKY_DIM = ["away", "passing", "none", "offline", "ground", "finding", "nofix", "far", "nopos", "noheight"];
 const SKY_WORDS = {in: ["Scan", "In range"], closing: ["Scannable in", "{n} km"], passing: ["Closest pass", "{n} km"], away: ["Moving away", "{n} km"],
   done: ["Scan", "✓ Scanned"], none: ["Sky view", "No planes around"], offline: ["Sky view", "Offline · retrying"], off: ["Look", ""], ground: ["Scan", "On the ground"],
-  nolive: ["Scan needs", "Live location"], finding: ["Live location", "Finding you"], far: ["Too far", "{n} km"],
+  nolive: ["Scan needs", "Live location"], finding: ["Live location", "Finding you"], nofix: ["Live location", "No position"], far: ["Too far", "{n} km"],
   nopos: ["Position", "Not in yet"], noheight: ["Height", "Not in yet"]};
 function drawLook(){
   lookRaf = 0;
@@ -3034,7 +3073,7 @@ function drawLook(){
   if (lk && (fresh || Date.now() - skyMem.lookAt >= 1000)) { skyMem.lookAt = Date.now(); skyPut($("skyLkV"), skyLookText(s.L)); }
   const key = $("arBtn");
   key.hidden = !arPossible() && K !== "nolive";
-  key.classList.toggle("hot", K === "in" || K === "nolive"); key.classList.toggle("off", K === "finding");
+  key.classList.toggle("hot", K === "in" || K === "nolive"); key.classList.toggle("off", K === "finding" || K === "nofix");
   key.querySelector(".skyIco").style.display = K === "nolive" ? "none" : "";
   skyPut($("skyKeyT"), T(K === "nolive" ? "Go live" : "Sky view"));
   // 1.73.1: the heading tape: with the compass the directions slide as the phone turns; without it, centred on the plane
@@ -3057,6 +3096,7 @@ function skyOpen(k){
     ground: () => ["Scan", T("Only planes in the air can be scanned"), T("Once it has taken off, this row says how far it is")],
     nolive: () => ["Scan needs", T("Scans count from where you are, so the app has to follow your location"), T("Go live, and this row says how far the plane still has to come")],
     finding: () => ["Live location", T("Your phone is finding where you are"), T("The planes near you show once it has")],
+    nofix: () => ["Live location", T("Your phone hasn't found where you are"), T("Recent flights says why, with your places and Try again")],
     far: () => ["Too far", T("This plane is more than 80 km away, too far to look for yet"), T("The direction comes once it's within 80 km")],
     nopos: () => ["Position", T("This plane's position hasn't come in yet, or doesn't add up"), T("The direction comes with the next good one")],
     noheight: () => ["Height", T("This plane hasn't sent its height, so how high to look can't be worked out"), T("The direction comes with its first height")]}[k]();
@@ -6272,7 +6312,7 @@ function updateWhere(){
   // 1.122.1 (to-do #236): "VIENNA · 15 KM" (the word RADIUS went); two spans in one row: when both do not fit the radius
   // wraps and is clipped (head.html's .where), and only a name too long on its own is cut with …
   const w = $("where"), put = (a, r) => { w.innerHTML = `<span class="wn">${escH(a)}</span>` + (r ? `<span class="wr"> · ${escH(r)}</span>` : ""); };
-  if (liveWaiting()) put("◉ " + T("FINDING YOU …"));
+  if (liveWaiting()) put("◉ " + T(liveLost() ? "NO POSITION" : "FINDING YOU …"));
   else if (S.live && !name) put("◉ " + (liveStale() ? T("FINDING YOU …") : clean(T("On the go"))));
   else put(`${S.live ? "◉ " : ""}${liveStale() ? T("FINDING YOU …") + " · " : ""}${lab}${clean(name)}`, `${+S.radiusKm || 15} KM`);
 }

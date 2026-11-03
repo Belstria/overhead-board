@@ -1890,7 +1890,7 @@ function drawStatic(){
   placeModeSwitch(x1, w1, x2, w2);
   g.font = `600 21px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = "2px";
   g.fillStyle = COL.muted;
-  g.fillText(`${liveWaiting() ? T("FINDING YOU …") : (liveStale() ? T("FINDING YOU …") + "   ·   " : "") + clean(placeNow() || T("On the go"))}   ·   ${T("RADIUS {n} KM", {n: S.radiusKm})}`, M + 118, 128);
+  g.fillText(`${liveWaiting() ? T(liveLost() ? "NO POSITION" : "FINDING YOU …") : (liveStale() ? T("FINDING YOU …") + "   ·   " : "") + clean(placeNow() || T("On the go"))}   ·   ${T("RADIUS {n} KM", {n: S.radiusKm})}`, M + 118, 128);
   if ("letterSpacing" in g) g.letterSpacing = "0px";
   for (const y of view ? [Y.rule1] : [Y.rule1, Y.rule2]) {               // engraved grooves
     g.fillStyle = "rgba(0,0,0,.7)"; g.fillRect(M, y, IW, 2);
@@ -7466,12 +7466,26 @@ function placeNow(){ return S.live && (liveWaiting() || !liveNameOk()) ? "" : S.
    sightings, points or gap filler without a fresh one. Five minutes: the Android app asks every minute and browsers
    are asked again after two, so it takes a few missed fixes; at motorway speed it is about the game's circle. */
 const LIVE_FRESH_MS = 5 * 60000;
-let liveAt = 0, liveWas = "", liveRunAt = 0, liveToldAt = 0;
+let liveAt = 0, liveWas = "", liveRunAt = 0;
 const liveStale = () => !!S.live && Date.now() - liveAt > LIVE_FRESH_MS;
 /* 1.90 (a phone whose browser never found itself at home showed the planes around a trip's spot, 1,100 km away): until
-   this page has had its first fix, live location shows no planes and the title says FINDING YOU …; after a minute
-   without one a note says live location isn't working here, with the way to Settings → Location. */
+   this page has had its first fix, live location shows no planes and the title says FINDING YOU …. */
 const liveWaiting = () => !!S.live && !liveAt;
+/* 1.129.20 (to-do #296, Dave's pick C): it no longer waits for good. After LIVE_LOST_MS without a fix, or at once when the
+   browser or the Android app says why (liveErr), the title and the Sky view row say NO POSITION and the app's Recent
+   flights says why, with the profile's places and Try again (the 60 s toast went). A fix ends it by itself. liveWhy:
+   "deny" (not allowed), "off" (the Android app: location is off), "unav" (none came, a watch's timeout too), "approx"
+   (only an old approximate one, 1.93.1), "still" (no answer yet). */
+const LIVE_LOST_MS = 20000;
+let liveErr = "";
+const liveLost = () => liveWaiting() && (!!liveErr || !!liveRunAt && Date.now() - liveRunAt > LIVE_LOST_MS);
+const liveWhy = () => liveErr || (liveOldAcc >= 1500 ? "approx" : "still");
+function liveFail(why, msg){
+  if (!S.live || liveAt || liveErr === why) return;
+  liveErr = why;
+  dlog("warn", `Live location: no position (${msg || why})`);
+  liveShow();
+}
 // 1.90: as live location starts finding the phone, nothing from before stays: the plane on top, the planes' last
 // positions and the update they came in (the 2 s look-again ran it on), the last known board; an empty sky isn't taken
 // for a source's glitch. Each page's liveShow() redraws its lists, empty until the first fix.
@@ -7481,28 +7495,23 @@ function liveBlank(){
   process([]); liveShow();
 }
 setInterval(() => {
-  const st = liveWaiting() ? "wait" : liveStale() ? "stale" : "";
-  if (st !== liveWas) { liveWas = st; liveShow(); }
-  if (st === "wait" && liveRunAt && Date.now() - liveRunAt > 60000 && !liveToldAt && typeof toast === "function") {
-    liveToldAt = Date.now();
-    const approx = liveOldAcc >= 1500;        // 1.93.1: only an old approximate one came (an Approximate-only site?)
-    dlog("warn", "Live location: no position from this device after a minute" + (approx ? " (only an old, approximate one)" : ""));
-    toast(T(approx ? "Live location only got an old, approximate position from this device. Allow precise location for this site in the browser's site settings." :
-      "Live location isn't working on this device. Pick a place in Settings → Location instead."), {err: true, ms: 15000, action: T("Settings"),
-      run: () => { if (typeof switchView === "function") switchView("settings"); else showTab("settings"); }});
+  const st = liveWaiting() ? (liveLost() ? "lost " + liveWhy() : "wait") : liveStale() ? "stale" : "";
+  if (st !== liveWas) {
+    if (st.startsWith("lost") && !liveErr) dlog("warn", `Live location: no position from this device after ${LIVE_LOST_MS / 1000} s` + (liveWhy() === "approx" ? " (only an old, approximate one)" : ""));
+    liveWas = st; liveShow();
   }
 }, 2000);
 function liveHalt(){
   if (liveWatch != null && navigator.geolocation) navigator.geolocation.clearWatch(liveWatch);
-  clearInterval(liveTimer); liveWatch = liveTimer = null; liveNameAsk = liveAirAsk = 0; liveFirst = true; liveAt = 0; liveRunAt = liveToldAt = 0;
-  liveOldAcc = 0;
+  clearInterval(liveTimer); liveWatch = liveTimer = null; liveNameAsk = liveAirAsk = 0; liveFirst = true; liveAt = 0; liveRunAt = 0;
+  liveOldAcc = 0; liveErr = "";
 }
 /* 1.93.1 (to-do #111, a phone kept showing a village far away where it had been days before): Chrome on Android (155)
    gives a page that asks without enableHighAccuracy only approximate positions, keeps the last one across page loads
    and hands it to a page that starts watching at once, however old, and passes on a new one at most every 15 minutes.
    Live location asks for a precise position (Chrome stops watching while the page is hidden), and one more than
    LIVE_OLD_MS old by its timestamp is no fix: FINDING YOU … and fix=-1 stay until a fresh one comes. The Log says what
-   came; the accuracy of the last old one (liveOldAcc) picks the note after a minute. */
+   came; the accuracy of the last old one (liveOldAcc) picks the reason No position gives (liveWhy). */
 const LIVE_OLD_MS = 120000;
 let liveOldSaid = 0, liveOldAcc = 0;
 const geoPos = p => ({lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, age: Math.max(0, Date.now() - (+p.timestamp || Date.now()))});
@@ -7516,7 +7525,9 @@ function liveRun(){
   liveHalt();
   liveRunAt = Date.now(); liveBlank();
   if (window.OverheadAndroid && window.OverheadAndroid.locate) {
-    const tick = () => hereNow().then(liveFix).catch(() => {});
+    // 1.129.20: the app's own words say why (Location access was turned down …, Location is turned off …)
+    const tick = () => hereNow().then(liveFix).catch(e => { const m = String(e && e.message || e);
+      liveFail(/turned down/i.test(m) ? "deny" : /turned off/i.test(m) ? "off" : "unav", m); });
     tick(); liveTimer = setInterval(tick, 60000);
   } else {
     const fix = p => {
@@ -7525,9 +7536,10 @@ function liveRun(){
       liveOldAcc = q.acc || 0;
       if (Date.now() - liveOldSaid > 60000) { liveOldSaid = Date.now(); dlog("warn", `Live location: the browser gave an old position (${geoNote(q)}); waiting for a fresh one`); }
     };
-    liveWatch = navigator.geolocation.watchPosition(fix, () => {}, {enableHighAccuracy: true, maximumAge: 30000, timeout: 60000});
+    const no = e => liveFail(e && e.code === 1 ? "deny" : "unav", e && e.message);   // 1.129.20: refused, unavailable, a timeout
+    liveWatch = navigator.geolocation.watchPosition(fix, no, {enableHighAccuracy: true, maximumAge: 30000, timeout: 60000});
     liveTimer = setInterval(() => {         // a phone lying still may not report again by itself
-      if (Date.now() - liveAt > 120000) navigator.geolocation.getCurrentPosition(fix, () => {}, {enableHighAccuracy: true, maximumAge: 60000, timeout: 60000});
+      if (Date.now() - liveAt > 120000) navigator.geolocation.getCurrentPosition(fix, no, {enableHighAccuracy: true, maximumAge: 60000, timeout: 60000});
     }, 60000);
   }
 }
@@ -7934,6 +7946,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.129.20", date: "2026-11-03", notes: [
+    "Live location that can't find you says No position after 20 seconds, or at once when it isn't allowed; Recent flights says why and offers your places or Try again.",
+  ]},
   {v: "1.129.19", date: "2026-11-03", notes: [
     "Offline, Sky view, the list of planes around and Recent flights say \"Offline · retrying\" instead of claiming the sky is empty.",
     "Trophies that count scanned planes, types, airlines and aircraft now say \"scanned\".",

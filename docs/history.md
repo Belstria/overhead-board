@@ -2876,6 +2876,21 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `typeLabel`, shared with the app): the name, maker left out, with n letters the whole name, else shorter, else the code; used by `reviewFacts`
   (Rarest, and the record rows' fallback), `lbWho`, the Logbook's aircraft list in main.js; the board's flaps ask for 10 letters so they keep the code
   when the name doesn't fit.
+- 1.129.20 (to-do #296, Dave's pick C of three, "The empty list explains", with his change: a choice of the profile's places instead of
+  only Use home; app and test board, no relay change): **live location no longer waits for good.** Shared (`test/index.html`): `liveErr` (set by
+  `liveFail(why, msg)`: the browser's watch and re-ask now have an error callback, code 1 is "deny", anything else, a timeout too, "unav"; the Android
+  app's `hereNow()` rejection is read by its words, "turned down" → "deny", "turned off" → "off", the rest "unav"), `LIVE_LOST_MS` (20 s),
+  `liveLost()` (waiting, and an error or 20 s since `liveRunAt`), `liveWhy()` (`liveErr`, else "approx" when only an old approximate position came
+  (`liveOldAcc`), else "still"). The 2 s interval tracks "lost <why>" as a state, logs it once and calls `liveShow()`; the 60 s toast and
+  `liveToldAt` went. `liveHalt` clears `liveErr`. The board's title says NO POSITION. The app (`main.js`): `skyState` gives "nofix" ("Live location ·
+  No position", dimmed, the key greyed like "finding"; its label opens a sheet), `updateWhere` says ◉ NO POSITION, and `renderRecent` draws `tlNoFix()`
+  instead of `tlFinding()`: the NOW plate's `li.st.find.nofix` with "No position · <reason>" (`NOFIX`), one help line, and `.nfKeys` (two `cBtn`s,
+  the place key amber like `.skyKey.hot`). `nfPlaces()` lists the place before live location (`S.livePrev` without a label, only for a located
+  profile, as "Home", unless a saved place is at the same spot: `liveStop`) and `places.list` (`usePlace`, `S.livePrev` dropped). One: "Use
+  <name>"; more: "Pick a place" opens a plate sheet with a `pickList`; none: "Pick a place" opens Settings → Location (`setOpen("loc")`). Try
+  again: `liveRun()`. `nfSig()` joins Recent flights' signature. Flow `no_position_checks` (flows.py): a made-up geolocation that never answers
+  (Finding you, then after 20 s the row, the title and the plate; several places open the list; a late position ends it) and one that refuses (at
+  once Not allowed; Try again stays so; Use Work turns live off, the row then says Scan needs · Go live).
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 

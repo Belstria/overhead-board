@@ -376,7 +376,7 @@ button.lbPlate:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba
 /* 1.128 (to-do #258, Dave's pick A): one slim row (the key, the scan's label and value, Look) above the compass strip; nothing moves */
 .skyR{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
 .skyKey{padding:8px 12px;white-space:nowrap}
-.skyKey.hot{background:linear-gradient(#f6c64c,#e0a11c);color:#17140e}
+.skyKey.hot,.nfKeys .cBtn.hot{background:linear-gradient(#f6c64c,#e0a11c);color:#17140e}
 .skyKey.off{background:linear-gradient(#4a4a4c,#39393b);color:#a9a69c}
 .skyVal{all:unset;box-sizing:border-box;cursor:pointer;display:block;min-width:0;min-height:42px;-webkit-tap-highlight-color:transparent}
 .skyVal:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
@@ -524,6 +524,9 @@ body.real{--pl-hi:inset 0 1px 0 rgba(255,255,255,.12);--pl-side:inset 1px 0 0 rg
 .tline li.st::before{content:"";position:absolute;left:-20px;top:18px;width:9px;height:9px;border-radius:50%;background:#3d3f44;box-shadow:0 0 0 2px #0d0e10,0 1px 0 2px rgba(255,255,255,.06)}
 .tline li.st.find::before{background:var(--amber);box-shadow:0 0 0 2px #0d0e10,0 0 10px var(--amber)}
 .tline li.st b{display:block;color:var(--ink);font-size:var(--fs-base)}
+/* 1.129.20 (to-do #296): No position's two keys under its line, side by side (a place in amber, Try again) */
+.tline li.st .nfKeys{display:flex;gap:10px;margin-top:12px}
+.tline li.st .nfKeys .cBtn{flex:1 1 0;min-width:0;text-align:center}
 .tlFoot{display:flex;justify-content:center;margin:8px 0 0}
 /* the card in place (1.129.16, to-do #284, Dave's pick A): a recess milled into the plate (inner shadow, edge light, four
    small screws), when and how long ago engraved like the day's title with its hairline running to a round metal knob,
