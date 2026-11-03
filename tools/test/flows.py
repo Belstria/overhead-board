@@ -2797,6 +2797,54 @@ def live_hidden_checks(expect):
     expect("... a live request without a fix is stale as before (relay 72)", stale("", "pl=live&" + pc), True)
 
 
+def now_extras_checks(expect):
+    """Relay 109 (1.130): where an aircraft is now (/wherenow, to-do #300), the weather and local time at an airport
+    (/weather, #301), and the search's kept days (#307). The fake source answers for adsb.fi, adsb.lol and Open-Meteo:
+    a hex whose number divides by three flies over Serbia, one more stands in Dubai, the rest aren't seen."""
+    fake = f"http://127.0.0.1:{int(BASE.rsplit(':', 1)[1]) - 1}"
+    asked = lambda: json.loads(urllib.request.urlopen(fake + "/hex/asked", timeout=5).read())     # noqa: E731
+
+    def get(path, ck="test-device"):
+        for _ in range(20):                    # the airport list may still be loading after the start (503)
+            st, h, b = call(path, ck)
+            if st != 503:
+                return st, h, b
+            time.sleep(0.5)
+        return st, h, b
+    js = lambda r: json.loads(r[2]) if r[0] == 200 else {"status": r[0]}                          # noqa: E731
+    expect("/wherenow without a proper hex", get("/wherenow?hex=12345")[0], 400)
+    expect("/wherenow for strangers", call("/wherenow?hex=0000f3")[0] in (401, 403), True)
+    a0 = asked()
+    expect("/wherenow in the air (state, country, height in ft)", {k: js(get("/wherenow?hex=0000f3")).get(k) for k in ("state", "cc", "alt")},
+           {"state": "air", "cc": "RS", "alt": 37100})
+    expect("/wherenow on the ground (at the airport nearest)", js(get("/wherenow?hex=0000f4")),
+           {"hex": "0000f4", "state": "ground", "code": "DXB", "city": "Dubai", "cc": "AE"})
+    expect("/wherenow not seen", js(get("/wherenow?hex=0000f5")), {"hex": "0000f5", "state": "none"})
+    a1 = asked()
+    expect("... each asked of adsb.fi once, adsb.lol never", (a1["fi"] - a0["fi"], a1["lol"] - a0["lol"]), (3, 0))
+    r = get("/wherenow?hex=0000f3")
+    expect("... kept a minute (no new call; the browser keeps it a minute too)", (asked()["fi"] - a1["fi"], r[1].get("Cache-Control")), (0, "private, max-age=60"))
+    call("/aircraft/48.2085/16.3731/25", "test-device")          # a plane a screen has just been shown: from those positions
+    a2 = asked()
+    expect("/wherenow of a plane in the relay's own positions", js(get("/wherenow?hex=440a01", "owner-device")).get("state"), "air")
+    expect("... without asking adsb.fi", asked()["fi"] - a2["fi"], 0)
+
+    expect("/weather without a code", get("/weather?ap=12")[0], 400)
+    m0 = asked()["meteo"]
+    w = js(get("/weather?ap=ATH,VIE,FRA"))
+    expect("/weather: two airports at most, each with its temperature, time zone and offset",
+           {k: (v.get("tz"), v.get("off"), isinstance(v.get("t"), (int, float))) for k, v in w.items()},
+           {"ATH": ("Europe/Athens", 7200, True), "VIE": ("Europe/Vienna", 3600, True)})
+    expect("... one call each", asked()["meteo"] - m0, 2)
+    get("/weather?ap=VIE,ATH")
+    expect("... kept an hour", asked()["meteo"] - m0, 2)
+    expect("/weather of an airport the list lacks", js(get("/weather?ap=XXX")), {})
+
+    # the search's kept days give the same answers as reading them (the first search reads, the next ones keep)
+    s1, s2 = js(get("/search?q=A320")), js(get("/search?q=A320"))
+    expect("/search kept days: the same answer twice", (s1.get("total"), s1.get("rows")) == (s2.get("total"), s2.get("rows")), True)
+
+
 def checks():
     bad = []
 
@@ -2805,6 +2853,7 @@ def checks():
             bad.append(f"{what}: got {got}, expected {want}")
 
     passport_checks(expect)
+    now_extras_checks(expect)
     ranks_checks(expect)
     showcase_checks(expect)
     school_checks(expect)
@@ -3741,7 +3790,7 @@ def sky_row_checks(browser, bad):
     pg.goto(BASE + "/app/")
     pg.wait_for_function("window.__e && __e('!!gme')", timeout=20000)
     r = pg.evaluate("""__e(`(() => {
-      const keep = {feat, gme, spotted, liveAt, live: S.live, demo: S.demo, why: lookWhy}, out = {};
+      const keep = {feat, gme, spotted, liveAt, live: S.live, demo: S.demo, why: lookWhy, ok: lastOk}, out = {};
       const mk = (o = {}) => { const {ac, ...r} = o; return {hex: "aa0001", o: {alt: 10000, tcpa: 60, cpa: 2, ...r, ac: {hex: "aa0001", gs: 450, lat: 48, lon: 16, ...ac}}}; };
       const L = km => ({km, brg: 90, up: 20, alt: 10000, dir: "E"});
       const reset = () => { gNearAt.clear(); arScans.clear(); skyMem = {hex: "", k: "", s: null, num: null, numAt: 0, lookAt: 0}; spotted = []; arSpotIdx = {src: null, n: -1, map: null}; gme = {...keep.gme, scan: [], scanKm: 15, km: 15, scanSet: undefined, goldSet: undefined}; S.live = true; S.demo = false; liveAt = 1; lookWhy = ""; };
@@ -3759,6 +3808,9 @@ def sky_row_checks(browser, bad):
         reset(); gme.limits = {uncommon: [3, 3]}; st("pastLimit", mk(), 8);
         reset(); st("ground", mk({ac: {alt_baro: "ground"}}), 8);
         reset(); st("none", null, null);
+        // 1.129.19 (to-do #286): no flight data for over a minute is not an empty sky: "Offline · retrying", and back to normal
+        reset(); lastOk = Date.now() - 120000; st("offline", null, null); out.offWords = SKY_WORDS.offline.join("|"); out.offList = tlOffline().includes("Offline · retrying") && !tlOffline().includes("Nothing");
+        lastOk = Date.now(); st("backOnline", null, null); lastOk = keep.ok;
         reset(); S.demo = true; st("off", mk(), 12);
         reset(); S.live = false; st("nolive", mk(), 12);
         reset(); liveAt = 0; st("finding", mk(), 12);
@@ -3779,12 +3831,12 @@ def sky_row_checks(browser, bad):
         reset(); spotted = [{hex: "aa0001", scan: 1, gs: 5}]; out.starDone = chip({}, 8);
         reset(); spotted = [{hex: "aa0001", scan: 1, gs: 5}]; gme.scan = [{hex: "aa0001"}]; out.starLater = chip({}, 8);
       } catch (e) { out.error = String(e && e.stack || e); }
-      feat = keep.feat; gme = keep.gme; spotted = keep.spotted; liveAt = keep.liveAt; S.live = keep.live; S.demo = keep.demo; lookWhy = keep.why; gNearAt.clear(); arScans.clear();
+      lastOk = keep.ok; feat = keep.feat; gme = keep.gme; spotted = keep.spotted; liveAt = keep.liveAt; S.live = keep.live; S.demo = keep.demo; lookWhy = keep.why; gNearAt.clear(); arScans.clear();
       arSpotIdx = {src: null, n: -1, map: null}; skyMem = {hex: "", k: "", s: null, num: null, numAt: 0, lookAt: 0};
       return out; })()`)""")
     want = {"closing": ["closing", 3.1], "in": ["in", None], "in17": ["in", None], "edge1": ["in", None], "edge2": ["in", None], "edge3": ["closing", .2],
             "passing": ["passing", 22], "away": ["away", 24], "done": ["done", None], "laterPass": ["in", None], "justScanned": ["done", None],
-            "pastLimit": ["in", None], "ground": ["ground", None], "none": ["none", None], "off": ["off", None], "nolive": ["nolive", None],
+            "pastLimit": ["in", None], "ground": ["ground", None], "none": ["none", None], "offline": ["offline", None], "backOnline": ["none", None], "offWords": "Sky view|Offline · retrying", "offList": True, "off": ["off", None], "nolive": ["nolive", None],
             "finding": ["finding", None], "far": ["far", None], "nopos": ["nopos", None], "noheight": ["noheight", None],
             "closingHolds": ["closing", 5], "passingHolds": ["passing", 15.5], "goingHolds": ["closing", 5], "awayHolds": ["away", 20],
             "nums": [3.1, 3.0, 3.0, 3.9], "km": ["3.1", "13"], "star17": "★", "star20": "N", "starGround": "N", "starDone": "✓", "starLater": "★"}
@@ -3818,6 +3870,86 @@ def sky_row_checks(browser, bad):
     pg.evaluate("__e('liveStop(); 1')")
     pg.wait_for_timeout(600)
     ctx.close()
+
+
+def no_position_checks(browser, bad):
+    """1.129.20 (to-do #296): live location that finds no position. A made-up geolocation that never answers and one that
+    refuses: Finding you for 20 s (or at once on a refusal), then the Sky view row says No position, the title NO POSITION
+    and Recent flights why (Still looking, Not allowed), with the profile's places and Try again. One place is a key with
+    its name and turns live location off; several open a pick list; a position that comes at last ends it all by itself."""
+    fake = """(() => { const g = navigator.geolocation; window.__geoW = []; let n = 0;
+      g.watchPosition = (ok, no) => { window.__geoW.push([ok, no]); if (window.__geoMode === "deny") setTimeout(() => no({code: 1, message: "denied"}), 50); return ++n; };
+      g.getCurrentPosition = (ok, no) => { if (window.__geoMode === "deny") setTimeout(() => no({code: 1, message: "denied"}), 50); };
+      g.clearWatch = () => {}; })();"""
+    for mode in ("never", "deny"):
+        ctx = browser.new_context(viewport={"width": 390, "height": 844})
+        ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+
+        def hooked(route):
+            r = route.fetch()
+            t = r.text()
+            i = t.rindex("})();")
+            route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+        ctx.route("**/app/", hooked)
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: bad.append(f"no position: page error: {e}"))
+        pg.add_init_script(f"window.__geoMode = {mode!r};" + fake +
+                           "document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'));")
+        pg.goto(BASE + "/app/")
+        pg.wait_for_function("window.__e && __e('!!gme && places.at > 0')", timeout=20000)
+        e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
+        work = '{k: "Work", n: "Wien", lat: 48.21, lon: 16.37, home: "VIE", r: 15}'
+        e(f'places.list = [{work}]; liveStart(); S.livePrev = {work}; 1')
+        plate = "document.querySelector('#recent li.st')"
+        if mode == "never":
+            try:
+                pg.wait_for_function("__e('skyMem.k === \"finding\"')", timeout=6000)
+            except Exception:
+                pass
+            if e('skyMem.k') != "finding" or e(f'{plate} && {plate}.textContent') != "Finding where you are …The planes show once live location has found you.":
+                bad.append(f"no position: the first 20 s aren't Finding you: {e('skyMem.k')}")
+            e('liveRunAt = Date.now() - 21000; 1')
+        try:
+            pg.wait_for_function("__e('skyMem.k === \"nofix\" && !!document.querySelector(\"#recent li.nofix\") && $(\"where\").textContent.includes(\"NO POSITION\")')", timeout=8000)
+        except Exception:
+            bad.append(f"no position ({mode}): no No position state: {e('skyMem.k')}")
+            ctx.close()
+            continue
+        why = "Still looking" if mode == "never" else "Not allowed"
+        got = e('[$("skyL").textContent, $("skyV").textContent, $("where").textContent, document.querySelector("#recent li.nofix b").textContent, '
+                '[...document.querySelectorAll("#recent [data-nf]")].map(b => b.textContent).join("|")]')
+        want = ["Live location", "No position", "◉ NO POSITION", f"No position · {why}", "Use Work|Try again"]
+        if got != want:
+            bad.append(f"no position ({mode}): {got} (wanted {want})")
+        if mode == "deny":
+            # a refusal stays a refusal after Try again; then one place: its key turns live location off
+            pg.click('#recent [data-nf="again"]')
+            pg.wait_for_function("__e('liveErr === \"deny\" && skyMem.k === \"nofix\"')", timeout=5000)
+            pg.click('#recent [data-nf="place"]')
+            pg.wait_for_timeout(1500)
+            if e('[S.live, S.placeKey, skyMem.k].join()') != "false,Work,nolive":
+                bad.append(f"no position: Use Work didn't turn live off and go there: {e('[S.live, S.placeKey, skyMem.k].join()')}")
+            if e('$("skyKeyT").textContent') != "Go live":
+                bad.append("no position: after a place the key doesn't say Go live")
+        else:
+            # several places: Pick a place opens them as a list; then a position at last ends it by itself
+            e(f'places.list = [{work}, {{k: "Club", n: "Wien", lat: 48.19, lon: 16.35, home: "VIE", r: 15}}]; renderRecent(); 1')
+            pg.wait_for_function("__e('document.querySelector(\"#recent [data-nf=place]\").textContent === \"Pick a place\"')", timeout=5000)
+            pg.click('#recent [data-nf="place"]')
+            pg.wait_for_timeout(700)
+            names = e('[...document.querySelectorAll("#cardBox .pickList [data-nfp] b")].map(b => b.textContent).join("|")')
+            if names != "Work|Club":
+                bad.append(f"no position: the pick list shows {names!r}")
+            e('cardClose(); 1')
+            pg.evaluate("() => { const w = __geoW[__geoW.length - 1]; w[0]({coords: {latitude: 48.2086, longitude: 16.3732, accuracy: 20}, timestamp: Date.now()}); }")
+            pg.wait_for_timeout(2500)
+            if e('[liveLost(), !!document.querySelector("#recent li.nofix"), skyMem.k === "nofix", $("where").textContent.includes("NO POSITION")].some(Boolean)'):
+                bad.append("no position: a position at last didn't end it")
+            if e('S.live') is not True:
+                bad.append("no position: live location went off by itself")
+        e('if (S.live) liveStop(); 1')
+        pg.wait_for_timeout(400)
+        ctx.close()
 
 
 def browser_checks(browser):
@@ -4094,7 +4226,7 @@ def browser_checks(browser):
     got = e("""(() => { const was = [relayStats, sightRev, spotted, S]; S = {...S, live: false}; showTab('logbook'); const ph = () => [$('tdPlate').hidden, $('tdPlate').textContent];
         spotted = []; relayStats = {planes: 0, airlines: 0, types: 0, overhead: 0}; sightRev = '1'; tdSig = ''; renderTodayNumbers(); const day = ph();
         sightRev = null; tdSig = ''; renderTodayNumbers(); const wait = ph(); [relayStats, sightRev, spotted, S] = was; tdSig = ''; return [day, wait]; })()""")
-    if got != [[False, "Today›0Planes0Overhead0Airlines0Types"], [False, "Today›–Planes–Overhead–Airlines–Types"]]:
+    if got != [[False, "Today›0Planes0Overhead0Types0Airlines"], [False, "Today›–Planes–Overhead–Types–Airlines"]]:
         bad.append(f"the Today plate on an empty day: {got}")
 
     # 1.88: the Remarks in the Overhead style are white and only name a delay over 30 minutes; the Airport style keeps
@@ -4210,6 +4342,7 @@ def browser_checks(browser):
     flaps_settings_checks(browser, bad)
     club_swipe_checks(browser, bad)
     sky_row_checks(browser, bad)
+    no_position_checks(browser, bad)
     your_photo_checks(browser, bad)
     for b_ in bad:
         print("flow:", b_)

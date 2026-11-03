@@ -24,6 +24,8 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "tools" / "app"))
+from strip import strip_js  # noqa: E402  (1.129.21: the app is built without comments)
 AREAS = REPO / "tools" / "codemap_areas.txt"
 BOARD, MAIN, HEAD, RELAY = "test/index.html", "tools/app/main.js", "tools/app/head.html", "relay/serve.py"
 CHECKED = (BOARD, MAIN, RELAY)                  # every top-level function, const and class belongs to an area
@@ -872,7 +874,13 @@ def show_build():
         ok = ok and all(a for a, _ in rs)
         land = ""
         if app and rs and rs[0][0]:
-            hit = find_lines(app, o.lines[rs[0][0] - 1])
+            # 1.129.21: the app is built without comments, so the block's first line of code is looked for
+            a, b = rs[0]
+            try:
+                first = next(ln for ln in strip_js("\n".join(o.lines[a - 1:b])).split("\n") if ln.strip())
+            except (ValueError, StopIteration):
+                first = o.lines[a - 1]
+            hit = find_lines(app, first)
             land = f"app {hit[0]}" if hit else "not in app (rebuild)"
         dest = f"main.js {mark}" if mark else "head.html <style>" if key == "css" else "no //@ marker!"
         print(f"  {key:<4} board {board:<22} → {dest:<17} {land:<10} {names}")

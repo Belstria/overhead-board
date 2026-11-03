@@ -343,7 +343,27 @@ AIRPORTS_CSV = "ident,type,name,latitude_deg,longitude_deg,elevation_ft,continen
         ("PMI", "LEPA", "Palma", 39.5517, 2.7388, "EU", "ES"), ("ZRH", "LSZH", "Zurich", 47.4647, 8.5492, "EU", "CH"),
         ("FCO", "LIRF", "Rome", 41.8003, 12.2389, "EU", "IT"), ("WAW", "EPWA", "Warsaw", 52.1657, 20.9671, "EU", "PL"),
         ("DUB", "EIDW", "Dublin", 53.4213, -6.2701, "EU", "IE"), ("LHR", "EGLL", "London", 51.47, -0.4543, "EU", "GB"),
-        ("NCL", "EGNT", "Newcastle", 55.0375, -1.6917, "EU", "GB")])
+        ("NCL", "EGNT", "Newcastle", 55.0375, -1.6917, "EU", "GB"),
+        # relay 109: the dense logbook's other airports (their weather) and Belgrade (a plane over Serbia)
+        ("BGY", "LIME", "Milan", 45.6739, 9.7042, "EU", "IT"), ("SOF", "LBSF", "Sofia", 42.6967, 23.4114, "EU", "BG"),
+        ("AMS", "EHAM", "Amsterdam", 52.3086, 4.7639, "EU", "NL"), ("IST", "LTFM", "Istanbul", 41.2753, 28.7519, "EU", "TR"),
+        ("BEG", "LYBE", "Belgrade", 44.8184, 20.3091, "EU", "RS")])
+# Relay 109: where a plane is now, by its hex (adsb.fi's /api/v2/hex, adsb.lol's /v2/hex): a hex whose number divides by
+# three flies over Serbia, one more is on the ground in Dubai, the rest aren't seen. HEX_FI_DOWN: adsb.fi answers 503.
+HEX_ASKED = {"fi": 0, "lol": 0}
+METEO_ASKED = [0]
+def hex_plane(hx):
+    n = int(hx, 16) if re.fullmatch(r"[0-9a-f]{6}", hx) else 2
+    if n % 3 == 0:
+        return {"hex": hx, "flight": "TEST1   ", "lat": 44.52, "lon": 20.61, "alt_baro": 37100, "alt_geom": 37500, "gs": 450, "track": 120}
+    if n % 3 == 1:
+        return {"hex": hx, "flight": "TEST2   ", "lat": 25.2541, "lon": 55.3612, "alt_baro": "ground", "gs": 0}
+    return None
+def meteo(q):
+    """Open-Meteo's current temperature and time zone, made up from the coordinates."""
+    la, lo = float((q.get("latitude") or ["0"])[0]), float((q.get("longitude") or ["0"])[0])
+    tz, off = ("Asia/Dubai", 14400) if lo > 40 else ("Europe/Athens", 7200) if lo > 21 else ("Europe/Vienna", 3600)
+    return {"latitude": la, "longitude": lo, "utc_offset_seconds": off, "timezone": tz, "current": {"time": "2026-11-03T12:00", "temperature_2m": round(31 - la / 2.5, 1)}}
 AIRLINES_CSV = "\ufeffCode,Name,ICAO,IATA,PositioningFlightPattern,CharterFlightPattern\r\n" + "".join(
     f"{c},{n},{c},{i},,\r\n" for c, n, i in [("AUA", "Austrian Airlines", "OS"), ("EIN", "Aer Lingus", "EI"),
                                              ("RYR", "Ryanair", "FR"), ("TST", "Testair", "TS"), ("LDM", "Lauda Europe", "OE"),
@@ -440,6 +460,18 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, "application/json", json.dumps({"response": {"aircraft": a}}).encode())
         if path == "/airports.csv":
             return self.send(200, "text/csv", AIRPORTS_CSV.encode("utf-8"))
+        if path == "/hex/asked":           # relay 109: how often the relay asked (flows.py checks the minute's cache)
+            return self.send(200, "application/json", json.dumps({**HEX_ASKED, "meteo": METEO_ASKED[0]}).encode())
+        if path.startswith("/hex/"):
+            who, hx = (path.split("/") + ["", "", ""])[2:4]
+            HEX_ASKED[who] = HEX_ASKED.get(who, 0) + 1
+            if who == "fi" and os.environ.get("HEX_FI_DOWN"):
+                return self.send(503, "text/plain", b"down")
+            p = hex_plane(hx.lower())
+            return self.send(200, "application/json", json.dumps({"ac": [p] if p else [], "msg": "No error", "now": int(time.time() * 1000), "total": 1 if p else 0}).encode())
+        if path == "/meteo":
+            METEO_ASKED[0] += 1
+            return self.send(200, "application/json", json.dumps(meteo(urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query))).encode())
         if path.startswith("/vrs-routes/"):     # relay 106: one airline's routes; any other file isn't there
             body = VRS_ROUTES.get(path.rsplit("/", 1)[1])
             if os.environ.get("VRS_DOWN"):

@@ -81,7 +81,7 @@ changelog: style|palette|finish|badge|daylight|realistic|gold leaf|first class|L
 test/index.html: +liveShow swapSign placeModeSwitch setMode tickClock updateFooter +placeNow css:footer .pip #status
     .dot #modeSw #dot #pip #statusText +drawStatic
 tools/app/head.html: #top .where #mark .title .clockbox .dot .status #dot #modes .stOk .verdict +.gHead
-tools/app/main.js: drawMark setMode showModes applyMode $("dot").onclick statusLine updateFooter statusVerdict stMore statusCard
+tools/app/main.js: drawMark setMode showModes applyMode $("dot").onclick statusLine updateFooter offShown statusVerdict stMore statusCard
     updateWhere liveShow tickClock headFit
 README.md: "The footer shows the name" "- **Connection** (1.38)"
 changelog: title|header|clock|footer|status line|the dot
@@ -188,11 +188,11 @@ test/index.html: SV_ROWS DAY_START_H boardDay todayKey loadLog saveLog SAME_PASS
 tools/app/head.html: .flights .fl .chip .legend #recentPl .scr css:body.real .flights.tline .lbDay .lbDayL .lbDayH .lbDayH.stuck .lbDayH.lbGrow @lbGrow .lbIn @lbIn .lbMore.lbFold .lbMore @lbScrew .cap.lbTop .cap.lbTop.rest .lbTop .lbTopT .lbTopProbe #svList.wait #svList #svSum #svTools #todayFacts .dayFacts #todayP
     #todayTop .tdFil .lbSeg .tlHead .tline .tlFoot .tlCard .tlBg .tlK .tlX .tlWas .tlGone .tlMill @tlMillBg @tlMillLine @tlMillRule @tlMillDiv #recentN #recentFoot #recentAll
     .mPh .phA .phTrack .phMine .phDrag .phCr .phCrS .phDots
-tools/app/main.js: TODAYP SCR2 spotted logDay rollDay syncSightings fullDay loadFullDay dayList chip distText altText
+tools/app/main.js: TODAYP SCR2 spotted logDay rollDay sightUrl syncSightings fullDay loadFullDay dayList chip distText altText
     rowHtml rowSig svFilter svSig todayList svData SV_TOOLS buildSvTools legendHtml todayNumbers
     TD_PLATE TD_FACTS todayFactsSig tdSig renderTodayNumbers tdOpen $("tdPlate").onclick tdFilter tdFilDot $("tdFil").onclick todayJump renderToday renderLists
     tlKey plainCode noFlightNo rowName noRoute tlNode rowTier rowMarks CAM_SVG FLAG_SVG +myPhOf +myPhHtml rowInner tlPic tlCardSig tlAsking tlAhead tlAgo tlCardHtml cardLi
-    tlHtml tlState tlFinding tlNothing tlOpenId tlTok tlRunning tlCap tlAgain tlBusy tlFill tlWire tlLate tlDone
+    tlHtml tlState tlFinding tlNothing tlOffline tlOpenId tlTok tlRunning tlCap tlAgain tlBusy tlFill tlWire tlLate tlDone
     LBL_PAGE lbl lblPlate lblOn lblIso lblSpan lblToday lblPlaces lblKey lblLive lblPass lblUrl lblWords lblWord lblHead lblDayLi lblHtml lblLead lblStop lblShown lblEnded lblLine lblMoreSync lblEmpty lblDraw lblAppend lblAdd lblLoad lblFirst lblPatch lblReset lblNews lblFlush lblSync lblLeave lblTopLang lblRaf lblRestT lblTopFit lblTopPlace lblTopRest lblScrolled $("lbTop").onclick lblSegH lblStickyMark
     tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd tlTap tlOpen tlFold tlScroll sightPlane
 relay/serve.py: day_stats same_spot sightings_json /sightings +Spot.day_entries FLIGHTS_PAGE FLIGHTS_DAYS SPECIAL_TYPE_CODES _list_sq _flight_test _flight_hidden flights_json /logbook/flights
@@ -204,12 +204,12 @@ changelog: spotted today|today tab|\btoday\b|legend|filter
 [logbook] Logbook and records: the board's one-screen Logbook, the app's Logbook tab, search, categories, places, week/month/year
 test/index.html: LB_ROWS RV_ROWS LB_CATS LB_RECS LB_RECS.forEach LB_BOX lbBox LB_CAT_Y LB_LIST_Y LB_LIST_P lbCache
     lbError lbPer lbYearBack lbSig lbFocusK lbYears lbYearAt lbYearOk lbPers lbYear demoYear lbPerData lbPerTitle
-    LB_NUMS lbNums lbBook lbTop lbAirline lbDayY MAKERS lbModel lbFlap lbWho lbRecVal lbYearFetch lbFetch lbAgain
+    LB_NUMS lbNums lbBook lbTop lbAirline lbDayY lbModel lbFlap lbWho lbRecVal lbYearFetch lbFetch lbAgain
     lbPerSet lbPick lbPlates plateDraw lbStaticSig lbLabels lbLabel lbStatic lbSeekOk lbSeek lbSeekQ lbSeekTok lbFound
     lbToolsHtml lbToolsWire lbToolsSync lbCardK lbCardTok lbCardWait lbBackTo lbCatQ lbCatV lbCatData lbCatOk lbCatKey
     lbCardOn lbCard lbCardShow lbCardBack lbCardAgain lbRow lbFacts lbCardHtml lbCatHtml lbCatFetch lbCardWire
     lbSearch lbFoundHtml lbBoxAt lbHitsShow fx.addEventListener("mousemove") fx.addEventListener("mouseleave") lbFocus
-    lbFocusPlate lbKey lbNear fmtDay typeLabel demoLogbook lbData lbPlace lbPlaceData LB_VIEWS LB_VIEW_NAMES lbPlaceOk
+    lbFocusPlate lbKey lbNear fmtDay typeLabel MAKERS typeShown demoLogbook lbData lbPlace lbPlaceData LB_VIEWS LB_VIEW_NAMES lbPlaceOk
     lbChips lbPlaceName lbPlaceUrl fetchLogbook logbookSummary review reviewOk reviewKey fetchReview demoReview
     reviewData reviewTitle reviewDay reviewSummary reviewFacts reviewNewTypes REVIEW_NUMS renderLogbookBoard #lbHits
     #fx.lbHov 'if (view !== "logbook" || !cardOpenNow()' .lbRow .lbRecs .lbCard .lbFound .lbNums .lbSeg .lbRk .lbCats
@@ -217,14 +217,15 @@ test/index.html: LB_ROWS RV_ROWS LB_CATS LB_RECS LB_RECS.forEach LB_BOX lbBox LB
     +#viewTools 'vdef("logbook"'
 tools/app/head.html: .ranks .cats .yearCard .yNums .yFacts .reviewCard .rvTools .yActs .model .lbFindBox .plate
     #t-logbook.finding #lbFound .lbfPin .seg.lbViews .secPlate .perCard .perHead .perArr .sum.lbFoot .dd
-    .seg.catSeg .catRow .lbfRead #lbFindBox #lbLists #lbSum #lbViews #t-logbook #lbYear #lbFilPlace .lbFilter #lbStrip .lbStrip .lbStrip.one .lbPlate .lbPlate.lbOpens css:button.lbPlate .lbPlH .lbPlN .lbOpens #lbPlate #tdPlate .perMore
+    .seg.catSeg .catRow .lbfRead .lbfLast #lbFindBox #lbLists #lbSum #lbViews #t-logbook #lbYear #lbFilPlace .lbFilter #lbStrip .lbStrip .lbStrip.one .lbPlate .lbPlate.lbOpens css:button.lbPlate .lbPlH .lbPlN .lbOpens #lbPlate #tdPlate .perMore
     .perMoreIn
-tools/app/main.js: lbCache lbError fetchLogbook lbSig lbView lbViewsBar lbQuery lbFindT lbFindTok lbFindSetup
+tools/app/main.js: lbCache lbError fetchLogbook lbSig lbView lbViewsBar lbQuery lbFindT lbFindTok lbFindSetup LBQ_KEY lbLastNew lbFindSet lbLastGet lbLastAdd lbLastSync
     lbFind catOk lbCat lbCatView lbCatData lbCatKey catOpenHtml catFetch PIN DD lbfPlaces lbFoundRows foundCard
     lbPanels lbPanel lbPanelTok lbPanelOn lbPanelOpen lbPanelSync renderLogbook lbYearCard LB_PLATES lbPlateOn lbStripSig lbPlateNum lbPlateHtml lbStripSync lbPlateGo lbDemoPer lbPick recordsHtml secPlate plFoot plFootFit
     yearData yearAt yearCache fetchYear perKey perHas perLoad perWarm yearReview lbPeriod yearBack perMore perWant periodHtml PER_MORE reviewHtml +periodPicture +shareYear +sharePeriod
 relay/serve.py: _rec_entry note_records _gc_km _backfill_records _backfill_flights CARGO_AIRLINES HELICOPTERS
     MILITARY_TYPES BIZJETS LIGHT category_of CATEGORY_WORDS _logbook_entries search_json _cat_cache category_top_json
+    SEARCH_KEEP SEARCH_FIELDS _NOWHERE _search_kept _search_n _search_lock _search_rows _search_day
     _book_late logbook_json _place_days _place_summary _merge_items place_logbook place_logbook_json _days_of year_json
     REVIEW_SPANS REVIEW_WEEK_AT REVIEW_MONTH_AT _reviews review_range review_json CSV_COLS _csv_safe logbook_csv
     +seen_json +where_name +geo_where +where_of +review_check /logbook /search /logbook/category /year /review
@@ -243,7 +244,7 @@ test/index.html: radar RADAR_COL RADAR_GEO rgba radarTrack radarPos radarCentre 
     radarZoomCan radarBase radarRange radarRangeText RADAR_MAP_KEY RADAR_MAP_CREDIT radarMapOn radarMapSet radarMap
     radarMapDraw MVT_LAYERS mvtRead mvtPath RADAR_MAP_LOOK radarMapTiles radarMapBuild radarBox resizeRadar startRadar
     stopRadar radarStatic altShort radarColor radarLegend radarAsked radarInfo radarName radarLabels ringLabels
-    paintRadar drawRadar renderRadarList radarObj +boardTap #radarCv 'vdef("radar"'
+    radarLayers radarLayer radarSweep paintRadar drawRadar renderRadarList radarObj +boardTap #radarCv 'vdef("radar"'
 tools/app/head.html: .rv .rvLogo .rvRange .litKey .rvCard .scope .rvPlate .rvCredit .rlegend .rvTop .rvSet .rvHead .rvCols #radarBg
     #radarCv #rvCredit #rvInfo #rvList #rvMap #rvReset #rvSet #rvSetKm #rvWheel #rvZoomIn #rvZoomKm #rvZoomOut #scope #t-radar
 tools/app/main.js: +secPlate $("radarCv").addEventListener("click") $("rvList").addEventListener("click")
@@ -298,14 +299,14 @@ changelog: about|patch notes|new version|refresh|credits
 test/index.html: liveShow placesRelay places allPlaces placeKeyNow placeName placeLabel placeQs sightPlaceQ placesLoad placesHooks
     placesSave placeOfS placeKeySet placeAt placeCheck placeAfter usePlace liveOk liveWatch liveTimer liveSaved
     liveFirst LIVE_RETRY_MS liveNameAsk liveAirAsk liveNameOk liveAirOk placeNow LIVE_FRESH_MS liveAt liveWas
-    liveRunAt liveToldAt liveStale liveWaiting liveBlank LIVE_OLD_MS liveOldSaid liveOldAcc geoPos geoNote liveHalt
+    liveRunAt liveStale liveWaiting LIVE_LOST_MS liveErr liveLost liveWhy liveFail liveBlank LIVE_OLD_MS liveOldSaid liveOldAcc geoPos geoNote liveHalt
     liveRun liveStart liveStop liveAsk liveStay geoReverse liveFix
     geoSearch placesCard hereNow nearestAirport nearbyAirports putDraft locatedAt wireLocation settingsSync wireSearch
     .inst.loc .geoQ .geoRes .lblF .upd .apList .inst.updAll +queryCenter +meSend +#modeSw +drawStatic +viewSubtitle
     +itemHtml .plRow .plGo .plRm .plUp .pickList +snapLoad +snapSave +dayList +renderFeatured +recentShown
     +renderStats +spottedSummary +poll +COCKPIT +DEFAULTS +applySettings
 tools/app/head.html: .seg.svPlaces #svPlaces #where
-tools/app/main.js: +located +arTry +arGoLive $("where").onclick +updateWhere +liveShow +gGoLive
+tools/app/main.js: +located +arTry +arGoLive $("where").onclick +updateWhere +liveShow +gGoLive NOFIX nfPlaces nfSig tlNoFix
     #svPlaces #where +arSnap +dayList +renderRecent +todayNumbers +renderToday +DEFAULTS +applySettings
 relay/serve.py: airports_near _guest_center _guest_radius guest_spot PLACE_KEY place_key screen_place LIVE_FRESH_S
     live_stale _clean_places places_of NOMINATIM _geo_lock _geo_last _geo_cache _geo_get _GEO_ADMIN _geo_admin_clean
@@ -357,16 +358,18 @@ test/index.html: plusRows plusN tapLine listHints cardTok cardOpen cardClose MUS
     factsOk brandsOk BAND_ICONS bandMid factsCache spottedCache planeLogs factsGet spottedGet planeLog yearOf longDate kmText mText bigText
     timesText ageYears isToday ENGINE_KIND RANGE_CITIES modelFunFacts airlineFunFacts placeFunFacts planeFunFacts
     tierChip infoCard cardMore +listSheet +togBtn +cardToggle +modelPic +planePic +picHtml +picCreditParts +photoKey
-tools/app/head.html: #cardBox .cRouteB .cRbEnd .cTiles .cTile .cDet @cardSwap .cBtn
+tools/app/head.html: #cardBox .cRouteB .cRbEnd .cTiles .cTile .cDet @cardSwap .cBtn .cInfo .cWx .cWhere .cardish
 tools/app/main.js: cardSheetHtml cardSheetPre cardSheetPost cardSheetGrow cardSheetClose planeAgain +radarPlaneCard
     +arTap +foundCard +hangarCard +playerCard +tlCardHtml +tlOpen +sightPlane
+    nowOk wnMem wxMem nowDue wnAsk wxAsk wnText wxText nowFill
 relay/serve.py: MEDIA_DIR MEDIA Handler.media /media/ WM_AGENT WIKI_API WIKIDATA_API COMMONS_FILE COMMONS_API SPARQL_API FACTS_FILE FACTS_DB FACTS_EVERY FACTS_NIGHT FACTS_IMG_W MODEL_TITLES
     FACTS_KEEP FACTS_FAIL FACTS_GAP FACTS_TEXT _facts_busy _facts_failed _wm_next _MONTHS _wm_get _Need _Stop _wm_batch _batch _need _wm_batch_get _wm_pages
     _wt_templates _wt_split _wt_strip _wt_params _wt_tpl _wt_text _wt_link _num _date _wiki_page _intro _wiki_extract _wiki_url
     _infobox _spec_rows _WORDS _qty _seats _first _list model_facts _wd_find _wd_items _wd_claims _wd_val _wd_time
     _wd_label _wd_pick _commons _wd_title CORP_TAIL _airline_parents _airline_brand airline_facts airline_own_facts org_facts _airline_item_facts airport_facts FACTS_KINDS FACTS_VER _FACTS_PREFIX _fdb _fdb_lock _facts_db _facts_get _facts_put _facts_meta _facts_keys facts_json _facts_running _facts_progress _facts_lists _facts_fetch _facts_chunk facts_refresh _facts_opens facts_status _facts_worker _spotted_days
     _spotted_summary spotted_json /facts /logbook/spotted +search_json +_saver
-tools/test/fakesrc.py: WIKI WD_ITEM WD_STR WD_TIME WD_QTY WIKIDATA WM_ASKED wikipedia wikidata sparql commons /wiki/w/api.php /sparql /commons-api/w/api.php
+    OPEN_METEO WEATHER_S WEATHER_FAIL_S WEATHER_DAY_CAP _weather _weather_day _weather_lock weather_at /weather
+tools/test/fakesrc.py: WIKI WD_ITEM WD_STR WD_TIME WD_QTY WIKIDATA WM_ASKED wikipedia wikidata sparql commons /wiki/w/api.php /sparql /commons-api/w/api.php METEO_ASKED meteo /meteo
     /wikidata/w/api.php /wm/asked /commons/
 tools/test/flows.py: "relay 74: the cards' facts" "the cards' facts (the fake Wikipedia"
 tools/test/run_test_relay.py: "--live-facts" "relay 74: the cards' facts"
@@ -412,7 +415,7 @@ tools/app/head.html: #gSub .seg.jumpSeg .seg.svFilters css:html(#t-game .gRows .
     @gPop .pF @pfIn @pfTear #arBurst @pfSpark @gSheen #gameBox .rpList .gHow .rkI .rkGold .rkLv .plIns
     .fsRec .fsBox .fsBox.big .fsSig .fsSigT .fsSigT.writing @fsWipe #fsBar #fsStamp #fsStamp.out @fsSlip @fsOut @fsLand @fsInk @fsFade @fsWingIn @fsCleared #gLvUp.fsW
     .cuD .cuP .cuI .cuI.flap .cuUn .cuMini .cuLn .cuLb .cuStop .cuRt .cuT .cuPl @cuDrop .cuPlate .cuArr @cuFly @cuLit .cuTag @cuTag .cuTry .cuLater .cuSheet .cScroll
-tools/app/main.js: learnFoot collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad typeShown hgNames modelPicNow HG_EAGER HG_GAP hgLast hgPumpT hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
+tools/app/main.js: learnFoot collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad typeNamed hgNames modelPicNow HG_EAGER HG_GAP hgLast hgPumpT hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
     hgSoon hangarCard tierIcons tierIcon gTrTab trProg trPips trMedal MD_M MD_RN mdRoman mdFaceSvg mdDrawn mdCoin MD_RIBBON trRow trToGo trWon trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gScanKm gScanSet gGoldSet gme gmeAt gBusy
     STK_W STK_S STK_LAND_MS STK_RUN_MS STK_FLY_MS stkWeek stkWeekBack stkRun stkNew gLeague gLeagueAt gAll gAnimT gLvFrom gStripSetup gRingP gLapSet gRingSet gGoPlate gHit gHitDo gGoing gGoLive gGoShow gSay gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gAwShort nwWord gWhoNw gAwFoil gPop gWho gAwards gScanPops SKY_ICO gAwsBox gAwTimer gAwTap GL_GAP GL_STUCK gLine GL_TIX gLineOn gLineAdd gTixAside gTixUp gLineRun gPassFill TIX_MS RIP_AFTER RIP_MS POP_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack gAwBig
     gCoins gLvT gLvPoll gLvChipOk gLvBusy gLvChipT gLvMem gGainUntil gLvArEnd gSeen gLvUpOn gLvGet gLvSave gLvCheck gLvBlocked gLvKick gLvStep gLvChip gLevelUp gJingle gRip gGold gBurst gLeagueLoad gPlates gPlateSplit renderGame G_SUBS G_PARTS LY_TAU LY_FAST TIX_MIN gSub gSubHas gSubBar gSubGo gIndexHtml gLimFull gLimLine gLimOpen gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gLastMin gSbyHtml gSbyFrom plateSheet gSbyOpen
@@ -578,7 +581,7 @@ README.md: "Press **D**, or use **Diagnostics**"
 changelog: diagnostic|log page|connection log|\blog\b
 
 [network] Fetching data: the relay's address, positions (getAircraft), route and aircraft lookups (adsbdb, adsb.lol), demo
-test/index.html: SID tagged timedFetch netError fetchJSON PROXY relay relayV5 FEEDS feedIdx feedName lastFreshness
+test/index.html: SID tagged timedFetch EARLY earlyKey earlyAsk early xhrRead acRead aircraftUrl netError fetchJSON PROXY relay relayV5 FEEDS feedIdx feedName lastFreshness
     relayLegacy lastFill QUERY_NM QUERY_KM srcTime noAt noAtList getAircraft baseInfo routeFits routeLookup routeDb
     routeLol aircraftLookup NA orNA lookedUp infoCache infoChanged edgeKm enrich DEMO DEMO_CYCLE DEMO_FLY DEMO_KMS
     demoAircraft DEMO.push demoLog +queryCenter +COCKPIT +DEFAULTS +applySettings
@@ -672,9 +675,10 @@ tools/test/flows.py: "packed and tagged pages" "relay 69: the page knows the own
 test/index.html: +aboutHtml +SITE_LINKS
 relay/serve.py: SOURCES ROUTESET FRESH_S SOURCE_GAP_S STALE_S NUM AIRCRAFT LEGACY _positions _fetch_lock rest_for
     aircraft /aircraft/ /adsblol/ /airplaneslive/ /routeset +main
+    HEX_SOURCES WHERE_NOW_S WHERE_LOL_MAX WHERE_GROUND_KM WHERE_AIR_KM _wherenow _hex_own _nearest_airport _hex_in _where_fetch where_now /wherenow
 docs/architecture.md: "adsb.lol (in reserve for its 500 a day"
 README.md: "Positions come from adsb.fi, adsb.lol and airplanes.live"
-tools/test/fakesrc.py: plane APRON along /ac/
+tools/test/fakesrc.py: plane APRON along /ac/ HEX_ASKED hex_plane /hex/ /hex/asked
 tools/test/smoke.py: "the test relay served no positions"
 changelog: source|adsb|airplanes\.live|avioadsb
 

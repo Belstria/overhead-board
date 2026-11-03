@@ -2863,6 +2863,92 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   record" (it wrapped as "PRE- / FLIGHT"). (#294) `#welcome .cap.big.go` is lit green on every step (only the last had `aria-pressed`, set by `pick()`),
   and `#welcome .cap.big` is `width:auto` with `white-space:nowrap`. (#295) The Level tab's footer (`logbookSummary()`: counting since, NEW date, points)
   is gone; `learnFoot()` puts "NEW marks from {date}" in a `.plFoot` at the end of the Your club plate while `learningUntil` is ahead.
+- 1.129.19 (to-dos #286, #288, #291, #292, from "Fifteen ideas"; app and board, no relay change): four small fixes. **#286 Offline is not an empty
+  sky:** `skyState` returns `offline` (`SKY_WORDS.offline`, "Sky view" / "Offline · retrying", dimmed) when there is no plane and `isOffline()`
+  (`held` no longer keeps it for the 3 s grace); `renderRadarList`, `arAroundOpen`, the Sky view's `arCount`, `tlOffline` (Recent flights' empty line)
+  and `nowEmptyNote` say the same words, and Recent's "None in the last hour" is left out while offline. `updateFooter` redraws these once when
+  `offShown` flips (and back). flows.py's `sky_row_checks` has the `offline` / `backOnline` states. **#288 Trophy words:** the ladders that count the
+  scan book (`TROPHY_LADDERS`: planes, types, airlines, different aircraft, countries, special planes, the same aircraft) now say "scanned"; the
+  counts, points and `GAME3_V` / `GAME_V` are untouched. **#291 One order:** Planes, Aircraft, Types, Airlines (Today: Planes, Overhead, Types,
+  Airlines) on the Today plate, the Today in numbers flaps (`placeRow` in the board and main.js), the 2026 / All time plates, the year, month and
+  week panel (`REVIEW_NUMS` reordered; the panel's top row is the plate's four, `.perCard .yNums` four across; `PER_MORE` lost Aircraft and
+  has `.yMore`, three across) and the board's Logbook flaps (`LB_NUMS`, `lp0`..`lp5` widths). **#292 A type's name:** `typeShown(code, n)` (next to
+  `typeLabel`, shared with the app): the name, maker left out, with n letters the whole name, else shorter, else the code; used by `reviewFacts`
+  (Rarest, and the record rows' fallback), `lbWho`, the Logbook's aircraft list in main.js; the board's flaps ask for 10 letters so they keep the code
+  when the name doesn't fit.
+- 1.129.20 (to-do #296, Dave's pick C of three, "The empty list explains", with his change: a choice of the profile's places instead of
+  only Use home; app and test board, no relay change): **live location no longer waits for good.** Shared (`test/index.html`): `liveErr` (set by
+  `liveFail(why, msg)`: the browser's watch and re-ask now have an error callback, code 1 is "deny", anything else, a timeout too, "unav"; the Android
+  app's `hereNow()` rejection is read by its words, "turned down" → "deny", "turned off" → "off", the rest "unav"), `LIVE_LOST_MS` (20 s),
+  `liveLost()` (waiting, and an error or 20 s since `liveRunAt`), `liveWhy()` (`liveErr`, else "approx" when only an old approximate position came
+  (`liveOldAcc`), else "still"). The 2 s interval tracks "lost <why>" as a state, logs it once and calls `liveShow()`; the 60 s toast and
+  `liveToldAt` went. `liveHalt` clears `liveErr`. The board's title says NO POSITION. The app (`main.js`): `skyState` gives "nofix" ("Live location ·
+  No position", dimmed, the key greyed like "finding"; its label opens a sheet), `updateWhere` says ◉ NO POSITION, and `renderRecent` draws `tlNoFix()`
+  instead of `tlFinding()`: the NOW plate's `li.st.find.nofix` with "No position · <reason>" (`NOFIX`), one help line, and `.nfKeys` (two `cBtn`s,
+  the place key amber like `.skyKey.hot`). `nfPlaces()` lists the place before live location (`S.livePrev` without a label, only for a located
+  profile, as "Home", unless a saved place is at the same spot: `liveStop`) and `places.list` (`usePlace`, `S.livePrev` dropped). One: "Use
+  <name>"; more: "Pick a place" opens a plate sheet with a `pickList`; none: "Pick a place" opens Settings → Location (`setOpen("loc")`). Try
+  again: `liveRun()`. `nfSig()` joins Recent flights' signature. Flow `no_position_checks` (flows.py): a made-up geolocation that never answers
+  (Finding you, then after 20 s the row, the title and the plate; several places open the list; a late position ends it) and one that refuses (at
+  once Not allowed; Try again stays so; Use Work turns live off, the row then says Scan needs · Go live).
+- 1.129.21 (to-dos #303–#306, from the 3 Nov performance research; test board and app, no relay change): **Four performance gains.** Measured in headless
+  Chromium against the test relay, CPU throttled through CDP (4× a mid-range phone, 6× the Fire TV board), before and after in the same runs.
+  *Radar (#303):* `paintRadar` draws the sweep with one cone gradient (`radarSweep`; the 28 wedges stay where a canvas lacks `createConicGradient`, e.g.
+  older TV browsers) and the dial's still parts in two cached layers (`radarLayer`, `radarLayers`): "under" the planes (overhead circle, cross, rings,
+  dashed radius, runways with the one in use, the airport's code; drawn without the clip and copied inside it, so the clip's edge applies once) and
+  "over" them (rim, glass, N E S W, your place, engraved range and map credit). A layer's key holds the canvas size and transform, `document.fonts.status`
+  and everything it draws from (range, centre, styles' colours, the runways in use, …); pinching (`radar.live`) and a context without `getTransform`
+  draw straight on. Ring labels and `radar.apBox` are still worked out each frame. Pixel check (same frame, same planes, old vs new `paintRadar` in one
+  page): at most 5 levels of 255 apart, mostly the wedges' steps that became a smooth fade. Radar tab 783 → 375 ms/s at 4×, the TV radar 457 → ~300
+  at 6×. *First plane (#304):* the app's `start()` asks the fonts first, then sends the first `/aircraft` (by `xhrRead`, an XMLHttpRequest: its answer
+  arrives read in one task, where fetch's headers and body each waited for one of the start-up's first frames) and `/sightings` (`sightUrl`); `early(url,
+  make)` in `getAircraft` and `syncSightings` takes such an answer once, within 15 s, if the URL is the same (`earlyKey` ignores a live location's
+  `&fix=` age). `aircraftUrl()` and `acRead` came out of `getAircraft`. Live data handled 754 → 590 ms after opening (warm), 1,342 → 1,234 ms (cold;
+  150 ms round trip, 10 Mbit/s). *Smaller update (#305):* `tools/app/build.py` writes the app through `tools/app/strip.py` (comments out of the inline
+  scripts, the CSS and the HTML; nothing renamed, line breaks between code kept for automatic semicolons); `--keep-comments` writes it with them.
+  `tools/test/strip_check.py` (in `smoke.py --syntax`) builds it with comments too and compares every script token by token with espree, line breaks
+  included. 1.39 MB → 1.14 MB, gzipped 446 → 339 KB (−24%). `codemap.py --build` looks for a block's first line of code in the app. *Tip ring
+  (#306):* `tipNext` places the ring when the tip shows, on resize and on scroll (capture), and checks once a second whether its element (or the bubble)
+  moved, instead of every frame; on `WEAK_TV`/`LITE()` the ring gets `.still` (no `tipPulse`, the glow held). TV board at 6× with a tip: 618 → ~40 ms/s.
+- 1.129.22 (to-do #315; app only, no relay change): **Radar's Nearest reads whole at 360 and 320 px.** The row (`.rv`, a subgrid of `#rvList`) had five
+  columns (logo, name and type, distance, height, pill); with the widest values ("12.3 km NNW", "10,950 m", SUPERJUMBO) the name column kept 26 px at 360
+  px, so a flight number read "OE…" (and 0 px at 320). `tools/app/head.html`, `@media (max-width:380px)` after `.rv .chip`: `#rvList` has four columns
+  (38 px logo track, name, one number column, pill), `.rv>.num:nth-child(3)` (distance) and `:nth-child(4)` (height) sit in the same column on two
+  rows, the logo, name and pill span both rows, the row's right padding is 6 px, the gaps 6 px, the pill's letters tighter; the head row's "Distance" and
+  "Height" stack the same way (the empty spans are hidden). `@media (max-width:340px)`: 32 px logo track, 12 px numbers, an 11 px pill with no letter
+  spacing. At 390 px nothing changed. A 7-character callsign (EZY1234) with the widest distance, height and pill reads whole at 360 and 320 px; the
+  type line may still end in "…" (the brief's exception). Built on top of 1.129.17 and 1.129.18 (#274, #277).
+- 1.130 / relay 109 (to-dos #300, #301, #302, #307, from the "ten and five" research of 3 Nov; built on Dave's "build everything you
+  can"): **Where now, the route's weather, the last searches and a faster search.**
+  **#300 Where now:** `tlCardHtml` passes `infoCard` an `afterTiles` row `.cTiles.cWhere` (one column: `.cardish .cInfo .cTiles.cWhere`, the
+  value may wrap) with a `button.cTile[data-wn=hex]`, label "Where now"; its tap opens a two-line `plateSheet`. `nowFill(root)` (called by `tlWire` and where
+  the open card's `data-ago` is refreshed, three places) writes `wnText` and asks `wnAsk` (`/wherenow?hex=`, kept a minute in `wnMem`, a failure retried
+  after 15 s). Values: "Over {country}" (`countryName` of the relay's `cc`) · `altText(alt)` (feet from the relay), "In the air" without a country,
+  "On the ground" · the airport's city (or country), "Not seen now", `NA` when the relay can't ask, "···" while asked. Relay: `where_now(hx)`, kept
+  `WHERE_NOW_S` (60 s) in `_wherenow`; first the bodies of `_positions` younger than a minute (`_hex_in`), then `_where_fetch` over `HEX_SOURCES`
+  (adsb.fi `/api/v2/hex/`, adsb.lol `/v2/hex/`) under `_fetch_lock`, sharing `STATE`'s `last_call`, `SOURCE_GAP_S`, `cooldown_until` (a 429 rests the
+  source for positions too, `rest_for`) and the day's `asked` count; adsb.lol only below `WHERE_LOL_MAX` (350) asks that UTC day. With `--source`
+  (STATE cleared) the pacing lives in `_hex_own`. Names: `_nearest_airport(lat, lon, km)` over the airport list (equirectangular, a latitude band):
+  on the ground the airport within `WHERE_GROUND_KM` (8), else the country of the nearest within `WHERE_AIR_KM` (600). `/wherenow`: 400 without six hex
+  digits, `allow("wherenow:"+profile, 0.2, 6)`, 503 while the airport list loads or no source can be asked.
+  **#301 weather:** `infoCard`'s band ends take a fourth part (HTML under the city); the app's ends carry `small.cWx[data-wx=IATA]` (min-height, so the
+  line is there while asked or unknown). `wxAsk` asks `/weather?ap=A,B` for the codes due (`wxMem`, an hour; failure 15 s); `wxText`: "{t}° · {time} local",
+  the time by `toLocaleTimeString` in the answer's `tz` (else `off`), refreshed with the card. Relay `weather_at(code)`: `OPEN_METEO` (`current=temperature_2m`,
+  `timezone=auto`) for the airport list's coordinates only, `WEATHER_S` an hour, a failure `WEATHER_FAIL_S` (10 min), one call at a time
+  (`_weather_lock`), at most `WEATHER_DAY_CAP` (2,000) a UTC day. `/weather`: two codes at most, `allow("weather:"+profile, 0.5, 10)`.
+  **#302 last searches:** `lbLastAdd` keeps the answered query (`lbFind`, after the answer) in `localStorage[LBQ_KEY]` ("od.lbq." + the profile id),
+  three at most, newest first, without repeats; while `lbLastNew` is false the next one replaces the newest (typing on refines it), and clearing the
+  box or a chip (`lbFindSet`) starts a new one. `lbLastSync` shows them as `.lbfRead.lbfLast` buttons (`.lbfChip`, none green) in `#lbFound` while the
+  box is empty and focused (on focus, 300 ms after blur, on input); typing hides them.
+  **#307 search cache:** `search_json` reads each past day through `_search_day(spot, f, day)`: the rows of `_search_rows(entries)` kept in `_search_kept`
+  by (spot dir, day) with the file's mtime and size, at most `SEARCH_KEEP` (8,000) sightings over every profile, the oldest day dropped first (every
+  search reads the days in order, so least-recently-used would drop each day just before it is read); a day with a place on the go not named yet isn't
+  kept. A row is (`SEARCH_FIELDS`' values, interned, the route as code and city; the words without gaps; place; where; category), 855 bytes a sighting
+  (tracemalloc on the dense logbook), so about 7 MB at the cap. A word now only checks the gapless words (a word found in the words is found there too,
+  so answers are the same: 14 queries compared with relay 108's `search_json`, none different). Measured on the test relay (`--logbook dense`, 4,800
+  sightings over 24 days), median of five: A320 70 → 18 ms, Ryanair 62 → 8, OE-L 56 → 5, military 43 → 2, "vienna" 52 → 3 ms; the first search after a
+  start reads them (106 ms). Test relay: fakes for adsb.fi's and adsb.lol's `/hex` (`hex_plane`: the hex number mod 3 is over Serbia, in Dubai or
+  unseen; `HEX_FI_DOWN`) and Open-Meteo (`meteo`), `/hex/asked`; the airport list gains BGY, SOF, AMS, IST, BEG. Flows: `now_extras_checks`.
 - 1.131 (to-do #310, Dave's pick A of three, "Yours first, swipe for the stock"; app only, no relay change): **Your Sky view photo stays with the
   sighting.** `arSnap` (Sky view's shutter, only once a plane is locked on) also calls `myPhSave(arLocked, cv, H, at)`: the picture without its band,
   scaled to at most 1280 px and JPEG 0.72, smaller by 0.8 until under `MYPH_KB` (150 KB; a sky is usually 30-60 KB), kept in IndexedDB (`od-photos`,

@@ -4,13 +4,15 @@ so new features reach the phone together with that board, before the main board.
 
     py tools/app/build.py                      # test/index.html -> app/index.html
     py tools/app/build.py BOARD.html OUT.html
+    py tools/app/build.py --keep-comments      # with the comments (to read; don't commit it)
 
 tools/light/build.py builds the light version (no split flaps) from the same pieces with extract() and assemble().
 
 Don't edit app/index.html by hand: change head.html or main.js here (or the board), then build again. If a marker
 string below is no longer in the board, the build stops and says which one; update the marker.
 
-The translations and the sounds aren't copied (1.53.1): the app loads the test board's i18n.js and sounds.js
+The app is written without comments (1.129.21, tools/app/strip.py: a quarter less to download with every version);
+`--keep-comments` writes it with them, to read. The translations and the sounds aren't copied (1.53.1): the app loads the test board's i18n.js and sounds.js
 (../test/, with the versions tools/assets.py stamps into the board first).
 """
 import re
@@ -21,6 +23,7 @@ SP = Path(__file__).parent
 REPO = SP.parent.parent
 sys.path.insert(0, str(REPO / "tools"))
 import assets  # noqa: E402  (tools/assets.py)
+from strip import strip_page  # noqa: E402  (tools/app/strip.py)
 board = ""
 
 
@@ -107,9 +110,10 @@ def extract(text):
 REGION = re.compile(r"^//@L:(\w+)\n(.*?)^//@L:end\n", re.S | re.M)
 
 
-def assemble(head, js, E, css, out, regions=None, extra_css=""):
+def assemble(head, js, E, css, out, regions=None, extra_css="", strip=False):
     """Put the page together: the board's CSS into head's <style>, the board's code into main.js's //@E markers.
-    `regions` replaces main.js's //@L regions by name (the light version); without it they stay as they are."""
+    `regions` replaces main.js's //@L regions by name (the light version); without it they stay as they are.
+    `strip`: without comments (the app)."""
     def region(m):
         if regions is None:
             return m.group(2)
@@ -130,12 +134,15 @@ def assemble(head, js, E, css, out, regions=None, extra_css=""):
         assert n == 1 or (n == 0 and regions is not None), k   # the light version leaves the flap engine out
         js = js.replace(marker, v)
     assert "//@E" not in js
-    out.write_text(head + js, encoding="utf-8", newline="\n")
-    print("wrote", out, len(head + js), "bytes")
+    page = strip_page(head + js) if strip else head + js
+    out.write_text(page, encoding="utf-8", newline="\n")
+    print("wrote", out, len(page), "bytes")
 
 
 if __name__ == "__main__":
+    keep = "--keep-comments" in sys.argv
+    args = [a for a in sys.argv[1:] if a != "--keep-comments"]
     assets.stamp()
-    E, css = extract(Path(sys.argv[1] if len(sys.argv) > 1 else REPO / "test" / "index.html").read_text(encoding="utf-8"))
+    E, css = extract(Path(args[0] if args else REPO / "test" / "index.html").read_text(encoding="utf-8"))
     assemble((SP / "head.html").read_text(encoding="utf-8"), (SP / "main.js").read_text(encoding="utf-8"), E, css,
-             Path(sys.argv[2] if len(sys.argv) > 2 else REPO / "app" / "index.html"))
+             Path(args[1] if len(args) > 1 else REPO / "app" / "index.html"), strip=not keep)

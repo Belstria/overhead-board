@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 108
+RELAY_VERSION = 109
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -3211,6 +3211,172 @@ def airport_info(code):
             "runways": runways_of(r[3])}
 
 
+# Relay 109 (to-do #300): where an aircraft is right now, for the opened card in the app's lists ("Over Serbia ·
+# 11,300 m", "On the ground · Dubai"). Asked only when a card opens, by its hex: first the positions the relay already
+# fetched in the last minute, then adsb.fi, then adsb.lol (only while most of its 500 a day are left for positions).
+# Both share the position sources' state, so their pacing and rests hold for these too. A minute per hex.
+HEX_SOURCES = [("adsbfi", "adsb.fi", "https://opendata.adsb.fi/api/v2/hex/{hex}"), ("adsblol", "adsb.lol", "https://api.adsb.lol/v2/hex/{hex}")]
+WHERE_NOW_S = 60
+WHERE_LOL_MAX = 350          # adsb.lol is asked only while it has been asked fewer times than this today (of 500)
+WHERE_GROUND_KM = 8          # on the ground this near an airport: at that airport
+WHERE_AIR_KM = 600           # in the air: the country of the nearest airport this near, else only "in the air"
+_wherenow = {}               # hex -> (time, answer)
+_hex_own = {}                # a source's pacing when the relay was started with its own --source (STATE lacks it)
+
+
+def _nearest_airport(lat, lon, km_max):
+    """(km, IATA code, row) of the airport nearest to a spot within km_max, from the airport list; None if none."""
+    db = _airports_ready()
+    if not db:
+        return None
+    best, cos, band = None, math.cos(math.radians(lat)), km_max / 111.0 + 0.1
+    for code, r in (db.get("iata") or {}).items():
+        dlat = r[1] - lat
+        if -band < dlat < band:
+            d = math.hypot(dlat, ((r[2] - lon + 540) % 360 - 180) * cos) * 111.2
+            if d <= km_max and (best is None or d < best[0]):
+                best = (d, code, r)
+    return best
+
+
+def _hex_in(body, hx):
+    """The aircraft `hx` in a sources' answer, if it is there with a position."""
+    if not re.search(rb'"hex"\s*:\s*"~?' + hx.encode(), body):
+        return None
+    try:
+        j = json.loads(body)
+        planes = j.get("ac", j.get("aircraft")) or []
+    except (ValueError, AttributeError):
+        return None
+    return next((p for p in planes if isinstance(p, dict) and str(p.get("hex", "")).lower().lstrip("~") == hx
+                 and isinstance(p.get("lat"), (int, float)) and isinstance(p.get("lon"), (int, float))), None)
+
+
+def _where_fetch(hx):
+    """The aircraft from adsb.fi (adsb.lol as the fallback): a dict, False when the source doesn't see it, None when no
+    source could be asked."""
+    with _fetch_lock:                       # the same pacing as the positions: one call at a time, a gap per source
+        for key, name, url in HEX_SOURCES:
+            st = STATE.get(key) or _hex_own.setdefault(key, {"cooldown_until": 0.0, "last_call": 0.0, "askedDay": "", "asked": 0})
+            if time.time() < st["cooldown_until"]:
+                continue
+            utc = time.strftime("%Y-%m-%d", time.gmtime())
+            if st["askedDay"] != utc:
+                st["askedDay"], st["asked"] = utc, 0
+            if key == "adsblol" and st["asked"] >= WHERE_LOL_MAX:
+                continue
+            wait = st.get("last_call", 0.0) + SOURCE_GAP_S - time.time()
+            if wait > 0:
+                time.sleep(wait)
+            st["asked"] += 1
+            status, _, body, headers = fetch(url.format(hex=hx), timeout=6)
+            st["last_call"] = time.time()
+            if 200 <= status < 300:
+                try:
+                    j = json.loads(body)
+                    planes = j.get("ac", j.get("aircraft"))
+                except (ValueError, AttributeError):
+                    planes = None
+                if isinstance(planes, list):
+                    return _hex_in(body, hx) or False
+                continue
+            if status == 429:                 # the address's limit, which the positions share: rest that source
+                out = headers and str(headers.get("X-RateLimit-Remaining", "")).strip() == "0"
+                rest = rest_for(429, 1, headers.get("Retry-After") if headers else None, headers.get("X-RateLimit-Reset") if out else None)
+                st["cooldown_until"] = time.time() + rest
+                event("warn", f"{name} asked to slow down (a plane's whereabouts); resting it for {rest} s")
+    return None
+
+
+def where_now(hx):
+    """Relay 109: {"state": "air", "cc", "alt" (feet)}, {"state": "ground", "code", "city", "cc"} or {"state": "none"};
+    None when no source could be asked."""
+    now = time.time()
+    with _lock:
+        hit = _wherenow.get(hx)
+        if hit and now - hit[0] < WHERE_NOW_S:
+            return hit[1]
+        fresh = [v[1] for v in _positions.values() if now - v[0] < WHERE_NOW_S]
+    ac = next((a for a in (_hex_in(b, hx) for b in fresh) if a), None)
+    if ac is None:
+        ac = _where_fetch(hx)
+        if ac is None:
+            return None
+    out = {"state": "none"}
+    if ac:
+        lat, lon, alt = ac["lat"], ac["lon"], ac.get("alt_baro")
+        if alt == "ground" or ac.get("ground") is True:
+            ap = _nearest_airport(lat, lon, WHERE_GROUND_KM)
+            far = ap or _nearest_airport(lat, lon, WHERE_AIR_KM)
+            out = {"state": "ground", **({"code": ap[1], "city": ap[2][0]} if ap else {}), "cc": far[2][7] if far and len(far[2]) > 7 else ""}
+        else:
+            ap = _nearest_airport(lat, lon, WHERE_AIR_KM)
+            geo = ac.get("alt_geom")
+            out = {"state": "air", "cc": ap[2][7] if ap and len(ap[2]) > 7 else "",
+                   "alt": alt if isinstance(alt, (int, float)) else geo if isinstance(geo, (int, float)) else None}
+    with _lock:
+        _wherenow[hx] = (time.time(), out)
+        if len(_wherenow) > 400:
+            for k in [k for k, v in _wherenow.items() if time.time() - v[0] > WHERE_NOW_S]:
+                del _wherenow[k]
+    return out
+
+
+# Relay 109 (to-do #301): the weather and local time at a route's airports, from Open-Meteo (free, no key, under
+# 10,000 calls a day). Only the airport's own coordinates are sent. An hour per airport; a failure is kept 10 minutes.
+OPEN_METEO = "https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m&timezone=auto"
+WEATHER_S = 3600
+WEATHER_FAIL_S = 600
+WEATHER_DAY_CAP = 2000       # calls a UTC day at most (each airport at most 24)
+_weather = {}                # IATA -> (time, answer or None)
+_weather_day = {"day": "", "n": 0}
+_weather_lock = threading.Lock()
+
+
+def weather_at(code):
+    """{"t": °C, "tz": "Europe/Athens", "off": seconds east of UTC} for an airport, or None."""
+    def kept():
+        hit = _weather.get(code)
+        return hit if hit and time.time() - hit[0] < (WEATHER_S if hit[1] else WEATHER_FAIL_S) else None
+    with _lock:
+        hit = kept()
+    if hit:
+        return hit[1]
+    db = _airports_ready()
+    r = db and (db.get("iata") or {}).get(code)
+    if not r:
+        return None
+    with _weather_lock:                     # one call at a time, and the day's cap
+        with _lock:
+            hit = kept()                    # asked meanwhile for another card
+        if hit:
+            return hit[1]
+        day = time.strftime("%Y-%m-%d", time.gmtime())
+        if _weather_day["day"] != day:
+            _weather_day.update(day=day, n=0)
+        if _weather_day["n"] >= WEATHER_DAY_CAP:
+            return None
+        _weather_day["n"] += 1
+        status, _, body, _ = fetch(OPEN_METEO.format(lat=r[1], lon=r[2]), timeout=6)
+        out = None
+        if status == 200:
+            try:
+                j = json.loads(body)
+                t = (j.get("current") or {}).get("temperature_2m")
+                if isinstance(t, (int, float)):
+                    out = {"t": round(t, 1), "tz": str(j.get("timezone") or "")[:60], "off": int(j.get("utc_offset_seconds") or 0)}
+            except (ValueError, AttributeError, TypeError):
+                pass
+        if out is None:
+            event("warn", f"Open-Meteo didn't answer for {code} (HTTP {status})", echo=False)
+        with _lock:
+            _weather[code] = (time.time(), out)
+            if len(_weather) > 2000:
+                for k in [k for k, v in _weather.items() if time.time() - v[0] > WEATHER_S]:
+                    del _weather[k]
+    return out
+
+
 def _fr24_row_time(r, *keys):
     """The first of these times Flightradar24 gave (seconds), or None."""
     for k in keys:
@@ -4031,6 +4197,66 @@ def _logbook_entries(spot):
                 yield e
 
 
+# Relay 109 (to-do #307): the search keeps each saved day as it reads it (only the fields it shows, its words and where
+# it was seen), until the day's file changes. At most SEARCH_KEEP sightings over every profile, the oldest days dropped
+# first (every search reads every day in order, so dropping the least used would drop each day just before it is read).
+# About 7 MB at the cap: 855 bytes a sighting, measured on the test relay's dense logbook (3 Nov 2026). Older days are read
+# from their files as before. At home's ~120 sightings a day the cap holds about two months.
+SEARCH_KEEP = 8000
+SEARCH_FIELDS = ("reg", "callsign", "flightIata", "aircraftType", "icaoType", "typeCode", "airlineName", "airlineIata", "hex", "ts",
+                 "time", "minDist", "altAtMin", "owner", "ownerCountry", "from", "to")
+_NOWHERE = {}
+_search_kept = {}            # (spot dir, day) -> ((mtime, size), rows)
+_search_n = [0]
+_search_lock = threading.Lock()
+
+
+def _search_rows(entries):
+    """A day's sightings as the search reads them: (the fields it shows as SEARCH_FIELDS' values, its words without gaps,
+    place, where, category). `done` is False when a place on the go isn't named yet (not kept then, until it is)."""
+    est, rows, done = where_estimates(entries), [], True
+    pin = lambda v: sys.intern(v) if isinstance(v, str) and len(v) < 40 else v
+    for e in entries:
+        if not isinstance(e, dict):
+            continue
+        place = e.get("place") or "home"
+        w = where_of(e, est) or _NOWHERE
+        if place == "live" and not w:
+            done = False
+        hay = _fold(" ".join(str(e.get(k) or "") for k in ("reg", "callsign", "flightIata", "icaoType", "typeCode", "aircraftType",
+                                                         "manufacturer", "airlineName", "airlineIcao", "airlineIata", "owner"))
+                    + " " + " ".join([place if place != "live" else "", w.get("n", ""), w.get("a", ""), w.get("c", "")]))
+        vals = tuple((pin(v.get("code")), pin(v.get("city") or "")) if k in ("from", "to") and isinstance(v, dict) and v.get("code") else
+                     None if k in ("from", "to") else pin(v) for k in SEARCH_FIELDS for v in [e.get(k)])
+        rows.append((vals, re.sub(r"[\s-]", "", hay), pin(place), w, category_of(e)))
+    return rows, done
+
+
+def _search_day(spot, f, day):
+    """One saved day's rows for the search, from memory while its file is unchanged."""
+    key = (str(spot.dir), day)
+    try:
+        s = f.stat()
+        sig = (s.st_mtime_ns, s.st_size)
+    except OSError:
+        return []
+    with _search_lock:
+        hit = _search_kept.get(key)
+        if hit and hit[0] == sig:
+            return hit[1]
+    rows, done = _search_rows(_load(f, []))
+    with _search_lock:
+        old = _search_kept.pop(key, None)
+        if old:
+            _search_n[0] -= len(old[1])
+        if done and len(rows) <= SEARCH_KEEP:
+            _search_kept[key] = (sig, rows)
+            _search_n[0] += len(rows)
+            while _search_n[0] > SEARCH_KEEP:
+                _search_n[0] -= len(_search_kept.pop(min(_search_kept, key=lambda k: k[1]))[1])
+    return rows
+
+
 def search_json(spot, q):
     """Relay 55: the whole logbook searched (every saved day): a registration, a flight, a type or an airline. Matches
     are grouped by flight when the words name one, else by aircraft: how often, first and last seen, how close.
@@ -4050,24 +4276,20 @@ def search_json(spot, q):
     with _data_lock:
         spot.ensure_day()
         files = sorted(spot.dir.glob("sightings-*.json"))
-        today = list(spot.entries)
+        today, sday = list(spot.entries), spot.day
+    tights = [tight(w2) for w2 in words]
     for f in files:
         day = f.stem[len("sightings-"):]
-        entries = today if day == spot.day else _load(f, [])
-        est = where_estimates(entries)
-        for e in entries:
-            if not isinstance(e, dict):
+        for vals, thay, place, w, ecat in (_search_rows(today)[0] if day == sday else _search_day(spot, f, day)):
+            if not all(t2 in thay for t2 in tights):       # (a word in the words is in them without gaps too)
                 continue
-            place = e.get("place") or "home"
-            w = where_of(e, est)
+            if cat and ecat != cat:
+                continue
+            e = dict(zip(SEARCH_FIELDS, vals))
+            for k in ("from", "to"):
+                if e[k]:
+                    e[k] = {"code": e[k][0], "city": e[k][1]}
             flight, reg = tight(e.get("flightIata") or e.get("callsign")), tight(e.get("reg"))
-            hay = _fold(" ".join(str(e.get(k) or "") for k in ("reg", "callsign", "flightIata", "icaoType", "typeCode", "aircraftType",
-                                                             "manufacturer", "airlineName", "airlineIcao", "airlineIata", "owner"))
-                        + " " + " ".join([place if place != "live" else "", w.get("n", ""), w.get("a", ""), w.get("c", "")]))
-            if not all(w2 in hay or tight(w2) in tight(hay) for w2 in words):
-                continue
-            if cat and category_of(e) != cat:
-                continue
             total += 1
             by_flight = flight and any(tight(w2) in (flight, tight(e.get("callsign"))) for w2 in words)
             key = ("f", flight) if by_flight else ("r", reg or str(e.get("hex") or ""))
@@ -9461,6 +9683,28 @@ class Handler(BaseHTTPRequestHandler):
             if r is None:
                 return self.reply(503, "text/plain", b"Wikipedia can't be asked right now", {"Retry-After": "300"})
             return self.reply(200, "application/json", json.dumps(r).encode(), {"Cache-Control": "private, max-age=3600"})
+        if path == "/wherenow":             # relay 109: where an aircraft is right now (an opened card in the app)
+            hx = ((self.query().get("hex") or [""])[0]).strip().lower().lstrip("~")
+            if not re.fullmatch(r"[0-9a-f]{6}", hx):
+                return self.reply(400, "text/plain", b"hex=... (6 hex digits) is required")
+            if not allow("wherenow:" + self.guest[0], 0.2, 6):
+                return self.reply(429, "text/plain", b"Too many requests")
+            if _airports_ready() is None:     # the names come from the airport list, loading after a start
+                return self.reply(503, "text/plain", b"Loading the airport list", {"Retry-After": "5"})
+            r = where_now(hx)
+            if r is None:
+                return self.reply(503, "text/plain", b"No position source can be asked right now", {"Retry-After": "60"})
+            return self.reply(200, "application/json", json.dumps({"hex": hx, **r}).encode(), {"Cache-Control": "private, max-age=60"})
+        if path == "/weather":              # relay 109: the weather and local time at a route's airports
+            codes = [c for c in re.sub(r"[^A-Z,]", "", ((self.query().get("ap") or [""])[0]).upper()).split(",") if len(c) == 3][:2]
+            if not codes:
+                return self.reply(400, "text/plain", b"ap=... (one or two IATA codes) is required")
+            if not allow("weather:" + self.guest[0], 0.5, 10):
+                return self.reply(429, "text/plain", b"Too many requests")
+            if _airports_ready() is None:
+                return self.reply(503, "text/plain", b"Loading the airport list", {"Retry-After": "5"})
+            out = {c: w for c in dict.fromkeys(codes) for w in [weather_at(c)] if w}
+            return self.reply(200, "application/json", json.dumps(out).encode(), {"Cache-Control": "private, max-age=600"})
         if path == "/relayinfo":           # relay 69: the owner's Relay plate (also away from home, through the tunnel)
             if not self.owner_ok():
                 return self.reply(403, "text/plain", b"Only for the owner")
@@ -9468,7 +9712,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/me":
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/planephoto", "/search", "/now", "/airlines", "/relayinfo", "/facts"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/planephoto", "/search", "/now", "/airlines", "/relayinfo", "/facts", "/wherenow", "/weather"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()

@@ -292,6 +292,27 @@ button.lbPlate:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba
 .rv .num{font:600 var(--fs-s)/1 var(--f-board);color:#c9c6bf;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .flights li.rv::before{content:"";position:absolute;left:4px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--lamp);box-shadow:0 0 6px var(--lamp)}
 .rv .chip{min-width:78px}
+/* 1.129.22 (to-do #315): on a small phone (360 px and below) the flight number reads whole. Five columns left a long callsign with the widest
+   distance, height and pill 26 px ("OE…"), so the height sits under the distance in one column (the labels over them stack the same way), and the
+   logo, gaps and pill give a little more; at 390 px the row is as it was */
+@media (max-width:380px){
+  #rvList{grid-template-columns:38px minmax(0,1fr) auto auto;column-gap:6px}
+  .flights li.rv{padding-right:6px}
+  .rv>.rvLogo,.rv>strong,.rv>.chip{grid-row:1/3}
+  .rv{row-gap:3px}
+  .rv>.num:nth-child(3){grid-column:3;grid-row:1}
+  .rv>.num:nth-child(4){grid-column:3;grid-row:2}
+  .rv>.chip{grid-column:4;min-width:0;padding:0 6px;letter-spacing:.04em}
+  .rvHead>span:nth-child(1),.rvHead>span:nth-child(2),.rvHead>span:nth-child(5){display:none}
+  .rvHead>span:nth-child(3){grid-column:3;grid-row:1}
+  .rvHead>span:nth-child(4){grid-column:3;grid-row:2;margin-top:3px}
+}
+@media (max-width:340px){
+  #rvList{grid-template-columns:32px minmax(0,1fr) auto auto;column-gap:5px}
+  .rv>.chip{padding:0 4px;letter-spacing:0;font-size:var(--fs-tag)}
+  .rv>.num{font-size:var(--fs-xs)}
+}
+}
 /* buttons above lists, and the tab bar: the board's push buttons */
 .tools{display:flex;flex-wrap:wrap;gap:12px 14px;margin:14px 0 4px;padding:3px;--k:.86}
 .tools .cap{margin:0}
@@ -362,7 +383,7 @@ button.lbPlate:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba
 .yFacts div{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid rgba(255,255,255,.05);font:600 var(--fs-m)/1.3 var(--f-board)}
 .yFacts dt{color:var(--amber);font-size:var(--fs-xs);letter-spacing:.06em;text-transform:uppercase}
 .yFacts dd{margin:0;color:var(--ink);text-align:right}
-.reviewCard .yNums{grid-template-columns:repeat(4,1fr)}
+.reviewCard .yNums,.perCard .yNums:not(.yMore){grid-template-columns:repeat(4,1fr)}
 .rvTools{display:flex;gap:6px;align-items:center;margin:8px 0 2px}.rvTools span{flex:1}
 .yActs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .yActs .cap{width:auto;padding:0 12px;text-decoration:none;display:inline-flex;align-items:center}
@@ -376,7 +397,7 @@ button.lbPlate:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba
 /* 1.128 (to-do #258, Dave's pick A): one slim row (the key, the scan's label and value, Look) above the compass strip; nothing moves */
 .skyR{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
 .skyKey{padding:8px 12px;white-space:nowrap}
-.skyKey.hot{background:linear-gradient(#f6c64c,#e0a11c);color:#17140e}
+.skyKey.hot,.nfKeys .cBtn.hot{background:linear-gradient(#f6c64c,#e0a11c);color:#17140e}
 .skyKey.off{background:linear-gradient(#4a4a4c,#39393b);color:#a9a69c}
 .skyVal{all:unset;box-sizing:border-box;cursor:pointer;display:block;min-width:0;min-height:42px;-webkit-tap-highlight-color:transparent}
 .skyVal:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
@@ -526,6 +547,9 @@ body.real{--pl-hi:inset 0 1px 0 rgba(255,255,255,.12);--pl-side:inset 1px 0 0 rg
 .tline li.st::before{content:"";position:absolute;left:-20px;top:18px;width:9px;height:9px;border-radius:50%;background:#3d3f44;box-shadow:0 0 0 2px #0d0e10,0 1px 0 2px rgba(255,255,255,.06)}
 .tline li.st.find::before{background:var(--amber);box-shadow:0 0 0 2px #0d0e10,0 0 10px var(--amber)}
 .tline li.st b{display:block;color:var(--ink);font-size:var(--fs-base)}
+/* 1.129.20 (to-do #296): No position's two keys under its line, side by side (a place in amber, Try again) */
+.tline li.st .nfKeys{display:flex;gap:10px;margin-top:12px}
+.tline li.st .nfKeys .cBtn{flex:1 1 0;min-width:0;text-align:center}
 .tlFoot{display:flex;justify-content:center;margin:8px 0 0}
 /* the card in place (1.129.16, to-do #284, Dave's pick A): a recess milled into the plate (inner shadow, edge light, four
    small screws), when and how long ago engraved like the day's title with its hairline running to a round metal knob,
@@ -576,6 +600,11 @@ html.daylight :is(#svList,#recent) .tlCard.cardish{background:none!important;--i
 .tlMill .cInfo .cTiles{animation:tlMillRule .3s .2s cubic-bezier(.33,1,.68,1) backwards}
 .tlMill .cInfo .cTile+.cTile{animation:tlMillDiv .3s .29s cubic-bezier(.33,1,.68,1) backwards}
 .tlMill .cInfo .cTile+.cTile+.cTile{animation-delay:.33s}
+/* 1.130 (to-do #300, #301): the route's weather and local time under each city (its line kept while it is asked or
+   unknown, so nothing moves), and Where now as one box across, between machined lines under the three */
+.cRbEnd .cWx{min-height:1.3em;margin-top:2px;font-variant-numeric:tabular-nums}
+.cardish .cInfo .cTiles.cWhere{grid-template-columns:minmax(0,1fr)}
+.cInfo .cWhere .cTile b{white-space:normal}
 .tlMill>.scr{animation:lbIn .2s .26s backwards}
 .tlMill>.scr:nth-of-type(2){animation-delay:.285s}.tlMill>.scr:nth-of-type(3){animation-delay:.31s}.tlMill>.scr:nth-of-type(4){animation-delay:.335s}
 @keyframes tlMillBg{from{box-shadow:inset 0 2px 6px transparent,inset 0 1px 0 transparent,inset 0 -1px 0 transparent,0 1px 0 transparent,0 -1px 0 transparent}}
@@ -1934,6 +1963,10 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
 .lbfRead{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0}
 .lbfRead .lbfChip{border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:4px 10px;font:600 var(--fs-s)/1 var(--f-board);color:var(--ink)}
 .lbfRead .lbfChip:first-child{border-color:#8fa05a;background:rgba(143,160,90,.15)}
+/* 1.130 (to-do #302): the last searches, the same chips as buttons (none green: they name no category) */
+.lbfLast .lbfChip,.lbfLast .lbfChip:first-child{appearance:none;background:none;border-color:rgba(255,255,255,.18);padding:8px 12px;cursor:pointer}
+.lbfLast .lbfChip:active{background:rgba(255,255,255,.06)}
+.lbfRead.lbfLast{margin-bottom:12px}
 #lbFound li b .cLink{display:inline-block;padding:1px 9px;margin:1px 0;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:none;color:var(--ink);font:700 var(--fs-m)/1.35 var(--f-board);cursor:pointer}
 /* the boarding pass for a Sky view lock-on: band and stub in the plane's rarity colour */
 .pF{display:flex;filter:drop-shadow(0 12px 20px rgba(0,0,0,.38));text-align:left;animation:pfIn .5s cubic-bezier(.2,1.5,.4,1) both;

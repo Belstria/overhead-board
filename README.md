@@ -291,7 +291,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   lowest and fastest pass ever and the route from farthest away. The relay keeps them as planes come in and counts
   them once from the saved days of an older logbook. The phone app shows them in its Logbook.
 - **Week, month and year** (the Logbook's period plate; 1.52, relay 46; the year relay 29): the week
-  (Monday to Sunday), month or year in review, like Today in numbers: planes, types, airlines, aircraft, new types and
+  (Monday to Sunday), month or year in review, like Today in numbers: planes, aircraft, types, airlines, new types and
   rare planes (a year: countries and days; and points, in the app); on the plate the busiest day, the most seen aircraft
   and the rarest plane, in its card also the most seen airline, the farthest route, the lowest, closest and fastest
   pass, and the new types. **Week** / **Month** / **Year** switch, ◀ ▶ go to earlier ones. A finished week or month is
@@ -302,7 +302,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   comes within 1 km or below 2,500 ft, and the card shows a line once it has paid, 1.114.5), and **48 trophies** (1.55, relay 50) that are won once and kept for good;
   nothing ever resets. Most come in tiers, a row each with a lamp per tier and a bar to the next one ("6,900 of
   10,000"): planes (100 to 100,000), aircraft types, airlines, different aircraft, countries the aircraft are registered
-  in, points, special planes, planes in one day, the same aircraft again, days running with points. The others
+  in, points, special planes, planes in one day, the same aircraft again, days running with points. The tiers that count planes say so ("100 planes scanned": scans, not the Logbook's sightings). The others
   are one-offs: Odd couple (a 747 and a helicopter on the same day), Night owl, Bullseye, Stratosphere, Whale watcher
   (a Beluga), Heavy lifter (an Antonov), Completionist (every collection) ... An older logbook wins its trophies once
   from its saved days, on the day they were earned (relay 50 does this again for the new ones, keeping the old).
@@ -471,16 +471,21 @@ The main board has everything below. New features are tried on `/test/` first; o
     reads "On the go". Until the phone has found where it is (and if it hasn't for five minutes), the line under the
     title says FINDING YOU … and its planes don't count or score; since 1.90 the board stays empty until this page has
     found the phone once (the saved spot may be far away): no plane on top, no last known board, no rows in the lists,
-    just "Finding where you are …"; after a minute without a position a note says live
-    location isn't working on this device, with a button to Settings. Since 1.93.0.1 a town's name only shows within
+    just "Finding where you are …". Since 1.129.20 it waits only 20 seconds (none at all when the browser or the
+    phone refuses or has no position): then the title says NO POSITION, the Sky view row "Live location · No position",
+    and Recent flights says why in one line (Still looking, Not allowed: allow location in the site settings, Not
+    available, Location off on the Android app, Not precise) with two keys: the place before live location and the
+    profile's saved places (one: **Use** and its name; more: **Pick a place** opens them as a list; none: **Pick a
+    place** opens Settings → Location), and **Try again**. A place turns live location off; a position that comes
+    after all puts everything back by itself. Since 1.93.0.1 a town's name only shows within
     2 km of where it was found (the airport within 15 km): until the new name comes, the title says ON THE GO and City
     reads "On the go", and neither an old name nor an old airport goes to the profile; a lookup the relay didn't answer
     is made again on a later position, a minute on. Since 1.93.1 live location asks the browser for the precise
     position (Chrome on Android otherwise shares only an approximate one, a new one at most every 15 minutes) and takes
     no position more than two minutes old: a browser hands over the last one it kept, which can be days old and far
     away, say from a trip, so FINDING YOU … stays until a fresh one comes, and the Log (Settings → About → Log) says
-    how old, how exact and how far away each refused one was. When only an old approximate position came, the note
-    after a minute says to allow precise location for the site in the browser's site settings (in Chrome: ⋮ →
+    how old, how exact and how far away each refused one was. When only an old approximate position came, Recent flights
+    says Not precise: allow precise location for the site in the browser's site settings (in Chrome: ⋮ →
     Settings → Site settings → Location: "Allowed • Precise"). **Use current location** waits for a fresh position too.
     Turning live location off asks (1.93.1): **Stay here** watches the last position live location found, with its
     town and airport and no place name, **Back to …** goes back to the place before; closing the card (×, Back, beside
@@ -837,6 +842,13 @@ Five buttons along the bottom:
   the time engraved with its line running to a round metal knob (⌃), the photo in a window cut into the metal, an engraved line
   from each airport to the plane, and Aircraft, Closest and Height between machined lines; as it opens the lines draw in. The photo (Planespotters' first, its credit a link to the photo's page) opens the
   plane's whole card, the airline, the places and the aircraft type theirs, and the knob, the bar it sits in or another plane folds it back.
+  Since 1.130 (relay 109) the card also says **where that aircraft is right now**, in a box across under the three:
+  **Where now** "Over Serbia · 11,300 m", "On the ground · Dubai", or **Not seen now** when the free tracking networks
+  can't hear it ("/" when the relay can't ask just then); a tap on it explains it. The relay looks it up only when a card
+  opens and keeps the answer a minute (adsb.fi, adsb.lol in reserve; the country is the one of the nearest airport, the
+  place on the ground the airport it stands at). Under each city of the route it shows the **weather and local time
+  there**, "21° · 14:35 local" (Open-Meteo, asked by the relay for the airport's own position and kept an hour; nothing
+  about your place is sent). Both lines are there from the start ("···" while asked), so the card doesn't move.
   **Your photo** (1.131): a plane you took a picture of in Sky view opens on that picture, labelled YOUR PHOTO and the time
   you took it, with two dots top right; swipe it sideways (anywhere on the photo) or tap the dots for the usual photo, and
   back. With no usual photo there are no dots. A tap on the label says where it is kept: on this phone only (not synced,
@@ -844,7 +856,7 @@ Five buttons along the bottom:
   In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
   itself every 20 seconds; it stays when one side has no plane), with the runway screen in place of the photo, and the
   take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
-- **Today** (1.123): the Logbook's first plate has four numbers with their names (planes, overhead, airlines, types). A tap raises
+- **Today** (1.123): the Logbook's first plate has four numbers with their names (planes, overhead, types, airlines; every plate and panel lists its numbers in this order). A tap raises
   the day's plate from below (swipe it down, tap beside it or Back to close it): today's
   numbers on flaps, from 21:00 the Plane of the day with the first and last plane and the busiest hour, the lowest and
   highest pass and the fastest (the figure first and the plane under it), the most seen airline, the most seen types as
@@ -879,7 +891,7 @@ Five buttons along the bottom:
   The search (1.65) finds places too since 1.81 (relay 63): a town, an island, a country or a saved place, and each
   result has a line with a pin naming where it was seen, newest first (the aircraft's card says Seen from). Sightings
   on the go from before relay 63 only know their country (their place was guessed from the day's planes).
-  At the top (1.28, relay 29), **the year in planes**: planes, types, airlines, airframes, countries and days, the
+  At the top (1.28, relay 29), **the year in planes**: planes, aircraft, types, airlines, countries and days, the
   busiest day, the most seen aircraft and the rarest, with **Share** (a picture of the card) and **Download the
   logbook (CSV)**, every sighting as a spreadsheet. Collection: points, tiers and the collections. Records: the
   records, this week's bingo and the trophies with their bars. Week & month (1.52, relay 46): **this week or month in
@@ -970,6 +982,10 @@ Five buttons along the bottom:
   seen and how close it came; a flight lists the aircraft that flew it, an aircraft the flights it flew. Since relay 63
   it also finds where a plane was seen: a saved place's name, or on the go the town, the area round it or the country
   ("Oia", "Santorini", "Greece"; the relay names the phone's place, to about a kilometre, in the background).
+  Since 1.130 tapping the empty search shows your **last three searches** as chips; one tap searches again, and they go
+  as soon as you type. Typing on refines the newest ("A3", "A38", "A380" keep only "A380"); they are kept on the phone,
+  for each profile. The relay keeps the saved days it has read in memory (relay 109; the newest 8,000 sightings, about
+  7 MB, each day until its file changes), so a search answers several times faster.
 - **Notices** (1.65): saving answers with a notice: since 1.115 a full-width bar at the bottom, above the tabs (at the
   top while a card is open, above a ticket or pass while one shows), the message on the left and its one action on the
   right, red for a problem: Favourite and Hide with **Undo**, a failed save with **Retry**. Settings that can't reach the relay wait on the device and are sent
@@ -1152,6 +1168,11 @@ asking every 10 minutes. Only when all three fail or rest does it ask
 AvioADSB, the emergency backup: its free tier allows one request every 10 seconds and 100 a day, so the relay asks it
 at most every 15 seconds and 90 times a day (its day starts at midnight UTC) and serves the last good data in between. Problems are printed in the relay's
 window and appear in the board's diagnostics panel.
+Where one aircraft is right now (an opened card in the app, relay 109) is asked of adsb.fi by its transponder code, with
+the same spacing and rests as the positions; adsb.lol only when adsb.fi can't answer and while it has been asked fewer
+than 350 times that day, so its reserve for positions stays. A plane the relay fetched in the last minute anyway is
+answered from that. The weather and local time at a route's airports come from Open-Meteo (free, no key; at most 2,000
+calls a day, each airport at most once an hour; only the airport's coordinates are sent).
 
 **Friends and family (relay version 19).** The phone app can be shared with friends and family over the internet,
 each with a profile of their own: their own location, settings, Spotted today and lifetime logbook. Open
