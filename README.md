@@ -560,8 +560,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   catch an uncommon (or rarer) plane that scores. Each pays **+50 once** (in the day, the week's league and the level);
   all five earn the **wings** (nothing more paid; the rank shows a wings pin). The Spotters' Club shows a cream training
   record: a line per mission with its stamp box (a red "FLIGHT SCHOOL · PASSED · 29 OCT · +50" stamp once done, a hint
-  for the next one only); Now shows a small bar "CHECKLIST 2/5 · NEXT UP · SCAN A PLANE" with five marks until the
-  wings. A mission done slides its line in at the top and a big stamp comes down on it with a thud; the fifth then signs
+  for the next one only); Now shows a small bar "CHECKLIST · SCAN A PLANE" with five marks (stamped as they are done) until the
+  wings (since 1.129.18 the count is in the marks, so the longest mission fits a 320 px phone). A mission done slides its line in at the top and a big stamp comes down on it with a thud; the fifth then signs
   the record's WINGS line with your first name, written stroke by stroke as with a pen, and "Cleared for take-off"
   comes with the wings; the signed record moves to the end of the club. Recent points lists the missions in a Flight
   school row. With reduced motion the stamps and the signature appear without moving. A player already at level 4 when
