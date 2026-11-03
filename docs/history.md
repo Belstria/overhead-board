@@ -2838,6 +2838,17 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `tlMillRule`, `tlMillDiv`, `lbIn` for the screws) cut the recess in over the app's own opening, ending about 0.55 s after the tap; `tlFold` drops the
   class before the card fades so the moved element doesn't replay it. Checked at 390 and 360 px: no photo, a helicopter without route, a special plane, a
   favourite, long names (the tiles lost their 6 px gaps, so a type is cut no harder), daylight, Realistic look off.
+- 1.129.18 (to-dos #287, #289, #290, #294, #295; app only, no relay change; found in a pass over the phone app, "Fifteen ideas"): **Five small fixes.**
+  (#287) Daylight, the rest of dark-on-dark and light-on-light: `html.daylight` gives `#acSec #look` (Now's Sky view row: its key, scan label and value) the
+  night's `--ink`/`--amber` like the plates (1.129.13); the Radar's Nearest numbers lose the `.rv .num` dark colour (the rows sit on a plate); the Radar's (i)
+  (`.rvTop .iBtn`, on the page, not a plate) and Recent flights' "All N planes today" (`.tlFoot .lnk`) take daylight's dark ink; a plane's card
+  (`#cardBox .cardIn.info`, whose facts, tiles and words are the board's hard-coded light-on-dark colours) keeps the night metal (it was cream with pale
+  text), so the paper rules there are `:not(.info)`. (#289) `.rvLogo img` is `max-width:100%`: the logo box is the grid's 44 px less the row's 16 px
+  padding (a subgrid track includes it), 28 px, and the 40 px image spilled over both edges. (#290) `fsBar`: "Checklist" and the next mission's name
+  (no "Next up ·", no count: the marks carry it; the full text is its aria-label), a 320 px rule shrinks the marks; `fsRecord`'s header reads "Pre-flight
+  record" (it wrapped as "PRE- / FLIGHT"). (#294) `#welcome .cap.big.go` is lit green on every step (only the last had `aria-pressed`, set by `pick()`),
+  and `#welcome .cap.big` is `width:auto` with `white-space:nowrap`. (#295) The Level tab's footer (`logbookSummary()`: counting since, NEW date, points)
+  is gone; `learnFoot()` puts "NEW marks from {date}" in a `.plFoot` at the end of the Your club plate while `learningUntil` is ahead.
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 
