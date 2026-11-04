@@ -9,7 +9,7 @@ pass over), and Wikipedia and Wikidata for the cards' facts (relay 74: two model
 Commons photos as a drawing). The planes sit around central Vienna (the boards' default location) and include the special cases:
 an A380, a rescue helicopter, a military plane, an emergency squawk, a diverted flight, cargo and a business jet,
 a landing, a take-off and a take-off roll at Vienna airport, a callsign with a wrong route in the database, and one far away and high.
-QUIET=1 leaves out the special planes; HOVER=1 adds a police helicopter hovering overhead; FAR=1 starts the landing 32 km out.
+QUIET=1 leaves out the special planes; HOVER=1 adds a police helicopter hovering overhead; KINDS=1 adds a fighter and a small propeller plane; FAR=1 starts the landing 32 km out.
 RING=1 (1.98, the game's two circles) adds two planes from the south: one comes within 15 km after about 30 s (passive
 points and, since 1.126.1, its scan ticket) and within 10 km after about 55 s; the other passes 12 km out from about 65 s on
 (passive points and a scan, too: one circle since 1.126.1).
@@ -563,6 +563,9 @@ class H(BaseHTTPRequestHandler):
             ac = [a for a in ac if a.get("flight", "").strip() not in ("UAE127", "OEXEN", "BAF586", "RYR22")]
         if os.environ.get("HOVER"):
             ac.append(plane("44041d", "OEBXB", "EC35", 0.3, 0.4, 90, 25, 1500, 0, r="OE-BXB", category="A7"))  # police helicopter over an incident
+        if os.environ.get("KINDS"):   # 1.132: a fighter and a small propeller plane, so the radar shows all five kinds
+            ac.append(plane("4400f1", "GAF71", "EUFI", -9.0, 6.0, 90, 250, 5000, 0, r="30+12", dbFlags=1))
+            ac.append(plane("4400f2", "OEDGA", "DA42", 9.0, 6.0, 180, 200, 3000, 0, r="OE-DGA"))
         if os.environ.get("RING"):    # 1.98: the passive circle (15 km) and the scan's (10 km; 15 since 1.126.1)
             ac.append(plane("4400aa", "AUA171", "A20N", 6.0, -22.0, 0, 900, 4000, 0, r="OE-LXA"))   # 15 km at ~33 s, 10 km at ~56 s
             ac.append(plane("4400bb", "AUA173", "E195", 12.0, -26.0, 0, 900, 4500, 0, r="OE-LWB"))  # 15 km at ~68 s, never within 12

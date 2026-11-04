@@ -290,7 +290,9 @@ button.lbPlate:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba
 .rv strong span{display:block;margin-top:4px;font-weight:500;color:var(--muted);font-size:var(--fs-s);overflow:hidden;text-overflow:ellipsis}   /* 1.87.2.1: under the flight number, never cut to "A…" */
 .rv strong span:empty{display:none}
 .rv .num{font:600 var(--fs-s)/1 var(--f-board);color:#c9c6bf;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
-.flights li.rv::before{content:"";position:absolute;left:4px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--lamp);box-shadow:0 0 6px var(--lamp)}
+/* 1.132: the plane's kind drawn where the lamp dot was (13 px, inside the row's 16 px of padding, clear of a wide logo) */
+.flights li.rv::before{display:none}
+.rvK{position:absolute;left:1px;top:50%;width:13px;height:13px;margin-top:-6.5px;display:block;overflow:visible}
 .rv .chip{min-width:78px}
 /* 1.129.22 (to-do #315): on a small phone (360 px and below) the flight number reads whole. Five columns left a long callsign with the widest
    distance, height and pill 26 px ("OE…"), so the height sits under the distance in one column (the labels over them stack the same way), and the
