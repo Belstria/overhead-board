@@ -3662,6 +3662,7 @@ const TROPHY_LADDERS = [
   ["countries", "Aircraft from {n} countries scanned", [["countries10", 10, "Passport"], ["countries25", 25, "Diplomat"], ["countries50", 50, "United Nations"]]],
   ["points", "{n} points", [["points1k", 1000, "High scorer"], ["points10k", 10000, "Big scorer"], ["points100k", 100000, "Top scorer"]]],
   ["legendary", "{n} special planes scanned", [["legend10", 10, "Spotter's eye"], ["legend100", 100, "Rare breed"], ["legend500", 500, "Hall of fame"]]],
+  ["eagle", "{n} types named right", [["eagle10", 10, "Eagle eye"], ["eagle50", 50, "Sharp eye"], ["eagle250", 250, "Hawk eye"]]],   // 1.134 (relay 111): Name that plane
   ["today", "{n} planes in one day", [["busyday", 100, "Busy sky"], ["busy300", 300, "Rush hour"], ["busy500", 500, "Gridlock"]]],
   ["friend", "The same aircraft scanned {n} times", [["oldfriend", 25, "Old friend"], ["regular100", 100, "Regular"]]],
   ["streak", "Points {n} days running", [["streak7", 7, "On a roll"], ["streak30", 30, "Unstoppable"]]]];
@@ -8213,6 +8214,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
 const CHANGELOG = [
   {v: "1.135", date: "2026-11-04", notes: [
     "Chimes is a knob now: OFF, CHIMES or VOICE. On VOICE a new plane overhead is called out after the airport bell, like an announcement in a terminal: its flight, where it goes or comes from, its type.",
+  ]},
+  {v: "1.134", date: "2026-11-04", notes: [
+    "Name that plane: a Sky view scan first asks the plane's type, with three names to pick from. No points either way; right answers count toward the new Eagle eye trophy.",
+    "Until then Sky view shows a ? for the type of a plane you can scan.",
   ]},
   {v: "1.133", date: "2026-11-04", notes: [
     "The space station takes the board while it passes where you can see it: its own IN ORBIT row, how high to look and which way, and its path across the Radar.",

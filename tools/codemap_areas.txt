@@ -412,7 +412,7 @@ tools/app/head.html: #gSub .seg.jumpSeg .seg.svFilters css:html(#t-game .gRows .
     .hgHead .hgRow .hgCard .hgT .stkNew .stkPl .stkPl.pl .stkPl.sh .stkTr .mdNew .mdHang .mdFace @mdSwing @mdBeam .gRule .gSbyTg .gSbyTg.off .gSbyTg.lim .cuTap .cuHit .gHero .plFoot .gHowTbl .gHowH .gStk .hgL #gAws .gAw @gAwUp @gAwOut .hgPlate #gLvUp .gWk .gWkB @ppLandBig
     .mk1 .mk2 .mk3 .mk4 .mkBar .mkMast .mkSteps .mkBarT .ly0 .ly1 .ly2 .ly3 .lyFF .lyCar .lySt .lyC .lyIn .lyFr .lyBk .lyBr .lyLg .lyVt .lyHo .lyRg .lyNx @lyHolo .lySh @lyShine .lyMag .lyHm .lyGr .lyTy .lyCount .lyDots .lySort .lyIdx #lyBub
     .ppPlate .ppShelf .ppHd .ppMap .ppMap.big .pCard .pCard.no .pS .pS.rd .pS.rc .pS.ov .ppNew .lyNew .lyNewBox .lyNewS .lyNewC @lyDeal @ppCardHit .lyTop .lns.two @nwSun .who.wrap .ppDrop @ppLand .scSc .scPick .scCab @ppHit .ppNoneHd .ppShelf.shut .ppNone .ppNone
-    @gPop .pF @pfIn @pfTear #arBurst @pfSpark @gSheen #gameBox .rpList .gHow .rkI .rkGold .rkLv .plIns
+    .nq .nqN .nqStamp @nqStamp @gPop .pF @pfIn @pfTear #arBurst @pfSpark @gSheen #gameBox .rpList .gHow .rkI .rkGold .rkLv .plIns
     .fsRec .fsBox .fsBox.big .fsSig .fsSigT .fsSigT.writing @fsWipe #fsBar #fsStamp #fsStamp.out @fsSlip @fsOut @fsLand @fsInk @fsFade @fsWingIn @fsCleared #gLvUp.fsW
     .cuD .cuP .cuI .cuI.flap .cuUn .cuMini .cuLn .cuLb .cuStop .cuRt .cuT .cuPl @cuDrop .cuPlate .cuArr @cuFly @cuLit .cuTag @cuTag .cuTry .cuLater .cuSheet .cScroll
 tools/app/main.js: learnFoot collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad typeNamed hgNames modelPicNow HG_EAGER HG_GAP hgLast hgPumpT hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
@@ -428,6 +428,7 @@ tools/app/main.js: learnFoot collectionHtml hangarOk hangar hangarAt hgT hgBad h
     ppLand ppUid ppMapSvg ppTotals ppGoals passportHtml ppWire ppAt ppCard ppRoute ppStampNow ppGoTo ppNew ppOpen ppFace ppShelf ppPos ppClamp ppHit ppLive ppPick ppGo gUnder
     SC_LOCK scMine scDate scPics scPin scCab hgWant hgShow scEmpWire scBtn scWire scSection
     CAREER_MORE CAREER CAREER_KIND careerAt careerName CU_PLANE CAREER_AT careerPts cuBadge careerIco cuUnl cuToGo careerMini careerOpen careerRouteList
+    NQ_MS NQ_AFTER gNq nqTypes nqHide nqBand nqEnd nqShow nqPunch
 relay/serve.py: TIER_POINTS TIERS GAME_V LEGENDARY_TYPES FLEET SETS tier_of score _rescore _streak TROPHIES_V
     TROPHY_LADDER TROPHY_IDS A320_FAMILY _hour trophy_counts trophy_check trophy_pass +_backfill_flights
     _backfill_trophies LH_GROUP GULF LOW_COST _al _tc BINGO BINGO_LINES _bingo_week _backfill_cards bingo_json
@@ -438,6 +439,7 @@ relay/serve.py: TIER_POINTS TIERS GAME_V LEGENDARY_TYPES FLEET SETS tier_of scor
     SCHOOL GAME_SCHOOL SCHOOL_LEVEL game_school school_pass school_wings school_json /game/school STANDBY game_standby standby_allow _standby standby_json
     MASTERY _scan_types mastery_step _mastery LOYALTY loyalty_step _loyalty wallet_json wallet_info_json _scan_airline_note GAME_COUNTRY _cc_ready _ap_row route_countries _passport_make passport_json
     SHOWCASE_AT level_points showcase_json showcase_catch showcase_pin /game/showcase
+    GUESS_S GUESS_NAMES _guess_family _GUESS_SORTED GUESS_CLASS guess_choices _guess_track guess_offer game_guess /game/guess
 docs/architecture.md: "The game (1.72, relay 59)"
 README.md: "- **The game** (1.72" "- **The game stays in the phone app**" "- **Rarity and the Collection**"
     "- **Achievements**"

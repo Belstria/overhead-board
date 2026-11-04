@@ -985,6 +985,21 @@ The repository is public: no addresses, keys or personal data here either.
 - 1.135 (to-do #314): **the call on Now.** The app's own `setFeat()` calls `voiceCall()` as the board's does (the board's
   part, above); the Chimes knob is the cockpit's, in the Flaps & sound sheet, and `setLine("flaps")` says "sound and
   voice on" or "voice on, sound off" while VOICE plays.
+- 1.134 (to-do #312, Dave's pick B "Three names, punched", relay 111): **Name that plane.** `gScanPops(r)` with `r.guess`
+  (`{names, n, at}` from `/game/lockon`) sets `gNq` ({hex, done: false}) and puts `nqShow(r)` first in the scan's line
+  (`gLineAdd`), before the pass. The card is a `.gAw.nq` in the pass's paper (`.pF` in the plane's rarity, tilted −2°): band
+  `NAME THAT PLANE` / `nqBand` "EAGLE EYE n/at", `.nqN` with three `<button data-i>` (a ring `<i>`, the name), stub `TYPE ?`.
+  `nqPunch(el, r, i)`: buttons off, `.sel`, `ctlSound.toggle(true)` and a 25 ms buzz, POST `/game/guess {hex, i}`; the relay's
+  `{right, answer, n, at}`: right ✓ (`.stub b.ok`, a paper disc so it reads on every stub colour) and a `.nqStamp.ok` "Right";
+  missed `.no` (struck through) on the pick, `.ans` (gold ring) on the answer, ✗ and "Missed"; the band's count from the
+  answer; `nqEnd` (labels show the type again, `arCardSig` reset); the card goes `NQ_AFTER` (2.2 s) later and the line goes on.
+  No answer, "late" or "done": it goes after 0.9 s, nothing shown. No punch: `gAwTimer(el, NQ_MS)` (10 s; a finger on it holds
+  the time), a swipe (`el.out`) or `arClose()` (removes an unpunched `.gAw.nq`) end it as no guess (no call). `nqHide(ac,
+  near)`: the open guess's plane until answered, or a plane a scan would ask about now (`near` and its type in
+  `gme.guessTypes`, `nqTypes()`); used by `arLabel` (`s.sub` "?"), `arPeekHtml` (its own `near`: `gCanScan`, not scanned)
+  and `gTixShow` (`f.type` "?", so "New type · ?"). `TROPHY_LADDERS` (shared) gets `["eagle", "{n} types named right",
+  eagle10/50/250 Eagle eye, Sharp eye, Hawk eye]`; `NUDGE_DO.eagle`. Flows: `name_that_plane_checks` (fetchJSON stubbed
+  for `/game/guess`).
 - 1.133 (to-do #309): **the space station on Now.** `renderAircraftInfo()` shows `acSec` during a pass even with no
   plane, with the station's photo and its credit ("NASA · Wikimedia Commons") and no plane facts; the scan row (`#look`,
   `drawLook`) is hidden (it can't be scanned), the sideways This aircraft panel too (`nowPanels`), and a tap on the flaps
@@ -2148,6 +2163,19 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   and `/status`'s `voice` (installed, running, made, served, error). `relay/install.sh` installs it (`install_voice`),
   the service allows `mbind` (numpy's OpenBLAS calls it on import; without it the sandbox kills the worker) and has
   `MemoryMax` 700M. Tests: `tools/test/voice_calls.py` (`--piper DIR` for the real one); `run_test_relay.py --voice DIR`.
+- Relay 111 (1.134, to-do #312): **Name that plane.** `GUESS_NAMES` (the boards' `TYPES` names for every type in `SETS`,
+  plus five of `SETS` the boards lack), `GUESS_CLASS` (Airbus and Boeing narrowbodies one class, the widebodies and Giants
+  another, the other sets their own). `guess_choices(tc, rnd)`: the type and two others of its class, drawn by `FLEET`
+  (at least 20), each of a family none of the others has (`_guess_family`: maker + the model's letters, or its letters and
+  first two digits; Airbus A31x and A32x one family; so a 737-800 never stands against a 737 MAX 8, nor two names alike),
+  shuffled; None for a type it doesn't know. `game_lockon` calls `guess_offer(g, e, now)` after a scan: the codes kept on the
+  sighting (`e["gq"] = {c, t}`), once a pass, and the scan's answer gets `guess` {names, n, at} (`_guess_track`: the count
+  `g["eagle"]`, the next of 10/50/250). `POST /game/guess {hex, i}` (same origin, `allow("guess:", 1, 4)`, i an int 0–2):
+  `game_guess` judges by its own codes, once (`gq["a"]`), within `GUESS_S` (30 s) of the scan ("none", "done", "late"); right:
+  `g["eagle"] += 1` and the eagle tiers won into `g["trophies"]` there and then, never through `_game_trophies` (no points;
+  `trophy_check` skips a ladder its `have` lacks, so it never wins them). `trophy_counts` has `eagle` (the logbook's own is 0).
+  `/game/me` adds `guessTypes` (`_GUESS_SORTED`) for the app's "?". Not `GAME_V`, `GAME3_V` or `TROPHIES_V`.
+  Checks: `guess_checks` (flows) and the HTTP ones after the scan.
 - Relay 110 (1.133, to-do #309): **the space station's visible passes.** `iss_tle()` fetches the ISS's two-line
   elements from CelesTrak (`ISS_TLE_URL`, the relay's User-Agent) once a day, kept in `data/iss-tle.txt`; while CelesTrak
   fails it asks again at most hourly and keeps the last (`ISS_TLE_MAX_DAYS` 14). `iss_passes()` steps 36 h in 20 s

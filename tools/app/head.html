@@ -2024,6 +2024,25 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
 .gAw .pF.no{--t1:#8b8f99;--t2:#b9bcc4;--ti:#17140e}
 .gAw .pF .stub b{font:700 var(--fs-3xl)/1 var(--f-board)}
 .gAw .nt{padding:0 12px 10px;font:600 var(--fs-xs)/1.35 var(--f-board);color:#777}
+/* 1.134 (to-do #312, Dave's pick B): Name that plane: three printed type names on the ticket's paper, one punched */
+.gAw.nq{cursor:default}
+.gAw.nq .pF{transform:rotate(-2deg)}
+.gAw.nq .main{position:relative}
+.nq .stub b.ok,.nq .stub b.no{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:#fbf8f1;box-shadow:inset 0 1px 3px rgba(0,0,0,.3)}   /* the mark on a paper disc: it reads on every rarity's stub */
+.nq .stub b.ok{color:#1d7a3d}.nq .stub b.no{color:#a2281e}
+.nqN{display:grid;padding:4px 10px 6px}
+.nqN button{display:flex;align-items:center;gap:10px;min-height:40px;padding:4px 2px;border:0;border-bottom:1px dashed #cfc7b4;background:none;font:700 var(--fs-m)/1.15 var(--f-board);color:#111;text-align:left;cursor:pointer}
+.nqN button:last-child{border-bottom:0}
+.nqN button:disabled{cursor:default;color:#111}
+.nqN i{flex:none;width:15px;height:15px;border-radius:50%;border:1.5px solid #b5ad9a;background:#fbf8f1;box-sizing:border-box}
+.nqN .sel i,.nqN .ans i{border-color:transparent;background:radial-gradient(circle,#2a241a 0 55%,#4b4232 56% 70%,transparent 71%)}
+.nqN .ans:not(.sel) i{background:radial-gradient(circle,transparent 0 45%,#b8901f 46% 62%,transparent 63%);border:0}
+.nqN .no span{text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:#a2281e;color:#6b665c}
+.nqN .ans span{color:#8a6a10}
+.nqStamp{position:absolute;right:10px;top:34px;transform:rotate(-12deg);font:700 var(--fs-l)/1 var(--f-board);letter-spacing:.12em;padding:3px 9px;border:2.5px solid currentColor;border-radius:5px;pointer-events:none;mix-blend-mode:multiply;animation:nqStamp .28s cubic-bezier(.3,1.6,.5,1) both}
+.nqStamp.ok{color:#1d7a3d}.nqStamp.no{color:#a2281e}
+@keyframes nqStamp{from{opacity:0;transform:rotate(-12deg) scale(1.8)}to{opacity:1;transform:rotate(-12deg)}}
+@media (prefers-reduced-motion: reduce){.nqStamp{animation:none}}
 /* 1.97 (to-do #133, pick B): the pass's perforated second line, the way into Sky view's scan. 1.98 (to-do #146): the
    plane's ticket's button "Scan in Sky view"; tickets stack, the older peeking out under the newer (gTixStack) */
 .gAw{touch-action:pan-y}

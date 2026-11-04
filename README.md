@@ -320,10 +320,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   In the app's Spotters' Club (on the boards until 1.89.1; 1.28, relay 29): **this week's bingo**, nine things to spot between Monday and Sunday (a helicopter, an
   A380, something below 760 m, a plane after 23:00 ...), drawn afresh each week (on Monday at 00:00; next to the card
   it says when, and how long until then; a square fills when a scored plane does it, also later in its pass, when it
-  comes within 1 km or below 2,500 ft, and the card shows a line once it has paid, 1.114.5), and **48 trophies** (1.55, relay 50) that are won once and kept for good;
+  comes within 1 km or below 2,500 ft, and the card shows a line once it has paid, 1.114.5), and **51 trophies** (1.55, relay 50; Eagle eye 1.134) that are won once and kept for good;
   nothing ever resets. Most come in tiers, a row each with a lamp per tier and a bar to the next one ("6,900 of
   10,000"): planes (100 to 100,000), aircraft types, airlines, different aircraft, countries the aircraft are registered
-  in, points, special planes, planes in one day, the same aircraft again, days running with points. The tiers that count planes say so ("100 planes scanned": scans, not the Logbook's sightings). The others
+  in, points, special planes, planes in one day, the same aircraft again, days running with points, types named right in Name that plane. The tiers that count planes say so ("100 planes scanned": scans, not the Logbook's sightings). The others
   are one-offs: Odd couple (a 747 and a helicopter on the same day), Night owl, Bullseye, Stratosphere, Whale watcher
   (a Beluga), Heavy lifter (an Antonov), Completionist (every collection) ... An older logbook wins its trophies once
   from its saved days, on the day they were earned (relay 50 does this again for the new ones, keeping the old).
@@ -569,6 +569,14 @@ The main board has everything below. New features are tried on `/test/` first; o
   **newest on top** with the older ones peeking out under it; more wait their turn with their time stopped, and show
   while their plane is still around. In Sky view the tickets sit at its bottom. **At the scan** the
   plane's ticket, if it is still up, becomes the scan's ticket (what the scan really gave) and tears; it stays **3 seconds after its stub is off**.
+  **Name that plane** (1.134, relay 111): before that, a scan of a plane of a known type (airliners, regional jets, turboprops,
+  business jets, helicopters) first asks its type on a card in the ticket's paper: "NAME THAT PLANE · EAGLE EYE 6/10", three
+  printed names and a stub "TYPE ?". Punch one: right, a ✓ on the stub and a RIGHT stamp; missed, your pick is struck through,
+  the answer ringed in gold and a MISSED stamp; then the scan's ticket names the type as before. The relay picks the two wrong
+  names (planes of the same size class, each of another family, so never an A320 against an A321) and judges the punch, once a
+  pass. **No points either way**; right answers count toward the **Eagle eye** trophy (10, 50 and 250 types named right).
+  No punch within 10 seconds, the card swiped away or Sky view closed: no guess, neither right nor wrong. Until the guess is
+  answered, Sky view shows "?" for the type of a plane you can scan (its label, its small card) and so does its ticket.
   **The daily streak** (1.126) is a paper pop-up at the day's first scan: a plane on a runway printed on the paper, the week's letters under it. It rolls from
   the last streak day to today and stops with a buzz and no sound; a Standby day is a hatched stretch marked SBY, and on **day 7** of a streak it takes off the paper's corner and
   the letters turn gold. A tap opens the Streak panel. **One thing at a time** (1.124): all a scan brings comes one after the other in the same place: the scan's
