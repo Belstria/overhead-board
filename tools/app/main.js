@@ -496,7 +496,11 @@ function setFeat(o, mode, alert = false){
     p.then(info => { h.info = info; if (feat === h) { renderFeatured(); renderAircraftInfo(); } });
   }
   // 1.84: the ding says "look up": once, as the plane on top becomes overhead or approaching (as on the board)
-  if (!alert && !feat.dinged && (mode === "over" || mode === "soon")) { feat.dinged = true; seatbeltDing(); }
+  // 1.135: with Chimes on VOICE the call instead, for a special plane too (as on the board)
+  if (!feat.dinged && (mode === "over" || mode === "soon") && (!alert || voiceOn())) {
+    feat.dinged = true;
+    if (!voiceOn()) seatbeltDing(); else if (!dingQuiet()) voiceCall(feat, mode);
+  }
   if (feat.mode !== mode) dlog("info", `Board: ${planeName(feat, o.ac)} · ${MODE_REMARK[mode]} · ${o.dist.toFixed(1)} km`);
   feat.o = o; feat.mode = mode;
   if (mode === "over" || mode === "soon") feat.lastSeen = now;
@@ -5577,7 +5581,8 @@ function setLine(id){
     if (LANG_CHOICE) try { lang = setCap(new Intl.DisplayNames([LANG], {type: "language"}).of(LANG)); } catch {}
     return [lang, T(S.units === "metric" ? "metric" : "feet and knots"), setCap(String(styleShort(lookKind()) || "").toLowerCase())].filter(Boolean).join(" · ");
   }
-  if (id === "flaps") return T(S.sound && S.chimes ? "sound and chimes on" : S.sound ? "sound on, chimes off" : S.chimes ? "chimes on, sound off" : "all quiet");
+  if (id === "flaps") return voiceOn() ? T(S.sound ? "sound and voice on" : "voice on, sound off")      // 1.135: Chimes on VOICE
+    : T(S.sound && S.chimes ? "sound and chimes on" : S.sound ? "sound on, chimes off" : S.chimes ? "chimes on, sound off" : "all quiet");
   if (id === "night") return S.night ? T("quiet {a} – {b}", {a: S.nightFrom || "", b: S.nightTo || ""}) : T("off");
   if (id === "favs") { const f = userLists.fav.length, h = userLists.hide.length;
     return f || h ? [f ? T(f === 1 ? "1 favourite" : "{n} favourites", {n: f}) : "", h ? T("{n} hidden", {n: h}) : ""].filter(Boolean).join(" · ") : T("none yet"); }

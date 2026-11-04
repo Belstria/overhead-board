@@ -46,11 +46,13 @@ import queue
 import random
 import re
 import secrets
+import select
 import shutil
 import signal
 import socket
 import sqlite3
 import struct
+import subprocess
 import sys
 import threading
 import time
@@ -5284,6 +5286,319 @@ def vie_status():
                 "arrivals": _vie["counts"][0], "departures": _vie["counts"][1], "error": _vie["error"]}
 
 
+# ---------- the board announces the plane (relay 112, app 1.135, to-do #314) ----------
+# With Chimes on VOICE a board calls out a new plane on top like a terminal PA: its airport bell, then e.g. "Austrian
+# four one one, to Paris. An A three-twenty, overhead now." The words come from voice_words() (the spelling rule), the
+# sound from Piper (a free text-to-speech engine) with one English voice, made here because a device's own voice
+# (speechSynthesis) can't go through the board's sound chain. The terminal PA (ceiling speakers in a big hall) is baked
+# in by voice_pa(), with numpy only; the board gets a finished MP3 (some 30 KB; every TV and phone browser decodes MP3).
+# Piper lives in its own Python environment in voice/ next to this file (relay/install.sh puts it there, some 260 MB;
+# nothing else uses it). Without it the relay runs as before, /voice answers 503 and the boards don't offer VOICE.
+# Piper runs as a separate process, started by the first call (about 2 s to load the voice) and stopped after ten idle
+# minutes; it holds some 230 MB of memory while it runs and takes about 0.4 s of one core per new call. The same words
+# say the same thing, so the calls are kept as files (voice/cache, the newest 300).
+VOICE_DIR = Path(__file__).with_name("voice")
+VOICE_NAME = "en_GB-cori-medium"           # Piper's "Cori" (British English, medium quality): the voice of Dave's pick A2,
+                                           # at a seventh of the high-quality model's time (0.4 s against 2.9 s a call)
+VOICE_FX = 1                               # raise when voice_pa or the voice changes: the cached calls are made again
+VOICE_IDLE_S = 600
+VOICE_KEEP = 300
+_voice = {"proc": None, "used": 0.0, "error": "", "made": 0, "served": 0}
+_voice_lock = threading.Lock()
+
+_ONES = "zero one two three four five six seven eight nine".split()
+_TEENS = "ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen".split()
+_TENS = "_ _ twenty thirty forty fifty sixty seventy eighty ninety".split()
+SPELL = "\x01"                             # marks a letter said on its own (a lone A goes to Piper as phonemes)
+
+
+def _pair(n):
+    """0-99 as people say it in a model number: oh-five, twelve, twenty, ninety-five."""
+    if n < 10:
+        return "oh-" + _ONES[n]
+    if n < 20:
+        return _TEENS[n - 10]
+    return _TENS[n // 10] + ("" if n % 10 == 0 else "-" + _ONES[n % 10])
+
+
+def _singly(s):
+    """Flight numbers, callsigns, registrations: every letter and digit on its own (OE-XEN: O E X E N)."""
+    return " ".join(_ONES[int(c)] if c.isdigit() else SPELL + c for c in re.sub(r"[^A-Z0-9]", "", s.upper()))
+
+
+def _model_number(num):
+    """The number in an aircraft type as people say it: 737 seven-three-seven, 320 three-twenty, 400 four-hundred,
+    72 seventy-two, 2000 two thousand, 7500 seventy-five hundred."""
+    n = int(num)
+    if len(num) == 3 and num[0] == "7" and num[2] == "7":
+        return "-".join(_ONES[int(c)] for c in num)            # Boeing's 7x7s
+    if len(num) == 3 and num.endswith("00"):
+        return _ONES[int(num[0])] + "-hundred"
+    if len(num) == 3:
+        return _ONES[int(num[0])] + "-" + _pair(int(num[1:]))
+    if len(num) <= 2:
+        return _pair(n).replace("oh-", "")
+    if len(num) == 4 and num.endswith("000"):
+        return _ONES[int(num[0])] + " thousand"
+    if len(num) == 4 and num.endswith("00"):
+        return _pair(int(num[:2])) + " hundred"
+    if len(num) == 4:
+        return _pair(int(num[:2])) + " " + _pair(int(num[2:]))
+    return " ".join(_ONES[int(c)] for c in num)
+
+
+def _type_token(w):
+    w = re.sub(r"^([A-Za-z]{1,3})-(?=\d)", r"\1", w)        # C-130, An-124, PC-12: the dash only joins the letters on
+    w = re.sub(r"(\d)-.*$", r"\1", w)                         # 737-800, A330-900neo: the series after a dash is dropped
+    m = re.fullmatch(r"([A-Za-z]{0,3})(\d+)([A-Za-z]*)", w)
+    if not m:
+        if w == "MAX":
+            return "Max"
+        if re.fullmatch(r"[A-Z]{1,3}", w):
+            return " ".join(SPELL + c for c in w)
+        return w.capitalize() if w.isupper() and len(w) > 3 else w      # MAX: Max
+    letters, num, suf = m.groups()
+    out = [" ".join(SPELL + c for c in letters.upper())] if letters else []
+    out.append(_model_number(num))
+    if suf:
+        out.append(suf if suf.islower() else " ".join(SPELL + c for c in suf))   # A320neo: neo; A400M, 747SP: M, S P
+    return " ".join(out)
+
+
+def _type_words(name):
+    """An aircraft type as the board shows it, as said: Airbus A320 "A three-twenty", Boeing 737-800 "seven-three-seven",
+    Embraer E195 "E one-ninety-five" (those three makers are left out, as people do); others keep their name: Cessna
+    172 "Cessna one-seventy-two", ATR 72-600 "A T R seventy-two"."""
+    words = [w for w in re.split(r"\s+", name.strip()) if w]
+    if len(words) > 1 and words[0] in ("Airbus", "Boeing", "Embraer"):
+        words = words[1:]
+    return " ".join(_type_token(w) for w in words)
+
+
+def _article(words):
+    first = words.split(" ")[0]
+    if first.startswith(SPELL):
+        return "An" if first[1:2] in "AEFHILMNORSX" else "A"
+    w = first.lower()
+    return "An" if (w[:1] in "aeiou" and not w.startswith(("eu", "uni", "one", "u-"))) or w.startswith(("eight", "eleven")) else "A"
+
+
+def _airline_word(name):
+    """The airline as it is called on a PA: Austrian Airlines "Austrian", Swiss International Air Lines "Swiss"."""
+    n = re.sub(r"\s+(International\s+)?(Air\s*Lines|Airlines|Airline|Ltd\.?|Limited|GmbH|AG|S\.?A\.?|Inc\.?)$", "", name.strip(), flags=re.I)
+    return " ".join(w.capitalize() if w.isupper() and len(w) > 3 else w for w in n.split())
+
+
+def voice_words(airline="", flight="", callsign="", reg="", kind="", frm="", to="", way="", typ="", now="over"):
+    """(shown, said): the call for a plane, as words (shown in the board's log) and as Piper's input (a lone letter A as
+    phonemes, or Piper reads it as the article). The spelling rule (Dave's pick, 4 Nov 2026, VoiceA-words): the airline
+    as a word, then the flight number's part after its code letter by letter and digit by digit (OS 411 "Austrian four
+    one one"); no airline: the whole flight number or callsign spelled (OR325 "O R three two five"); a registration
+    spelled without its dash; the route "to X" leaving home (way "out"), "from X" landing (way "in"), "from X to Y" passing."""
+    flight, callsign, reg = (re.sub(r"[^A-Z0-9 -]", "", s.upper()).strip() for s in (flight, callsign, reg))
+    if airline and flight:
+        head = _airline_word(airline) + " " + _singly(re.sub(r"^[A-Z0-9]{2}\s*", "", flight) if " " in flight or len(flight) > 3 else flight)
+    elif (callsign or flight) and re.sub(r"[^A-Z0-9]", "", callsign or flight) != re.sub(r"[^A-Z0-9]", "", reg):
+        head = ("Military flight " if kind == "military" else "") + _singly(callsign or flight)
+    elif reg or callsign or flight:
+        label = {"helicopter": "Helicopter ", "military": "Military aircraft "}.get(kind, "")
+        head = label + _singly(reg or callsign or flight)
+    else:
+        head = {"helicopter": "A helicopter", "military": "A military aircraft"}.get(kind, "An aircraft")
+    if way == "out" and to:
+        head += ", to " + to
+    elif way == "in" and frm:
+        head += ", from " + frm
+    elif frm and to:
+        head += ", from " + frm + " to " + to
+    elif frm or to:
+        head += ", from " + frm if frm else ", to " + to
+    when = "coming over now" if now == "soon" else "overhead now"
+    t = _type_words(typ) if typ else ""
+    s = head + ". " + (_article(t) + " " + t + ", " + when if t else when[0].upper() + when[1:]) + "."
+    return s.replace(SPELL, ""), re.sub(SPELL + r"A\b", "[[ ˈeɪ ]]", s).replace(SPELL, "")
+
+
+def voice_args(q):
+    """voice_words' arguments from a /voice request, each kept to what it can be (no free text to read out)."""
+    def g(k, n, pat):
+        return re.sub(pat, "", ((q.get(k) or [""])[0]))[:n].strip()
+    name = r"[^\w .'&-]"
+    kind = g("kind", 12, r"[^a-z]")
+    return {"airline": g("airline", 40, name), "flight": g("flight", 10, r"[^A-Za-z0-9 ]"), "callsign": g("cs", 10, r"[^A-Za-z0-9]"),
+            "reg": g("reg", 10, r"[^A-Za-z0-9-]"), "kind": kind if kind in ("helicopter", "military") else "",
+            "frm": g("from", 40, name), "to": g("to", 40, name), "way": g("way", 3, r"[^a-z]"),
+            "typ": g("type", 40, r"[^\w .-]"), "now": "soon" if g("now", 4, r"[^a-z]") == "soon" else "over"}
+
+
+def voice_ready():
+    """Piper and its voice are installed next to the relay (relay/install.sh)."""
+    return (VOICE_DIR / "venv" / ".installed").exists() and (VOICE_DIR / (VOICE_NAME + ".onnx")).exists() \
+        and (VOICE_DIR / (VOICE_NAME + ".onnx.json")).exists()
+
+
+# The worker runs in Piper's Python environment (python -I -c VOICE_WORKER MODEL): one JSON line in ({"text", "out"}),
+# one out ({"ok": ...}) once the MP3 is written. One thread each: the relay's container is small and a call is short.
+VOICE_WORKER = r'''
+import sys, os, json, time
+import numpy as np
+
+def pa(x, sr):
+    # the terminal PA: ceiling speakers (220-6500 Hz, a presence lift around 3 kHz, less boom at 350 Hz), a compressor,
+    # and a big hall: the direct sound, speakers further off at 45, 110 and 170 ms, a soft 1.6 s tail
+    n = len(x); m = 1 << int(np.ceil(np.log2(n + int(2.3 * sr))))
+    f = np.fft.rfftfreq(m, 1 / sr); f[0] = 1e-3
+    g = 1 / np.sqrt(1 + (220 / f) ** 4) / np.sqrt(1 + (f / 6500) ** 8)
+    g *= 10 ** ((5.5 * np.exp(-np.log2(f / 3000) ** 2 / 1.28) - 3 * np.exp(-np.log2(f / 350) ** 2 / .72)) / 20)
+    y = np.fft.irfft(np.fft.rfft(x, m) * g, m)[:n]
+    b = max(1, int(sr * .005)); k = -(-n // b)                 # the compressor: 5 ms blocks, -28 dB, 5:1, 2 / 150 ms, +3 dB
+    p = np.zeros(k * b); p[:n] = y
+    lv = 20 * np.log10(np.sqrt(np.mean(p.reshape(k, b) ** 2, axis=1)) + 1e-9)
+    want = np.minimum(0, (lv + 28) * (1 / 5 - 1)) * (lv > -28)
+    ga, gr = np.exp(-.005 / .002), np.exp(-.005 / .15); s = 0.0; out = np.empty(k)
+    for i, w in enumerate(want):
+        a = ga if w < s else gr; s = a * s + (1 - a) * w; out[i] = s
+    y = y * 10 ** ((np.interp(np.arange(n) / b, np.arange(k) + .5, out) + 3) / 20)
+    rng = np.random.default_rng(7); L = int(2.2 * sr); t = np.arange(L) / sr
+    tail = np.convolve(rng.standard_normal(L) * np.exp(-6.91 * t / 1.6), .55 ** np.arange(80) * .45)[:L] * (t >= .02)
+    h = np.zeros(L); h[0] = 1
+    for d, gg in ((.045, .45), (.11, .28), (.17, .15)): h[int(d * sr)] += gg
+    h += tail * np.sqrt(.15 / np.sum(tail ** 2))
+    z = np.fft.irfft(np.fft.rfft(y, m) * np.fft.rfft(h, m), m)[:n + L]
+    nz = np.nonzero(np.abs(z) > 3e-3 * np.max(np.abs(z)))[0]
+    z = z[:nz[-1] + 1 if len(nz) else n]
+    z = z * (.7 / (np.percentile(np.abs(z), 99.7) + 1e-9))      # level by the loud part; the rare peaks rounded off
+    return .95 * np.tanh(z / .95)
+
+def main(model):
+    import onnxruntime, lameenc
+    from piper import PiperVoice
+    from piper.config import PiperConfig, SynthesisConfig
+    o = onnxruntime.SessionOptions(); o.intra_op_num_threads = 1; o.inter_op_num_threads = 1; o.enable_cpu_mem_arena = False
+    with open(model + ".json", encoding="utf-8") as fh:
+        cfg = PiperConfig.from_dict(json.load(fh))
+    voice = PiperVoice(config=cfg, session=onnxruntime.InferenceSession(model, sess_options=o, providers=["CPUExecutionProvider"]))
+    print(json.dumps({"ready": True}), flush=True)
+    for line in sys.stdin:
+        try:
+            q = json.loads(line); t0 = time.time(); parts = []; sr = cfg.sample_rate
+            for ch in voice.synthesize(q["text"], SynthesisConfig()):
+                sr = ch.sample_rate
+                if parts: parts.append(np.zeros(int(.25 * sr)))
+                parts.append(ch.audio_float_array.astype(np.float64))
+            y = pa(np.concatenate(parts), sr)
+            e = lameenc.Encoder(); e.set_channels(1); e.set_in_sample_rate(sr); e.set_bit_rate(40); e.set_quality(2)
+            mp3 = e.encode((np.clip(y, -1, 1) * 32767).astype(np.int16).tobytes()) + e.flush()
+            with open(q["out"] + ".part", "wb") as fh: fh.write(mp3)
+            os.replace(q["out"] + ".part", q["out"])
+            print(json.dumps({"ok": True, "bytes": len(mp3), "secs": round(len(y) / sr, 2), "took": round(time.time() - t0, 2)}), flush=True)
+        except Exception as ex:
+            print(json.dumps({"ok": False, "error": str(ex)[:200]}), flush=True)
+
+main(sys.argv[1])
+'''
+
+
+def _voice_stop(why):
+    p = _voice["proc"]
+    _voice["proc"] = None
+    if p and p.poll() is None:
+        try:
+            p.kill()
+            p.wait(5)
+        except Exception:
+            pass
+        event("info", f"Voice: Piper stopped ({why})", echo=False)
+
+
+def _voice_line(p, deadline):
+    """One line from the worker by the deadline, or None."""
+    buf = b""
+    while not buf.endswith(b"\n"):
+        left = deadline - time.time()
+        if left <= 0 or not select.select([p.stdout], [], [], left)[0]:
+            return None
+        chunk = os.read(p.stdout.fileno(), 4096)
+        if not chunk:
+            return None
+        buf += chunk
+    return json.loads(buf.decode("utf-8", "replace").strip().splitlines()[-1])
+
+
+def _voice_idle():
+    while True:
+        time.sleep(30)
+        with _voice_lock:
+            if _voice["proc"] and time.time() - _voice["used"] > VOICE_IDLE_S:
+                _voice_stop("ten minutes without a call")
+
+
+def voice_make(said, out):
+    """Piper makes the call into `out` (MP3). Called with _voice_lock held. Returns an error text or ""."""
+    p = _voice["proc"]
+    if p is None or p.poll() is not None:
+        env = {"PATH": "/usr/bin:/bin", "OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1", "HOME": str(VOICE_DIR)}
+        try:
+            p = subprocess.Popen([str(VOICE_DIR / "venv" / "bin" / "python"), "-I", "-c", VOICE_WORKER, str(VOICE_DIR / (VOICE_NAME + ".onnx"))],
+                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, cwd=str(VOICE_DIR), env=env)
+        except OSError as e:
+            return f"Piper can't start: {e}"
+        t = time.time()
+        r = _voice_line(p, t + 60)
+        if not (r and r.get("ready")):
+            p.kill()
+            return "Piper didn't start (exit %s)" % p.poll()
+        _voice["proc"] = p
+        event("info", f"Voice: Piper started in {time.time() - t:.1f} s", echo=False)
+        if not any(t.name == "voice-idle" for t in threading.enumerate()):
+            threading.Thread(target=_voice_idle, name="voice-idle", daemon=True).start()
+    try:
+        p.stdin.write((json.dumps({"text": said, "out": str(out)}) + "\n").encode())
+        p.stdin.flush()
+    except OSError:
+        _voice_stop("it went away")
+        return "Piper went away"
+    r = _voice_line(p, time.time() + 30)
+    if r is None:
+        _voice_stop("no answer in 30 s")
+        return "Piper gave no answer"
+    _voice["used"] = time.time()
+    return "" if r.get("ok") else str(r.get("error") or "failed")
+
+
+def voice_call(args):
+    """(status, mp3 bytes or a message, shown words) for /voice."""
+    shown, said = voice_words(**args)
+    if not voice_ready():
+        return 503, b"The relay has no voice installed", shown
+    cache = VOICE_DIR / "cache"
+    name = hashlib.sha1(f"{VOICE_NAME}|{VOICE_FX}|{said}".encode()).hexdigest()[:20] + ".mp3"
+    f = cache / name
+    with _voice_lock:
+        if not f.exists():
+            cache.mkdir(parents=True, exist_ok=True)
+            err = voice_make(said, f)
+            if err or not f.exists():
+                _voice["error"] = err or "no file"
+                event("warn", f"Voice: {_voice['error']}", echo=False)
+                return 503, b"The voice failed", shown
+            _voice["made"] += 1
+            _voice["error"] = ""
+            old = sorted(cache.glob("*.mp3"), key=lambda x: x.stat().st_mtime)
+            for x in old[:max(0, len(old) - VOICE_KEEP)]:
+                x.unlink(missing_ok=True)
+        else:
+            os.utime(f)                    # the newest are kept
+        _voice["used"] = time.time()
+        _voice["served"] += 1
+        return 200, f.read_bytes(), shown
+
+
+def voice_status():
+    return {"installed": voice_ready(), "running": bool(_voice["proc"] and _voice["proc"].poll() is None),
+            "made": _voice["made"], "served": _voice["served"], "error": _voice["error"]}
+
+
 # ---------- screens: which boards are using the relay ----------
 # Every board polls the relay every ten seconds or so, which is enough to tell which screens are open: by address and
 # browser, and on the test boards (which send a session id and say hello every minute) by name, size and drawing quality.
@@ -5572,7 +5887,7 @@ def status_json():
     live, _ = screens_list()
     return {"version": RELAY_VERSION, "uptime_s": int(now - STARTED), "sources": sources, "events": events, "fr24": fr24_status(),
             "health": {k: v["down"] for k, v in _health.items()},
-            "vie": vie_status(), "screens": live}
+            "vie": vie_status(), "voice": voice_status(), "screens": live}
 
 
 BACKUP_FILE = DATA_DIR / "backup.json"    # relay 69: written by the nightly backup on the host, read for the owner's panel
@@ -5733,7 +6048,7 @@ def board_html(sub="", guest=None):
     inject = (f"<script>window.OVERHEAD_RELAY=location.origin;window.OVERHEAD_RELAY_VERSION={RELAY_VERSION};"
               f"window.OVERHEAD_DEFAULTS={config};window.OVERHEAD_FR24={'true' if fr24 else 'false'};"
               f"window.OVERHEAD_GUEST={who};window.OVERHEAD_PAGE_DATE={_board_date.get(sub) or 'null'};"
-              f"window.OVERHEAD_FCM={'true' if fcm_ready() else 'false'};</script>")
+              f"window.OVERHEAD_FCM={'true' if fcm_ready() else 'false'};window.OVERHEAD_VOICE={'true' if voice_ready() else 'false'};</script>")
     return html.replace("<head>", "<head>\n" + inject, 1)
 
 
@@ -10150,6 +10465,18 @@ class Handler(BaseHTTPRequestHandler):
             if not allow("iss:" + self.guest[0], 0.2, 6):
                 return self.reply(429, "text/plain", b"Too many requests")
             return self.reply(200, "application/json", json.dumps(iss_json(lat, lon)).encode(), {"Cache-Control": "private, max-age=300"})
+        if path == "/voice":                # relay 112: the board's call for a plane, as an MP3 (the terminal PA)
+            q = self.query()
+            args = voice_args(q)
+            if "words" in q:                # the words only (the tests, the board's log)
+                return self.reply(200, "application/json", json.dumps({"shown": voice_words(**args)[0], "ready": voice_ready()}).encode())
+            if not allow("voice:" + self.guest[0], 0.1, 6):      # a call a minute or so per profile; six in a row
+                return self.reply(429, "text/plain", b"Too many requests")
+            status, body, shown = voice_call(args)
+            if status != 200:
+                return self.reply(status, "text/plain", body, {"Retry-After": "600"})
+            return self.reply(200, "audio/mpeg", body, {"Cache-Control": "private, max-age=86400",
+                                                        "X-Voice-Words": urllib.parse.quote(shown)})
         if path == "/weather":              # relay 109: the weather and local time at a route's airports
             codes = [c for c in re.sub(r"[^A-Z,]", "", ((self.query().get("ap") or [""])[0]).upper()).split(",") if len(c) == 3][:2]
             if not codes:

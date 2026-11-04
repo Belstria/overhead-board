@@ -10,6 +10,19 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.135 (to-do #314, Dave's pick A2, the terminal PA, relay 112): **the board announces the plane.** Settings → Flaps &
+  sound: the Chimes switch is a knob, OFF · CHIMES · VOICE (`S.chimes` false, true or "voice"; "voice" is truthy, so
+  every chime and the night rules work as before; `?chimes=voice`). The COCKPIT item is a rotary with `voice: true`;
+  `itemHtml()` draws the old switch where `voiceOk()` is false: no relay, demo, a relay before 112 or without the voice
+  (`window.OVERHEAD_VOICE`, set at page load), a browser that can't play MP3, or `voiceBroken` (an MP3 failed to decode
+  this session). `voiceOn()` is VOICE and `voiceOk()`. `setFeat()` (and the app's copy) calls `voiceCall(feat, mode)`
+  where it rang `seatbeltDing()`, under the ding's rules (`dingQuiet()`: chimes on, not at night, not hidden, the main
+  page, not in the first 8 s, 15 s apart), and for a special plane too once it is overhead or approaching.
+  `voiceCall()` waits up to 2 s for the route (`info.done`), plays `airportBell()` (not when `chime()` rang within 10 s,
+  `chimeAt`), fetches `/voice?` with `voiceParams()` (airline and flight number only with a known airline, callsign,
+  registration, helicopter or military, the route's cities and `way` out/in from `S.home`, the type when sure, now
+  over/soon), decodes it (the callback form, for old TVs) and starts it 2.6 s after the bell, at gain 0.5 through
+  `sfxOut()`. The words come back in `X-Voice-Words` for the log. The app's Flaps & sound row says "sound and voice on".
 - 1.133 (to-do #309, Dave's pick B, relay 110): **the space station as its own row.** `issCheck()` (from `poll`, every
   15 minutes or when the place moves 0.1°) asks `/iss?lat&lon` for the coming visible passes (`issPasses`: start, end,
   where it appears and goes, its highest point, height and speed, and its track every 10 s, `pts: [t, az, el]`).
@@ -986,6 +999,9 @@ The repository is public: no addresses, keys or personal data here either.
   letter fade in with it, the heading letter as the plane arrives. A tap: `passSheet(e)`, a two-line `plateSheet` "Your
   pass". `rowSig` counts the points, so an open card redraws as a pass grows.
 
+- 1.135 (to-do #314): **the call on Now.** The app's own `setFeat()` calls `voiceCall()` as the board's does (the board's
+  part, above); the Chimes knob is the cockpit's, in the Flaps & sound sheet, and `setLine("flaps")` says "sound and
+  voice on" or "voice on, sound off" while VOICE plays.
 - 1.134 (to-do #312, Dave's pick B "Three names, punched", relay 111): **Name that plane.** `gScanPops(r)` with `r.guess`
   (`{names, n, at}` from `/game/lockon`) sets `gNq` ({hex, done: false}) and puts `nqShow(r)` first in the scan's line
   (`gLineAdd`), before the pass. The card is a `.gAw.nq` in the pass's paper (`.pF` in the plane's rarity, tilted −2°): band
@@ -2151,6 +2167,28 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   to the boards with the rows of `/sightings` and `/logbook/flights` (gzipped), no new endpoint. A line marks the day
   changed. Checks: `flows.py`'s `pass_line_checks`.
 
+- Relay 112 (1.135, to-do #314): **the board's voice.** `/voice?airline&flight&cs&reg&kind&from&to&way&type&now`
+  (signed in; `allow` 0.1/s, 6 in a row; `&words=1` gives only the words) answers an MP3. `voice_args()` keeps each
+  field to its characters and length (no free text, no Piper markup); `voice_words()` is the spelling rule of Voice A
+  (`VoiceA-words`): the airline as a word (`_airline_word`: "Austrian Airlines" → Austrian, "Swiss International Air
+  Lines" → Swiss), the flight number after its code letter by letter and digit by digit (`_singly`); no airline: the
+  callsign spelled, "Military flight" before a military one; a callsign that is the registration: "Helicopter O E X E N";
+  the route "to X" (way out), "from X" (way in), "from X to Y"; the type (`_type_words`: Airbus, Boeing and Embraer
+  left out, `_type_token`: letters spelled, `_model_number`: 320 three-twenty, 737 seven-three-seven, 400 four-hundred,
+  72 seventy-two, 7500 seventy-five hundred, a series after a dash dropped, neo and Max as words) with its article
+  (`_article`), then "overhead now" or "coming over now". Piper reads a lone letter A as the article, so the spoken
+  text has it as phonemes (`[[ ˈeɪ ]]`). `voice_call()` keeps each call as `voice/cache/<sha1>.mp3` (the newest
+  `VOICE_KEEP` 300; `VOICE_FX` in the key) and otherwise asks `voice_make()`: a worker in Piper's own Python
+  (`voice/venv`, `python -I -c VOICE_WORKER`, one line of JSON in and out, one thread) loads the voice
+  (`VOICE_NAME` en_GB-cori-medium, about 2 s), synthesises (about 0.4 s), bakes in the terminal PA with numpy (`pa`:
+  220–6500 Hz, +5.5 dB at 3 kHz, −3 dB at 350 Hz, a 5:1 compressor from −28 dB, a 2.2 s hall with speaker echoes at 45,
+  110 and 170 ms, levelled by the loud part and rounded off) and encodes a 40 kbit/s MP3 with lameenc (some 30 KB). It
+  matches Voice A's ffmpeg chain within ±2 dB across the spectrum and 0.4 dB in level, so the relay needs no ffmpeg.
+  `_voice_idle` stops the worker after `VOICE_IDLE_S` (10 min); a worker that dies or stays silent 30 s is stopped and
+  the call answers 503. `voice_ready()` (`venv/.installed` and the voice's two files) sets `OVERHEAD_VOICE` in the page
+  and `/status`'s `voice` (installed, running, made, served, error). `relay/install.sh` installs it (`install_voice`),
+  the service allows `mbind` (numpy's OpenBLAS calls it on import; without it the sandbox kills the worker) and has
+  `MemoryMax` 700M. Tests: `tools/test/voice_calls.py` (`--piper DIR` for the real one); `run_test_relay.py --voice DIR`.
 - Relay 111 (1.134, to-do #312): **Name that plane.** `GUESS_NAMES` (the boards' `TYPES` names for every type in `SETS`,
   plus five of `SETS` the boards lack), `GUESS_CLASS` (Airbus and Boeing narrowbodies one class, the widebodies and Giants
   another, the other sets their own). `guess_choices(tc, rnd)`: the type and two others of its class, drawn by `FLEET`

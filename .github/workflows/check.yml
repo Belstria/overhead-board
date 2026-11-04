@@ -58,6 +58,8 @@ jobs:
         run: python -m py_compile relay/serve.py
       - name: The space station's passes match published ones
         run: python tools/test/iss_passes.py
+      - name: The board's voice says the calls as Dave picked them (the relay's /voice, with and without Piper)
+        run: python tools/test/voice_calls.py
       - name: The phone app is built from the board
         run: |
           python tools/app/build.py

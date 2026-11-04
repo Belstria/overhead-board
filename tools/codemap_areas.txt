@@ -744,6 +744,20 @@ tools/test/iss_passes.py: "Heavens-Above"
 tools/test/run_test_relay.py: "--iss"
 changelog: space station|\bISS\b
 
+[voice] The board announces the plane (1.135, relay 112): Chimes on VOICE, the relay's spelling rule, Piper and the terminal PA, the MP3 the board plays after the airport bell
+test/index.html: dingQuiet voiceOk voiceOn voiceBroken chimeAt voiceParams voiceCall +seatbeltDing +chime +airportBell +setFeat +COCKPIT +itemHtml
+    +DEFAULTS
+relay/serve.py: VOICE_DIR VOICE_NAME VOICE_FX VOICE_IDLE_S VOICE_KEEP _voice _voice_lock _ONES _TEENS _TENS SPELL _pair _singly
+    _model_number _type_token _type_words _article _airline_word voice_words voice_args voice_ready VOICE_WORKER _voice_stop
+    _voice_line _voice_idle voice_make voice_call voice_status /voice +status_json
+relay/install.sh: "VOICE_" "install_voice"
+relay/overhead-relay.service: "MemoryMax" "mbind"
+tools/app/main.js: +setFeat +setLine
+tools/test/voice_calls.py: "spelling rule"
+.github/workflows/check.yml: "The board's voice says the calls"
+tools/test/run_test_relay.py: "--voice"
+changelog: \bvoice\b|calls? out
+
 [tests] Tests and tools: smoke.py, flows.py, the test relay and fake source, screenshots, lint, CI workflows, this code map
 .github/workflows/check.yml: "name: Check" "The test browser, kept between runs"
 docs/code-map.md: "## How to read here" "## Keeping the map current" "## Changes that go together"
