@@ -4343,6 +4343,7 @@ def browser_checks(browser):
     club_swipe_checks(browser, bad)
     sky_row_checks(browser, bad)
     no_position_checks(browser, bad)
+    your_photo_checks(browser, bad)
     for b_ in bad:
         print("flow:", b_)
     print("the app's saves hold" if not bad else f"{len(bad)} app save check(s) failed")
@@ -5297,6 +5298,120 @@ def card_close_checks(browser, bad):
     shut("Android's back", lambda: e("backStep()(); 1"))
     ctx.close()
     print("the card close is silent" if not [b for b in bad if b.startswith("card close")] else "card close checks failed")
+
+
+def your_photo_checks(browser, bad):
+    """1.131 (to-do #310): Sky view's shutter keeps its picture with the plane locked on; that plane's rows on the Logbook and
+    on Now's Recent flights get the camera; its card opens on your photo (two dots), a touch swipe from inside the photo shows
+    the stock photo and back without opening the plane's card or closing its own, the dots switch too, the label opens its
+    explanation; the photo is still there after a reload (IndexedDB), and only the newest 200 are kept."""
+    def hooked(route):
+        r = route.fetch()
+        t = r.text()
+        i = t.rindex("})();")
+        route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+    ctx = browser.new_context(viewport={"width": 390, "height": 844}, has_touch=True, timezone_id="Europe/Vienna")
+    ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+    ctx.route("**/app/", hooked)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: bad.append(f"your photo page error: {e}"))
+    pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
+    e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
+    mine = lambda hx: e(f"[...myPh.map.keys()].some(k => k.startsWith('{hx}|'))")    # noqa: E731
+
+    def start():
+        pg.goto(BASE + "/app/")
+        pg.wait_for_function("!!window.__e", timeout=20000)
+        pg.wait_for_timeout(4000)
+    start()
+    hexes = json.loads(e("JSON.stringify(spotted.filter(x => x.typeCode && x.ts > Date.now() - 36e5).map(x => x.hex))") or "[]")
+    if not hexes:
+        bad.append("your photo: no plane in the last hour to take a picture of")
+        return ctx.close()
+    hx = hexes[0]
+    # the shutter, as Sky view presses it once locked on that plane (the camera's picture is none here, the labels' canvas blue)
+    e(f"(() => {{ const c = $('arCv'); c.width = 360; c.height = 640; const g = c.getContext('2d'); g.fillStyle = '#4a7fd0'; g.fillRect(0, 0, 360, 640); arLocked = '{hx}'; arSnap(); return 1; }})()")
+    try:
+        pg.wait_for_function("c => __e(c)", arg=f"[...myPh.map.keys()].some(k => k.startsWith('{hx}|'))", timeout=8000)
+    except Exception:
+        bad.append("your photo: the shutter's picture wasn't kept")
+        return ctx.close()
+    pg.keyboard.press("Escape")
+    got = json.loads(e("JSON.stringify([...myPh.map.values()].map(v => [Math.round(v.blob.size / 1024), v.blob.type])[0])"))
+    if got[0] > 150 or got[1] != "image/jpeg":
+        bad.append(f"your photo: kept as {got}, not a JPEG under 150 KB")
+    e("showTab('now'); 1")
+    pg.wait_for_timeout(800)
+    if not e(f"[...document.querySelectorAll('#recent li.fl .mPh')].some(i => (tlFind(i.closest('li').dataset.more) || {{}}).hex === '{hx}')"):
+        bad.append("your photo: no camera on its Recent flights row")
+    e("showTab('logbook'); 1")
+    pg.wait_for_timeout(1200)
+    row = e(f"(() => {{ const li = [...document.querySelectorAll('#svList li.fl[data-more]')].find(li => (tlFind(li.dataset.more) || {{}}).hex === '{hx}'); return li ? li.dataset.more : ''; }})()")
+    sel = f'#svList li.fl[data-more="{row}"]'
+    if not row or not pg.locator(f"{sel} .mPh").count():
+        bad.append("your photo: no camera on its Logbook row")
+        return ctx.close()
+    if pg.locator(f"{sel} .mScan").count():
+        bad.append("your photo: its row shows the scan target beside the camera")
+    pg.locator(sel).scroll_into_view_if_needed()
+    pg.locator(sel).click()
+    try:
+        pg.wait_for_selector(f"{sel}.open .phA.two", timeout=20000)      # the stock photo asked for and come in
+    except Exception:
+        bad.append("your photo: its card has no stock photo to swipe to")
+        return ctx.close()
+    pg.wait_for_timeout(900)
+    side = lambda: e(f"document.querySelector('{sel} .phA').dataset.ph")    # noqa: E731
+    shown = lambda c: e(f"getComputedStyle(document.querySelector('{sel} {c}')).visibility === 'visible'")    # noqa: E731
+    if side() != "0" or not shown(".phCr"):
+        bad.append("your photo: the card doesn't open on your photo and its label")
+    cdp = ctx.new_cdp_session(pg)
+
+    def swipe(x0, x1):                   # a finger from inside the photo, sideways
+        b = pg.locator(f"{sel} .phA").bounding_box()
+        y = b["y"] + b["height"] * .4
+        cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": b["x"] + b["width"] * x0, "y": y}]})
+        for i in range(1, 11):
+            cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": b["x"] + b["width"] * (x0 + (x1 - x0) * i / 10), "y": y}]})
+            pg.wait_for_timeout(16)
+        cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+        pg.wait_for_timeout(600)
+    swipe(.8, .3)
+    if side() != "1" or e("cardOpenNow()"):
+        bad.append(f"your photo: a swipe left didn't show the stock photo (side {side()}, plane card open {e('cardOpenNow()')})")
+    if not shown(".phCrS"):
+        bad.append("your photo: the stock photo's credit doesn't show with it")
+    swipe(.3, .8)
+    if side() != "0" or e("cardOpenNow()"):
+        bad.append("your photo: a swipe right didn't come back to your photo")
+    if not pg.locator(f"{sel}.open").count():
+        bad.append("your photo: a swipe closed the card")
+    pg.locator(f"{sel} .phDots").click()
+    pg.wait_for_timeout(400)
+    if side() != "1" or e("cardOpenNow()"):
+        bad.append("your photo: a tap on the dots didn't switch the photo")
+    pg.locator(f"{sel} .phDots").click()
+    pg.wait_for_timeout(400)
+    pg.locator(f"{sel} .phCr").click()
+    pg.wait_for_timeout(700)
+    if "Only on this phone" not in (e("cardOpenNow() ? document.querySelector('#cardBox').textContent : ''") or ""):
+        bad.append("your photo: the label's tap doesn't explain where the photo is kept")
+    # still there after a reload; then 205 more of other planes: the newest 200 stay, in storage too
+    start()
+    if mine(hx) is not True:
+        bad.append("your photo: gone after a reload")
+    n = e("""(async () => { const c = document.createElement('canvas'); c.width = 40; c.height = 30;
+        for (let i = 0; i < 205; i++) await myPhSave((0xf00000 + i).toString(16), c, 30, Date.now() + 1000 + i);
+        return myPh.map.size; })()""")
+    if n != 200:
+        bad.append(f"your photo: {n} kept after 206 pictures, not the newest 200")
+    if mine(hx):
+        bad.append("your photo: the oldest wasn't the one dropped")
+    start()
+    if e("myPh.map.size") != 200:
+        bad.append(f"your photo: {e('myPh.map.size')} in storage after a reload, not 200")
+    ctx.close()
+    print("your photo is kept, marked and swipes" if not [b for b in bad if b.startswith("your photo")] else "your photo checks failed")
 
 
 def demo_rows_checks(browser, bad):

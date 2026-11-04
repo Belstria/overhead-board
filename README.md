@@ -831,7 +831,7 @@ Five buttons along the bottom:
   colour of its remark, since 1.129.12 on **one metal plate** like Settings' (screws, the planes between engraved lines, the line a groove with a lamp for each plane), since 1.115 **one line a plane**: time, flight, route and
   type, "8 in the last hour" at the top and "All 64 planes today ›" at the end, which goes to Today. Since 1.129.17 the hour carries on across midnight: just after 00:00 the planes of the last hour from yesterday stay, under a YESTERDAY title (Today itself starts at 0). A flight's status
   is a coloured pill on Recent flights (every status word since 1.122: ARRIVING, DEPARTING, SUPERJUMBO ...); at the end of the
-  row, always in this order, Today's **target** for a plane you scanned, a **★** for a type or
+  row, always in this order, a **camera** for a plane you took a picture of in Sky view (1.131, in place of the target), Today's **target** for a plane you scanned, a **★** for a type or
   airline new to the logbook, a **flag** in its colour for an unusual plane (military, a giant such as SUPERJUMBO, a
   police or rescue plane, a special one; on Today also red for an emergency and orange for a diversion) and a pink
   **♥** for a favourite; Recent flights leaves out the mark its pill repeats, and Today has no pills. Today's **bubble**
@@ -849,6 +849,10 @@ Five buttons along the bottom:
   place on the ground the airport it stands at). Under each city of the route it shows the **weather and local time
   there**, "21° · 14:35 local" (Open-Meteo, asked by the relay for the airport's own position and kept an hour; nothing
   about your place is sent). Both lines are there from the start ("···" while asked), so the card doesn't move.
+  **Your photo** (1.131): a plane you took a picture of in Sky view opens on that picture, labelled YOUR PHOTO and the time
+  you took it, with two dots top right; swipe it sideways (anywhere on the photo) or tap the dots for the usual photo, and
+  back. With no usual photo there are no dots. A tap on the label says where it is kept: on this phone only (not synced,
+  gone if the app's or browser's data is cleared), the newest 200, one a plane a day (a second picture replaces the first).
   In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
   itself every 20 seconds; it stays when one side has no plane), with the runway screen in place of the photo, and the
   take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
@@ -962,7 +966,7 @@ Five buttons along the bottom:
   photo, route, details, Favourite and Hide, as on the radar; tap it again or × to close. **Snapshot** (1.80): once a
   plane in the picture is locked on (1.90: once the ring has filled on it in this Sky view), a round shutter appears above the hint (or above the plane's small card): it keeps the sky as on the
   screen, labels and all, with a band under it (Fallblatt, "Sky over" the place, the date, time and how many planes),
-  to share or save. Since 1.114.6 Sky view draws only when the picture changes (with the phone still and nothing
+  to share or save; since 1.131 the picture (without the band) is also kept with the plane locked on, whose Logbook and Recent flights rows then show a camera and whose card opens on it (see Your photo). Since 1.114.6 Sky view draws only when the picture changes (with the phone still and nothing
   moving it rests, saving battery), and the board underneath doesn't flip or clatter while Sky view is open; it shows
   the latest values when you close it.
 - **The opening** (app): the logo, FALLBLATT flipping in letter by letter like split flaps (1.77), and the plane taking
