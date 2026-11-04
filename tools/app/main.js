@@ -3767,7 +3767,6 @@ function arClose(){
   if (arWatch != null && navigator.geolocation) navigator.geolocation.clearWatch(arWatch);
   arWatch = null; cancelAnimationFrame(arRaf);
   arSel = arWant = ""; arCardRender();
-  for (const el of document.querySelectorAll("#gAws .gAw.nq")) if (!el.punched) el.out();   // 1.134: no guess
   $("arView").hidden = true; document.body.classList.remove("arOpen"); if ($("gAws")) gAwsBox();
   flapsHold(false);                                  // 1.114.6: the board catches up, at once and without a sound
   lookSoon();
@@ -4008,7 +4007,7 @@ function arLabel(s, game, sm){
   s.chip = !game ? "" : gx ? "✓ +" + nf.format((gx.lock || 0) + (gx.gs || 0)) : near ? "★" + (pts == null ? "" : " " + nf.format(pts)) : closer ? T("CLOSER TO SCAN") : T("NO PTS");
   s.gold = gold; s.locked = !!gx; s.tier = near ? tier : ""; s.far = game && !gx && !near;
   s.name = arName(ac, info);
-  s.sub = [nqHide(ac, near) ? "?" : arType(ac, info), altitudeStr(s.alt).toLowerCase(), (d / 1000 < 10 ? (d / 1000).toFixed(1) : Math.round(d / 1000)) + " km"].filter(Boolean).join(" · ");
+  s.sub = [arType(ac, info), altitudeStr(s.alt).toLowerCase(), (d / 1000 < 10 ? (d / 1000).toFixed(1) : Math.round(d / 1000)) + " km"].filter(Boolean).join(" · ");
 }
 const arInfoOf = ac => (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(ac);
 const arName = (ac, info = arInfoOf(ac)) => info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
@@ -4917,8 +4916,7 @@ function arPeekHtml(o){
   // 1.93: the thumbnail has no room for Planespotters' credit and link, so it shows the next photo (the whole card has theirs)
   const pic = planePic(ac, info, d, () => { if (arOn && arSel === ac.hex) { arCardSig = ""; arCardRender(); } }, true).src;
   const name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
-  const near = gameOk() && S.live && !arScans.has(ac.hex) && !(gScanGx(ac.hex) || {}).hex && o.dist != null && gCanScan(ac, o.dist);
-  const type = nqHide(ac, near) ? "?" : shortType(d.type || info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || "");   // 1.134
+  const type = shortType(d.type || info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || "");
   const sub = [o.alt != null ? altitudeStr(o.alt).toLowerCase() : "", o.dist != null ? `${o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)} km ${o.dir || ""}` : "", badge ? T(badge) : ""].filter(Boolean).join(" · ");
   const html = `<i class="arGrip"></i><div class="arPeek">${pic ? `<img class="arThumb" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` : `<span class="arThumb"></span>`}` +
     `<div class="arPeekT"><b>${escH([name, type].filter(Boolean).join(" · "))}</b><span>${escH(sub)}</span></div></div>` +
@@ -7571,7 +7569,6 @@ function gTixSync(list){
 }
 function gTixShow(x){
   const f = fromRelay(x), R = gRules(), can = x.can || {};
-  if (f.type && nqHide({hex: x.hex, typeCode: x.typeCode}, true)) f.type = "?";     // 1.134: the scan will ask it
   const gold = !!x.gold, lines = [gAwLine({k: "scan", r: 4, tier: x.tier, p: x.full * (gold ? 2 : 1), full: x.full, gold}, f, true)];   // 1.100: golden, ×2
   const extra = a => lines.push([...gAwLine(a, f), gAwShort(a)]);
   if (can.type) extra({k: "new", w: "type", p: can.type, n: x.typeCode});
@@ -7648,10 +7645,6 @@ function gScanPops(r, onPass){
   if (r.airline && (r.airlineName || r.airlineIata)) lyKnown[r.airline.code] = {name: r.airlineName || "", iata: r.airlineIata || ""};
   const newCc = ppStampNow(r), newCard = !!r.airline && r.airline.scans === 1, cardN = newCard && w ? lyList(g0).length : 1;
   if (newCc) worldMap();                                        // on its way before its turn
-  if (r.guess && Array.isArray(r.guess.names) && r.guess.names.length === 3) {   // 1.134: Name that plane first
-    Object.assign(gNq, {hex: String(r.hex), done: false}); arCardSig = "";
-    gLineAdd(() => nqShow(r));
-  }
   gLineAdd(() => {
     const box = $("gAws"), tix = (box && [...box.children].find(el => el.dataset.tix === String(r.hex) && !el.classList.contains("out"))) || [...gTixOut].find(el => el.dataset.tix === String(r.hex));
     let pass;
@@ -7669,65 +7662,6 @@ function gScanPops(r, onPass){
   if (stk) gLineAdd(() => sheetFree().then(() => stkNew(stk, wk || stkWeek() || stkWeekBack(stk.n))), true);
   if (newCc) gLineAdd(() => sheetFree().then(() => ppNew(r)), true);
   if (newCard) gLineAdd(() => sheetFree().then(() => lyNew(r, cardN)), true);
-}
-/* 1.134 (to-do #312, Dave's pick B, relay 111): Name that plane. At a Sky view scan, before the ticket names the type, a
-   card in the ticket's paper prints three type names (the relay's: the right one and two of its size class); one is
-   punched like a conductor's ticket. The relay judges it (/game/guess): right, a ✓ on the stub and a RIGHT stamp, counted
-   toward the Eagle eye trophies; missed, the pick struck through, the answer ringed in gold, a MISSED stamp. No points
-   either way. No punch within NQ_MS (or the card swiped away, or Sky view closed) is no guess. Then the scan's pass as
-   before. Until then Sky view keeps the type off the plane's label and its small card (nqHide), and off a plane's ticket. */
-const NQ_MS = 10000, NQ_AFTER = 2200;
-const gNq = {hex: "", done: true};                 // the plane whose guess is open (done: answered, skipped or gone)
-const nqTypes = () => gme && Array.isArray(gme.guessTypes) ? (gme.guessSet ||= new Set(gme.guessTypes)) : null;
-// Is this plane's type kept from view: its guess is open, or a scan now would ask it (near: the label's ★)
-function nqHide(ac, near){
-  if (gNq.hex && gNq.hex === ac.hex) return !gNq.done;
-  const ts = near && nqTypes();
-  return !!ts && ts.has(String(ac.t || ac.typeCode || "").toUpperCase());
-}
-const nqBand = q => T("EAGLE EYE {n}/{m}", {n: nf.format(q.n || 0), m: nf.format(q.at || 10)});
-function nqEnd(hex){
-  if (gNq.hex !== hex || gNq.done) return;
-  gNq.done = true; arCardSig = "";
-}
-// The card, the first in the scan's line: it stays until punched and answered, or NQ_MS without a punch.
-function nqShow(r){
-  const q = r.guess, el = document.createElement("div"), hex = String(r.hex);
-  el.className = "gAw nq"; el.setAttribute("role", "group"); el.setAttribute("aria-label", T("Name that plane"));
-  el.innerHTML = `<div class="pF ${r.tier || "uncommon"}"><div class="main"><div class="band"><span>${escH(T("NAME THAT PLANE"))}</span><span>${escH(nqBand(q))}</span></div>` +
-    `<div class="nqN">${q.names.map((n, i) => `<button type="button" data-i="${i}"><i></i><span>${escH(n)}</span></button>`).join("")}</div></div>` +
-    `<div class="stub"><small>${escH(T("TYPE"))}</small><b>?</b><em></em></div></div>`;
-  el.out = () => {
-    if (!el.isConnected || el.classList.contains("out")) return;
-    nqEnd(hex); el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); }, 350);
-  };
-  for (const b of el.querySelectorAll("button[data-i]")) b.onclick = e => { e.stopPropagation(); nqPunch(el, r, +b.dataset.i); };
-  gAwsBox().appendChild(el); gTixStack();
-  gAwTimer(el, NQ_MS);
-  return el;
-}
-async function nqPunch(el, r, i){
-  if (el.punched || el.classList.contains("out")) return;
-  el.punched = true; clearTimeout(el.outT); el.hold = el.release = () => {};
-  const bs = [...el.querySelectorAll("button[data-i]")];
-  bs.forEach(b => { b.disabled = true; }); bs[i].classList.add("sel");
-  audioInit(); ctlSound.toggle(true);
-  try { navigator.vibrate && navigator.vibrate(25); } catch {}
-  let a = null;
-  try { a = await fetchJSON(`${relay()}/game/guess`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({hex: r.hex, i})}, 6000); }
-  catch (e) { dlog("warn", `Name that plane: no answer (${netError(e, "relay")})`); }
-  if (!el.isConnected) return;
-  if (!a || typeof a.right !== "boolean") { el.outT = setTimeout(el.out, 900); return; }   // too late, or no answer: no guess
-  const ok = a.right, sb = el.querySelector(".stub b");
-  if (!ok) { bs[i].classList.add("no"); if (bs[a.answer]) bs[a.answer].classList.add("ans"); }
-  sb.textContent = ok ? "✓" : "✗"; sb.className = ok ? "ok" : "no";
-  el.querySelector(".band span:last-child").textContent = nqBand(a);
-  const st = document.createElement("span");
-  st.className = "nqStamp " + (ok ? "ok" : "no"); st.textContent = ok ? T("Right") : T("Missed");
-  el.querySelector(".main").appendChild(st);
-  dlog("info", `Name that plane: ${ok ? "right" : "missed"} (Eagle eye ${a.n})`);
-  nqEnd(String(r.hex));
-  el.outT = setTimeout(el.out, NQ_AFTER);
 }
 /* 1.126 (to-do #252, Dave's pick: round 3's A, "the strip on paper"): the day's first scan brings a paper pop-up, a twin of the
    card's, the passport's and the medal's (never in a ticket design): the plane on an airstrip printed on the paper, the week's
@@ -8340,8 +8274,7 @@ function achSpecial(a, dry){
 const NUDGE_DO = {planes: ["see {n} more plane", "see {n} more planes"], types: ["see {n} more type", "see {n} more types"], airlines: ["see {n} more airline", "see {n} more airlines"],
   regs: ["see {n} more aircraft", "see {n} more aircraft"], countries: ["see {n} more country", "see {n} more countries"], points: ["earn {n} more point", "earn {n} more points"],
   legendary: ["see {n} more special plane", "see {n} more special planes"], today: ["see {n} more plane today", "see {n} more planes today"],
-  friend: ["see that aircraft {n} more time", "see that aircraft {n} more times"], streak: ["points {n} more day", "points {n} more days"],
-  eagle: ["name {n} more type right", "name {n} more types right"]};
+  friend: ["see that aircraft {n} more time", "see that aircraft {n} more times"], streak: ["points {n} more day", "points {n} more days"]};
 // id (1.125, a tap on the medal's pop-up): the rank just won and its medal first, then what comes after it.
 function trophySheet(L, id){
   const g0 = (lbData() || {}).game, x = {L, st: trophyLadder(g0, L)}, t = x.st.next || x.st.last;

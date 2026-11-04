@@ -2576,110 +2576,6 @@ def passport_checks(expect):
         serve._airports = real_ap if real_ap is not None else {"v": 4, "iata": {}, "icao": {}}   # no download in the other checks
 
 
-def guess_checks(expect):
-    """Relay 111 (1.134, to-do #312): Name that plane. The relay picks the two wrong names (the plane's size class, each of
-    another family, never the right type twice or a type of the same name), keeps the three on the sighting, judges the
-    punch once a pass within GUESS_S, and counts the right ones toward the Eagle eye trophies, which pay no points."""
-    import random
-    import tempfile
-    import types
-    from pathlib import Path
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
-    import serve
-    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
-    real = serve.where_name, serve.watch_of
-    serve.where_name, serve.watch_of = (lambda lat, lon: {}), (lambda hx: None)
-    lat, lon = 48.2085, 16.3731
-    tmp = Path(tempfile.mkdtemp(prefix="fb-guess-"))
-    try:
-        N, fam = serve.GUESS_NAMES, serve._guess_family
-        expect("families: the 737s one, the A318 to A321neo one, the E2 with its E-Jet, the CRJs one",
-               (fam(N["B738"]) == fam(N["B38M"]) == fam(N["B737"]), fam(N["A319"]) == fam(N["A21N"]), fam(N["E295"]) == fam(N["E195"]),
-                fam(N["CRJ7"]) == fam(N["CRJX"]), fam(N["E175"]) == fam(N["E75L"]), fam(N["A320"]) == fam(N["BCS3"]),
-                fam(N["B738"]) == fam(N["B752"])), (True, True, True, True, True, False, False))
-
-        def cls(t):
-            return {serve.GUESS_CLASS.get(n, n) for n, ts in serve.SETS if t in ts}
-        rnd, bad = random.Random(7), []
-        for t in N:
-            for _ in range(25):
-                c = serve.guess_choices(t, rnd)
-                ok = (c is not None and len(c) == 3 and t in c and all(x in N for x in c) and len({fam(N[x]) for x in c}) == 3
-                      and len({N[x] for x in c}) == 3 and all(cls(x) & cls(t) for x in c))
-                if not ok:
-                    bad.append((t, c))
-        expect("every known type: three names, the right one once, three families, all of its size class (25 draws each)", bad[:3], [])
-        a320 = {x for _ in range(200) for x in serve.guess_choices("A320", rnd)} - {"A320"}
-        expect("an A320's wrong names: narrowbodies of both makers, never another A32x or a widebody",
-               (bool(a320 & {"B738", "B38M", "B737", "B739", "B736", "B37M", "B39M"}), bool(a320 & {"BCS1", "BCS3"}),
-                a320 & {"A318", "A319", "A321", "A19N", "A20N", "A21N"}, a320 & {"A333", "B789", "EC35"}), (True, True, set(), set()))
-        heli = {x for _ in range(100) for x in serve.guess_choices("EC35", rnd)}
-        expect("a helicopter's: helicopters", heli <= set(dict(serve.SETS)["Helicopters"]), True)
-        expect("a type the guess doesn't know: no guess", (serve.guess_choices("ZZZZ"), serve.guess_choices(""), serve.guess_choices(None)), (None,) * 3)
-        expect("the shuffle: the right name isn't always in one place", len({serve.guess_choices("B738", rnd).index("B738") for _ in range(60)}), 3)
-
-        def ac(hx, km, t="A320", cs="AUA1"):
-            return {"hex": hx, "lat": lat + km / 111.2, "lon": lon, "alt_baro": 3000, "gs": 200, "t": t, "flight": cs}
-        sp = serve.Spot(tmp / "p", None, lambda: 3)
-        sp.ensure_day()
-        planes = [ac(f"e{i:05x}", 5 + i % 7, t, f"AUA{i}") for i, t in enumerate(["A320", "B738", "E195", "A359", "DH8D", "CRJ9", "AT76",
-                                                                                  "B77W", "A21N", "B789", "E75L", "BCS3", "B38M"])]
-        sp.record(planes + [ac("e0ffff", 6, "ZZZZ", "XXX1")], str(lat), str(lon), key="live")
-
-        def pts():
-            with serve._data_lock:
-                g = serve.game_book(sp.book())
-                return g["points"], dict(g.get("days", {})), dict(g.get("trophyPaid") or {})
-        r = serve.game_lockon(sp, "e00000")
-        q = r.get("guess") or {}
-        e = sp.by_hex["e00000"]
-        expect("a scan of a known type brings the guess: three names (the right one among them), the count, the next mark",
-               (len(q.get("names") or []), N["A320"] in (q.get("names") or []), q.get("n"), q.get("at"), [N[c] for c in e["gq"]["c"]] == q.get("names")),
-               (3, True, 0, 10, True))
-        expect("... and the scan pays as ever: nothing in its lines for the guess", [x["k"] for x in r.get("lines", [])], ["scan", "new", "new", "streak"])
-        expect("a second scan of it: done, no second guess", (serve.game_lockon(sp, "e00000").get("why"), "guess" in serve.game_lockon(sp, "e00000")), ("done", False))
-        r0 = serve.game_lockon(sp, "e0ffff")
-        expect("a type the guess doesn't know: scanned, no guess; a punch for it counts nothing",
-               (r0.get("bonus", 0) > 0, "guess" in r0, serve.game_guess(sp, "e0ffff", 0)), (True, False, {"why": "none"}))
-        expect("a punch for a plane not scanned: nothing", serve.game_guess(sp, "e00001", 0), {"why": "none"})
-        right = e["gq"]["c"].index("A320")
-        wrong = (right + 1) % 3
-        p0 = pts()
-        m = serve.game_guess(sp, "e00000", wrong)
-        expect("a wrong punch: missed, the answer's place, the count unchanged, no points",
-               (m.get("right"), m.get("answer"), m.get("n"), m.get("won"), pts() == p0), (False, right, 0, [], True))
-        expect("... once a pass: a second punch is done", serve.game_guess(sp, "e00000", right), {"why": "done"})
-        got = []
-        for x in planes[1:11]:
-            serve.game_lockon(sp, x["hex"])
-            ee = sp.by_hex[x["hex"]]
-            p1 = pts()
-            got.append(serve.game_guess(sp, x["hex"], ee["gq"]["c"].index(x["t"])))
-            if pts() != p1:
-                got.append("points changed")
-        expect("ten right punches: counted one by one, the tenth wins Eagle eye, the mark moves to 50, no points",
-               ([a.get("n") for a in got], got[-1].get("won"), got[-1].get("at"), [a.get("right") for a in got].count(True)),
-               (list(range(1, 11)), ["eagle10"], 50, 10))
-        with serve._data_lock:
-            g = serve.game_book(sp.book())
-            g3 = serve.game3_json(sp.book(), sp.day)
-            expect("the trophy is the game's, counted for the boards; never paid; the logbook's own count stays 0",
-                   ("eagle10" in g3["trophies"], g3["trophyCounts"]["eagle"], "eagle10" in (g.get("trophyPaid") or {}),
-                    serve.trophy_counts(sp.book())["eagle"], "eagle10" in sp.book().get("trophies", {})), (True, 10, False, 0, False))
-        late = planes[11]
-        serve.game_lockon(sp, late["hex"])
-        sp.by_hex[late["hex"]]["gq"]["t"] -= (serve.GUESS_S + 1) * 1000
-        expect("a punch later than GUESS_S after the scan: late, not counted",
-               serve.game_guess(sp, late["hex"], sp.by_hex[late["hex"]]["gq"]["c"].index(late["t"])), {"why": "late"})
-        with serve._data_lock:
-            expect("... the count stays 10", serve.game_book(sp.book()).get("eagle"), 10)
-        with serve._data_lock:
-            serve.trophy_check(serve.game_book(sp.book()), sp.by_hex[planes[12]["hex"]], [])
-            expect("the trophies' own check wins no Eagle eye rank by itself", "eagle50" in serve.game_book(sp.book())["trophies"], False)
-    finally:
-        serve.where_name, serve.watch_of = real
-
-
 def golden_checks(expect):
     """Relay 84 (to-do #148): golden tickets. About one plane in 20, from a hash of a salt kept in data/ (made once, mode
     600), the day and the plane: the same for every profile all day, kept over a restart, different with another salt.
@@ -3019,7 +2915,6 @@ def checks():
     golden_checks(expect)
                                     # relay 84: no golden tickets in the other checks (data/'s salt would make 1 in 20 gold)
     serve.game_gold = lambda day, hx: False
-    guess_checks(expect)            # relay 111: Name that plane
     game_rule_checks(expect)
     bingo_trophy_checks(expect)
     bingo_closer_checks(expect)
@@ -3192,18 +3087,8 @@ def checks():
         expect("... the day's first scan brings day 1 of the streak", [x["p"] for x in lk.get("lines", []) if x["k"] == "streak"], [25])
         st, _, b = call("/game/lockon", "test-device", body={"hex": hx})
         expect("the same plane scanned twice", json.loads(b).get("why") if st == 200 else st, "done")
-        # relay 111 (to-do #312): Name that plane over HTTP: the types it asks, a punch judged once, guarded like a scan
-        expect("/game/me: the types Name that plane asks (relay 111)", "A320" in (me0.get("guessTypes") or []), True)
-        if lk.get("guess"):
-            pk = [call("/game/guess", "test-device", body={"hex": hx, "i": 0}) for _ in range(2)]
-            expect("a punch: judged (right or not, the answer's place), then done",
-                   [sorted(json.loads(b)) if st == 200 else st for st, _, b in pk], [["answer", "at", "n", "right", "won"], ["why"]])
-        time.sleep(2.5)                 # the punches above used the rate limit's burst (1 a second, 4 at once)
-        expect("... a pick that isn't 0, 1 or 2", [call("/game/guess", "test-device", body={"hex": hx, "i": i})[0] for i in (3, True, "1", None)], [400] * 4)
-        expect("... from another site", call("/game/guess", "test-device", {"Origin": "https://evil.example"}, {"hex": hx, "i": 0})[0] in (403, 429), True)
-        expect("... from a stranger", call("/game/guess", None, None, {"hex": hx, "i": 0})[0] in (401, 403), True)
         st, _, b = call("/game/me", "test-device")
-        expect("... and it left the scan list (relay 82)", hx in [x["hex"] for x in (json.loads(b) if st == 200 else {}).get("scan") or []], False)
+        expect("the scanned plane left the scan list (relay 82)", hx in [x["hex"] for x in (json.loads(b) if st == 200 else {}).get("scan") or []], False)
     # relay 85: the flight school over HTTP: the scan above and the favourite added earlier were missions; a plane's
     # card is the app's call, paid once
     sc = (json.loads(call("/game/me", "test-device")[2]).get("school") or {})
@@ -3933,112 +3818,6 @@ def sky_sizes_checks(browser, bad):
     ctx.close()
 
 
-def name_that_plane_checks(browser, bad):
-    """1.134 (to-do #312, relay 111): Name that plane. Sky view keeps the type off a plane a scan would ask about (its
-    label, its small card, its ticket); a scan with a guess shows the guess card first (three names, the band's count),
-    then the pass. A punch the relay calls right: ✓, RIGHT, the count up; missed: the pick struck through, the answer ringed,
-    ✗, MISSED; no punch (swiped away, the time up, Sky view closed): no call to the relay. 360 px: the names fit."""
-    ctx = browser.new_context(viewport={"width": 360, "height": 740})
-    ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
-
-    def hooked(route):
-        r = route.fetch()
-        t = r.text()
-        i = t.rindex("})();")
-        route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
-    ctx.route("**/app/", hooked)
-    pg = ctx.new_page()
-    pg.on("pageerror", lambda x: bad.append(f"name that plane: page error: {x}"))
-    pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
-    pg.goto(BASE + "/app/")
-    pg.wait_for_function("window.__e && __e('!!gme')", timeout=20000)
-    e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
-    clear = 'document.querySelectorAll("#gAws .gAw").forEach(x => x.remove()); gLine.q.length = 0; gLine.el = null; 1'
-    if "A320" not in (e("gme.guessTypes") or []):
-        bad.append(f"/game/me brought no guess types: {e('gme.guessTypes')}")
-    # the type kept off: a plane a scan would ask about, not one too far or of a type it doesn't ask
-    e("S.live = true; window.__sv = {ac: {hex: 'nq0001', t: 'A320', flight: 'AUA1', alt_baro: 3000}, d: 3000, alt: 3000}; 1")
-    got = e("""(() => { const s = __sv, out = []; arLabel(s, true, new Map()); out.push(s.sub.split(' · ')[0]);
-                 arLabel(s, false, new Map()); out.push(s.sub.split(' · ')[0]);
-                 s.ac = {...s.ac, hex: 'nq0002', t: 'ZZZZ'}; arLabel(s, true, new Map()); out.push(s.sub.split(' · ')[0]);
-                 s.ac = {...s.ac, hex: 'nq0003', t: 'A320'}; s.d = 90000; arLabel(s, true, new Map()); out.push(s.sub.split(' · ')[0]); return out; })()""")
-    if got[0] != "?" or got[1] == "?" or got[2] == "?" or got[3] == "?":
-        bad.append(f"Sky view's label: the type hidden only on a plane a scan would ask about: {got}")
-    tix = e("""(() => { const f = gTixShow; S.ticket = ''; gTixShow({hex: 'nq0004', callsign: 'AUA9', flight: 'AUA9', typeCode: 'A320', tier: 'common', full: 10, km: 3, can: {}});
-               const x = document.querySelector('#gAws .gAw.tix') || [...gTixOut][0]; return x ? x.querySelector('.who').textContent : null; })()""")
-    if not tix or "A320" in tix or "?" not in tix:
-        bad.append(f"a plane's ticket shows the type a scan will ask: {tix}")
-    e(clear)
-    # the guess before the pass; the relay's answer stubbed (the relay's own checks judge it)
-    e("""window.__calls = []; window.__ans = null; if (!window.__fj) window.__fj = fetchJSON;
-         fetchJSON = (u, o, t) => { if (String(u).includes('/game/guess')) { __calls.push(JSON.parse(o.body)); return Promise.resolve(__ans); } return __fj(u, o, t); }; 1""")
-    scan = """S.ticket = ''; gScanPops({hex: '%s', callsign: 'AUA1', flight: 'AUA1', typeCode: 'A320', airline: {code: 'AUA', scans: 3}, bonus: 50, tier: 'common',
-              full: 10, km: 3, lines: [{k: 'scan', p: 10, tier: 'common', full: 10}], guess: {names: ['Boeing 737-800', 'Airbus A320', 'Embraer E195'], n: 6, at: 10}}, () => {}); 1"""
-    state = """(() => { const c = document.querySelector('#gAws .gAw.nq:not(.out)'); return {card: !!c, pass: !!document.querySelector('#gAws .gAw.rip'),
-                 band: c && c.querySelector('.band span:last-child').textContent, names: c ? [...c.querySelectorAll('button span')].map(x => x.textContent) : [],
-                 stub: c && c.querySelector('.stub b').textContent, stamp: c && (c.querySelector('.nqStamp') || {}).textContent || '',
-                 sel: c ? [...c.querySelectorAll('button')].map(b => b.className) : [], hidden: nqHide({hex: gNq.hex, t: 'A320'}, false),
-                 fits: c ? [...c.querySelectorAll('button span')].every(x => x.scrollWidth <= x.clientWidth + 1) && c.getBoundingClientRect().right <= innerWidth : null}; })()"""
-    e(scan % "nq0010")
-    pg.wait_for_timeout(700)
-    s0 = e(state)
-    if not s0["card"] or s0["pass"] or s0["names"] != ["Boeing 737-800", "Airbus A320", "Embraer E195"] or s0["band"] != "EAGLE EYE 6/10" or s0["stub"] != "?" or not s0["hidden"]:
-        bad.append(f"at the scan: the guess card first, three names, EAGLE EYE 6/10, TYPE ?, the type hidden: {s0}")
-    if not s0["fits"]:
-        bad.append(f"at 360 px the guess card's names don't fit: {s0}")
-    e("__ans = {right: true, answer: 1, n: 7, at: 10, won: []}; document.querySelectorAll('#gAws .gAw.nq button')[1].click(); 1")
-    pg.wait_for_timeout(500)
-    s1 = e(state)
-    if (s1["stub"], s1["stamp"], s1["band"], s1["hidden"], "sel" in s1["sel"][1], e("__calls")) != ("✓", e("T('Right')"), "EAGLE EYE 7/10", False, True, [{"hex": "nq0010", "i": 1}]):
-        bad.append(f"a right punch: ✓, RIGHT, 7/10, the type shown again, one call: {s1} {e('__calls')}")
-    pg.wait_for_timeout(2600)
-    s2 = e(state)
-    if s2["card"] or not s2["pass"]:
-        bad.append(f"after the answer the card goes and the scan's pass comes: {s2}")
-    e(clear)
-    e(scan % "nq0011")
-    pg.wait_for_timeout(600)
-    e("__ans = {right: false, answer: 1, n: 6, at: 10, won: []}; document.querySelectorAll('#gAws .gAw.nq button')[2].click(); 1")
-    pg.wait_for_timeout(500)
-    s3 = e(state)
-    if (s3["stub"], s3["stamp"], s3["band"], "ans" in s3["sel"][1], "no" in s3["sel"][2] and "sel" in s3["sel"][2]) != ("✗", e("T('Missed')"), "EAGLE EYE 6/10", True, True):
-        bad.append(f"a missed punch: ✗, MISSED, the pick struck, the answer ringed: {s3}")
-    e("document.querySelectorAll('#gAws .gAw.nq button')[0].click(); 1")
-    pg.wait_for_timeout(300)
-    if len(e("__calls")) != 2:
-        bad.append(f"a second punch on the same card called the relay again: {e('__calls')}")
-    e(clear)
-    # no punch: swiped away, the time up, Sky view closed: no call, the pass comes, the type shows
-    e(scan % "nq0012")
-    pg.wait_for_timeout(600)
-    e("document.querySelector('#gAws .gAw.nq').out(); 1")
-    pg.wait_for_timeout(900)
-    s4 = e(state)
-    if s4["card"] or not s4["pass"] or s4["hidden"] or len(e("__calls")) != 2:
-        bad.append(f"a guess swiped away: no guess, the pass, the type shown: {s4} {e('__calls')}")
-    e(clear)
-    e(scan % "nq0013")
-    pg.wait_for_timeout(11400)
-    s5 = e(state)
-    if s5["card"] or not s5["pass"] or len(e("__calls")) != 2:
-        bad.append(f"no punch in 10 s: the card goes by itself, no call: {s5}")
-    e(clear)
-    e('$("arView").hidden = false; document.body.classList.add("arOpen"); gAwsBox(); arOn = true; 1')
-    e(scan % "nq0014")
-    pg.wait_for_timeout(600)
-    e("arClose(); 1")
-    pg.wait_for_timeout(500)
-    s6 = e(state)
-    if s6["card"] or len(e("__calls")) != 2 or s6["hidden"]:
-        bad.append(f"Sky view closed with the guess open: it goes, no call: {s6}")
-    e(clear)
-    # the trophy's ladder from the relay's count
-    lad = e("(() => { const L = TROPHY_LADDERS.find(l => l[0] === 'eagle'); const st = trophyLadder({trophies: {}, trophyCounts: {eagle: 7}}, L); return [st.have, st.next && st.next[0], T(L[1], {n: 10})]; })()")
-    if lad != [7, "eagle10", "10 types named right"]:
-        bad.append(f"the Eagle eye ladder: {lad}")
-    ctx.close()
-
-
 def sky_row_checks(browser, bad):
     """1.128 (to-do #258): the area under the plane's picture. Each state from made-up planes through skyState(); In range at
     17 km through the relay's list and for a moment after the circle; scanned, and a later pass; no flip on the edge; the
@@ -4602,7 +4381,6 @@ def browser_checks(browser):
     recent_midnight_checks(browser, bad)
     demo_rows_checks(browser, bad)
     sky_sizes_checks(browser, bad)
-    name_that_plane_checks(browser, bad)
     styles_cell_checks(browser, bad)
     settings_plate_checks(browser, bad)
     tab_after_audio_checks(browser, bad)
