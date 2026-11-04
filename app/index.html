@@ -2231,6 +2231,24 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
 .gAw .pF.no{--t1:#8b8f99;--t2:#b9bcc4;--ti:#17140e}
 .gAw .pF .stub b{font:700 var(--fs-3xl)/1 var(--f-board)}
 .gAw .nt{padding:0 12px 10px;font:600 var(--fs-xs)/1.35 var(--f-board);color:#777}
+.gAw.nq{cursor:default}
+.gAw.nq .pF{transform:rotate(-2deg)}
+.gAw.nq .main{position:relative}
+.nq .stub b.ok,.nq .stub b.no{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:#fbf8f1;box-shadow:inset 0 1px 3px rgba(0,0,0,.3)}
+.nq .stub b.ok{color:#1d7a3d}.nq .stub b.no{color:#a2281e}
+.nqN{display:grid;padding:4px 10px 6px}
+.nqN button{display:flex;align-items:center;gap:10px;min-height:40px;padding:4px 2px;border:0;border-bottom:1px dashed #cfc7b4;background:none;font:700 var(--fs-m)/1.15 var(--f-board);color:#111;text-align:left;cursor:pointer}
+.nqN button:last-child{border-bottom:0}
+.nqN button:disabled{cursor:default;color:#111}
+.nqN i{flex:none;width:15px;height:15px;border-radius:50%;border:1.5px solid #b5ad9a;background:#fbf8f1;box-sizing:border-box}
+.nqN .sel i,.nqN .ans i{border-color:transparent;background:radial-gradient(circle,#2a241a 0 55%,#4b4232 56% 70%,transparent 71%)}
+.nqN .ans:not(.sel) i{background:radial-gradient(circle,transparent 0 45%,#b8901f 46% 62%,transparent 63%);border:0}
+.nqN .no span{text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:#a2281e;color:#6b665c}
+.nqN .ans span{color:#8a6a10}
+.nqStamp{position:absolute;right:10px;top:34px;transform:rotate(-12deg);font:700 var(--fs-l)/1 var(--f-board);letter-spacing:.12em;padding:3px 9px;border:2.5px solid currentColor;border-radius:5px;pointer-events:none;mix-blend-mode:multiply;animation:nqStamp .28s cubic-bezier(.3,1.6,.5,1) both}
+.nqStamp.ok{color:#1d7a3d}.nqStamp.no{color:#a2281e}
+@keyframes nqStamp{from{opacity:0;transform:rotate(-12deg) scale(1.8)}to{opacity:1;transform:rotate(-12deg)}}
+@media (prefers-reduced-motion: reduce){.nqStamp{animation:none}}
 .gAw{touch-action:pan-y}
 .gAw .scn{display:flex;width:100%;align-items:center;gap:8px;padding:9px 12px 10px;border:0;border-top:1.5px dashed #d8d1c2;border-radius:0;background:#f3eee2;
   font:700 var(--fs-xs)/1.25 var(--f-board);color:#17140e;text-align:left;cursor:pointer}
@@ -6415,6 +6433,7 @@ const TROPHY_LADDERS = [
   ["countries", "Aircraft from {n} countries scanned", [["countries10", 10, "Passport"], ["countries25", 25, "Diplomat"], ["countries50", 50, "United Nations"]]],
   ["points", "{n} points", [["points1k", 1000, "High scorer"], ["points10k", 10000, "Big scorer"], ["points100k", 100000, "Top scorer"]]],
   ["legendary", "{n} special planes scanned", [["legend10", 10, "Spotter's eye"], ["legend100", 100, "Rare breed"], ["legend500", 500, "Hall of fame"]]],
+  ["eagle", "{n} types named right", [["eagle10", 10, "Eagle eye"], ["eagle50", 50, "Sharp eye"], ["eagle250", 250, "Hawk eye"]]],
   ["today", "{n} planes in one day", [["busyday", 100, "Busy sky"], ["busy300", 300, "Rush hour"], ["busy500", 500, "Gridlock"]]],
   ["friend", "The same aircraft scanned {n} times", [["oldfriend", 25, "Old friend"], ["regular100", 100, "Regular"]]],
   ["streak", "Points {n} days running", [["streak7", 7, "On a roll"], ["streak30", 30, "Unstoppable"]]]];
@@ -10036,6 +10055,7 @@ function arClose(){
   if (arWatch != null && navigator.geolocation) navigator.geolocation.clearWatch(arWatch);
   arWatch = null; cancelAnimationFrame(arRaf);
   arSel = arWant = ""; arCardRender();
+  for (const el of document.querySelectorAll("#gAws .gAw.nq")) if (!el.punched) el.out();
   $("arView").hidden = true; document.body.classList.remove("arOpen"); if ($("gAws")) gAwsBox();
   flapsHold(false);
   lookSoon();
@@ -10239,7 +10259,7 @@ function arLabel(s, game, sm){
   s.chip = !game ? "" : gx ? "✓ +" + nf.format((gx.lock || 0) + (gx.gs || 0)) : near ? "★" + (pts == null ? "" : " " + nf.format(pts)) : closer ? T("CLOSER TO SCAN") : T("NO PTS");
   s.gold = gold; s.locked = !!gx; s.tier = near ? tier : ""; s.far = game && !gx && !near;
   s.name = arName(ac, info);
-  s.sub = [arType(ac, info), altitudeStr(s.alt).toLowerCase(), (d / 1000 < 10 ? (d / 1000).toFixed(1) : Math.round(d / 1000)) + " km"].filter(Boolean).join(" · ");
+  s.sub = [nqHide(ac, near) ? "?" : arType(ac, info), altitudeStr(s.alt).toLowerCase(), (d / 1000 < 10 ? (d / 1000).toFixed(1) : Math.round(d / 1000)) + " km"].filter(Boolean).join(" · ");
 }
 const arInfoOf = ac => (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(ac);
 const arName = (ac, info = arInfoOf(ac)) => info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
@@ -11049,7 +11069,8 @@ function arPeekHtml(o){
   const d = detailsOf(ac.hex) || {}, badge = badgeFor(liveFacts(ac, info)) || radarStatus(o);
   const pic = planePic(ac, info, d, () => { if (arOn && arSel === ac.hex) { arCardSig = ""; arCardRender(); } }, true).src;
   const name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
-  const type = shortType(d.type || info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || "");
+  const near = gameOk() && S.live && !arScans.has(ac.hex) && !(gScanGx(ac.hex) || {}).hex && o.dist != null && gCanScan(ac, o.dist);
+  const type = nqHide(ac, near) ? "?" : shortType(d.type || info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || "");
   const sub = [o.alt != null ? altitudeStr(o.alt).toLowerCase() : "", o.dist != null ? `${o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)} km ${o.dir || ""}` : "", badge ? T(badge) : ""].filter(Boolean).join(" · ");
   const html = `<i class="arGrip"></i><div class="arPeek">${pic ? `<img class="arThumb" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` : `<span class="arThumb"></span>`}` +
     `<div class="arPeekT"><b>${escH([name, type].filter(Boolean).join(" · "))}</b><span>${escH(sub)}</span></div></div>` +
@@ -12392,6 +12413,10 @@ setInterval(() => {
   nowTurn = Date.now();
 }, 1000);
 const CHANGELOG = [
+  {v: "1.134", date: "2026-11-04", notes: [
+    "Name that plane: a Sky view scan first asks the plane's type, with three names to pick from. No points either way; right answers count toward the new Eagle eye trophy.",
+    "Until then Sky view shows a ? for the type of a plane you can scan.",
+  ]},
   {v: "1.133", date: "2026-11-04", notes: [
     "The space station takes the board while it passes where you can see it: its own IN ORBIT row, how high to look and which way, and its path across the Radar.",
     "Special planes notifications also say a few minutes ahead when the space station will be up.",
@@ -15463,6 +15488,7 @@ function gTixSync(list){
 }
 function gTixShow(x){
   const f = fromRelay(x), R = gRules(), can = x.can || {};
+  if (f.type && nqHide({hex: x.hex, typeCode: x.typeCode}, true)) f.type = "?";
   const gold = !!x.gold, lines = [gAwLine({k: "scan", r: 4, tier: x.tier, p: x.full * (gold ? 2 : 1), full: x.full, gold}, f, true)];
   const extra = a => lines.push([...gAwLine(a, f), gAwShort(a)]);
   if (can.type) extra({k: "new", w: "type", p: can.type, n: x.typeCode});
@@ -15531,6 +15557,10 @@ function gScanPops(r, onPass){
   if (r.airline && (r.airlineName || r.airlineIata)) lyKnown[r.airline.code] = {name: r.airlineName || "", iata: r.airlineIata || ""};
   const newCc = ppStampNow(r), newCard = !!r.airline && r.airline.scans === 1, cardN = newCard && w ? lyList(g0).length : 1;
   if (newCc) worldMap();
+  if (r.guess && Array.isArray(r.guess.names) && r.guess.names.length === 3) {
+    Object.assign(gNq, {hex: String(r.hex), done: false}); arCardSig = "";
+    gLineAdd(() => nqShow(r));
+  }
   gLineAdd(() => {
     const box = $("gAws"), tix = (box && [...box.children].find(el => el.dataset.tix === String(r.hex) && !el.classList.contains("out"))) || [...gTixOut].find(el => el.dataset.tix === String(r.hex));
     let pass;
@@ -15547,6 +15577,57 @@ function gScanPops(r, onPass){
   if (stk) gLineAdd(() => sheetFree().then(() => stkNew(stk, wk || stkWeek() || stkWeekBack(stk.n))), true);
   if (newCc) gLineAdd(() => sheetFree().then(() => ppNew(r)), true);
   if (newCard) gLineAdd(() => sheetFree().then(() => lyNew(r, cardN)), true);
+}
+const NQ_MS = 10000, NQ_AFTER = 2200;
+const gNq = {hex: "", done: true};
+const nqTypes = () => gme && Array.isArray(gme.guessTypes) ? (gme.guessSet ||= new Set(gme.guessTypes)) : null;
+function nqHide(ac, near){
+  if (gNq.hex && gNq.hex === ac.hex) return !gNq.done;
+  const ts = near && nqTypes();
+  return !!ts && ts.has(String(ac.t || ac.typeCode || "").toUpperCase());
+}
+const nqBand = q => T("EAGLE EYE {n}/{m}", {n: nf.format(q.n || 0), m: nf.format(q.at || 10)});
+function nqEnd(hex){
+  if (gNq.hex !== hex || gNq.done) return;
+  gNq.done = true; arCardSig = "";
+}
+function nqShow(r){
+  const q = r.guess, el = document.createElement("div"), hex = String(r.hex);
+  el.className = "gAw nq"; el.setAttribute("role", "group"); el.setAttribute("aria-label", T("Name that plane"));
+  el.innerHTML = `<div class="pF ${r.tier || "uncommon"}"><div class="main"><div class="band"><span>${escH(T("NAME THAT PLANE"))}</span><span>${escH(nqBand(q))}</span></div>` +
+    `<div class="nqN">${q.names.map((n, i) => `<button type="button" data-i="${i}"><i></i><span>${escH(n)}</span></button>`).join("")}</div></div>` +
+    `<div class="stub"><small>${escH(T("TYPE"))}</small><b>?</b><em></em></div></div>`;
+  el.out = () => {
+    if (!el.isConnected || el.classList.contains("out")) return;
+    nqEnd(hex); el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); }, 350);
+  };
+  for (const b of el.querySelectorAll("button[data-i]")) b.onclick = e => { e.stopPropagation(); nqPunch(el, r, +b.dataset.i); };
+  gAwsBox().appendChild(el); gTixStack();
+  gAwTimer(el, NQ_MS);
+  return el;
+}
+async function nqPunch(el, r, i){
+  if (el.punched || el.classList.contains("out")) return;
+  el.punched = true; clearTimeout(el.outT); el.hold = el.release = () => {};
+  const bs = [...el.querySelectorAll("button[data-i]")];
+  bs.forEach(b => { b.disabled = true; }); bs[i].classList.add("sel");
+  audioInit(); ctlSound.toggle(true);
+  try { navigator.vibrate && navigator.vibrate(25); } catch {}
+  let a = null;
+  try { a = await fetchJSON(`${relay()}/game/guess`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({hex: r.hex, i})}, 6000); }
+  catch (e) { dlog("warn", `Name that plane: no answer (${netError(e, "relay")})`); }
+  if (!el.isConnected) return;
+  if (!a || typeof a.right !== "boolean") { el.outT = setTimeout(el.out, 900); return; }
+  const ok = a.right, sb = el.querySelector(".stub b");
+  if (!ok) { bs[i].classList.add("no"); if (bs[a.answer]) bs[a.answer].classList.add("ans"); }
+  sb.textContent = ok ? "✓" : "✗"; sb.className = ok ? "ok" : "no";
+  el.querySelector(".band span:last-child").textContent = nqBand(a);
+  const st = document.createElement("span");
+  st.className = "nqStamp " + (ok ? "ok" : "no"); st.textContent = ok ? T("Right") : T("Missed");
+  el.querySelector(".main").appendChild(st);
+  dlog("info", `Name that plane: ${ok ? "right" : "missed"} (Eagle eye ${a.n})`);
+  nqEnd(String(r.hex));
+  el.outT = setTimeout(el.out, NQ_AFTER);
 }
 const STK_W = 255, STK_S = 22, STK_LAND_MS = 1250, STK_RUN_MS = 950, STK_FLY_MS = 1700;
 function stkWeek(){
@@ -16075,7 +16156,8 @@ function achSpecial(a, dry){
 const NUDGE_DO = {planes: ["see {n} more plane", "see {n} more planes"], types: ["see {n} more type", "see {n} more types"], airlines: ["see {n} more airline", "see {n} more airlines"],
   regs: ["see {n} more aircraft", "see {n} more aircraft"], countries: ["see {n} more country", "see {n} more countries"], points: ["earn {n} more point", "earn {n} more points"],
   legendary: ["see {n} more special plane", "see {n} more special planes"], today: ["see {n} more plane today", "see {n} more planes today"],
-  friend: ["see that aircraft {n} more time", "see that aircraft {n} more times"], streak: ["points {n} more day", "points {n} more days"]};
+  friend: ["see that aircraft {n} more time", "see that aircraft {n} more times"], streak: ["points {n} more day", "points {n} more days"],
+  eagle: ["name {n} more type right", "name {n} more types right"]};
 function trophySheet(L, id){
   const g0 = (lbData() || {}).game, x = {L, st: trophyLadder(g0, L)}, t = x.st.next || x.st.last;
   if (!t) return;
