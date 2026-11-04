@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 109
+RELAY_VERSION = 110
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -4737,6 +4737,261 @@ def sky_json(code):
             "clear": clear, "raw": raw}
 
 
+# ---------- The space station (relay 110, app 1.133): when the ISS goes over where it can be seen (a dark enough sky,
+# the station in sunlight, at least 10° up), the boards show it as its own row and the phone gets one "look up"
+# notification a few minutes before. Its orbit (a TLE) comes once a day from CelesTrak (free, no key), kept on disk so
+# a day when CelesTrak is down works on yesterday's; the passes come from the sgp4 library (Debian's python3-sgp4, 0.4 MB
+# on disk, under 2 MB of memory; without it the relay simply shows no station). The relay hands each board the coming passes with their track
+# in the sky every 10 s, so the board draws where the station is now without asking again.
+try:
+    from sgp4.api import Satrec, jday
+    from sgp4.propagation import gstime
+    ISS_OK = True
+except ImportError:
+    ISS_OK = False
+ISS_TLE_URL = "https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE"
+ISS_TLE_FILE = DATA_DIR / "iss-tle.txt"
+ISS_TLE_MAX_DAYS = 14        # an orbit older than this is too far off to say where to look
+ISS_MIN_EL = 10              # a pass counts from 10° up, as Heavens-Above and NASA's Spot the Station count it
+ISS_SUN_EL = -6              # dark enough once the sun is 6° below the horizon (the end of civil twilight)
+ISS_NOTIFY_EL = 25           # the notification only for passes rising at least this high (lower ones hide behind roofs)
+ISS_NOTIFY_S = 5 * 60        # it goes out this long before the station appears
+ISS_FAKE_AT = 0              # tools/test/run_test_relay.py --iss: a made-up pass from this time on (the test copy only)
+_iss = {"tle": None, "at": 0, "tried": 0}
+_iss_sent = {}               # (subscription endpoint, pass start) -> time sent
+
+
+def iss_tle():
+    """The station's two orbit lines: from disk while less than a day old, else fresh from CelesTrak (tried at most once
+    an hour while it fails, keeping the old ones meanwhile, up to ISS_TLE_MAX_DAYS)."""
+    now = time.time()
+    with _lock:
+        if not _iss["tle"]:
+            try:
+                lines = [ln.strip() for ln in ISS_TLE_FILE.read_text(encoding="ascii").splitlines() if ln.strip()]
+                if len(lines) >= 2 and lines[-2].startswith("1 ") and lines[-1].startswith("2 "):
+                    _iss.update(tle=(lines[-2], lines[-1]), at=ISS_TLE_FILE.stat().st_mtime)
+            except (OSError, ValueError):
+                pass
+        if _iss["tle"] and now - _iss["at"] < 86400:
+            return _iss["tle"]
+        if now - _iss["tried"] < 3600:
+            return _iss["tle"] if _iss["tle"] and now - _iss["at"] < ISS_TLE_MAX_DAYS * 86400 else None
+        _iss["tried"] = now
+    status, _, body, _ = fetch(ISS_TLE_URL, timeout=15, headers={"Accept": "text/plain"})
+    lines = [ln.strip() for ln in (body or b"").decode("ascii", "replace").splitlines() if ln.strip()]
+    if status == 200 and len(lines) >= 2 and lines[-2].startswith("1 25544") and lines[-1].startswith("2 25544"):
+        with _lock:
+            _iss.update(tle=(lines[-2], lines[-1]), at=now)
+        try:
+            tmp = ISS_TLE_FILE.with_suffix(".tmp")
+            tmp.write_text("\n".join(lines[-3:]) + "\n", encoding="ascii")
+            tmp.replace(ISS_TLE_FILE)
+        except OSError as e:
+            event("warn", f"Couldn't keep the space station's orbit: {e}", echo=False)
+        event("info", "The space station's orbit came from CelesTrak", echo=False)
+    else:
+        event("warn", f"CelesTrak didn't hand out the space station's orbit (HTTP {status}); keeping the last one", echo=False)
+    with _lock:
+        return _iss["tle"] if _iss["tle"] and now - _iss["at"] < ISS_TLE_MAX_DAYS * 86400 else None
+
+
+def sun_radec(t):
+    """The sun's right ascension and declination (radians) at unix time t: the Astronomical Almanac's low-precision
+    formulas (some 0.01°), the same the app's Sky view draws the sun with (skyBodies)."""
+    r = math.pi / 180
+    n = t / 86400 - 10957.5
+    ep = (23.439 - 4e-7 * n) * r
+    g = (357.528 + .9856003 * n) * r
+    L = (280.46 + .9856474 * n + 1.915 * math.sin(g) + .02 * math.sin(2 * g)) * r
+    return math.atan2(math.cos(ep) * math.sin(L), math.cos(L)), math.asin(math.sin(ep) * math.sin(L))
+
+
+def _iss_observer(lat, lon, h_km=0.2):
+    a, f = 6378.137, 1 / 298.257223563                      # WGS 84
+    e2 = f * (2 - f)
+    p, l_ = math.radians(lat), math.radians(lon)
+    N = a / math.sqrt(1 - e2 * math.sin(p) ** 2)
+    pos = ((N + h_km) * math.cos(p) * math.cos(l_), (N + h_km) * math.cos(p) * math.sin(l_), (N * (1 - e2) + h_km) * math.sin(p))
+    return pos, (math.sin(p), math.cos(p), math.sin(l_), math.cos(l_))
+
+
+def _iss_azel(d, trig):
+    sp, cp, sl, cl = trig
+    e = -sl * d[0] + cl * d[1]
+    n = -sp * cl * d[0] - sp * sl * d[1] + cp * d[2]
+    u = cp * cl * d[0] + cp * sl * d[1] + sp * d[2]
+    return (math.degrees(math.atan2(e, n)) + 360) % 360, math.degrees(math.atan2(u, math.hypot(e, n)))
+
+
+def iss_at(sat, obs, t):
+    """The station seen from obs (_iss_observer) at unix time t: azimuth and elevation, its height (km) and speed (km/s),
+    whether the sun lights it (outside the earth's shadow, taken as a cylinder) and the sun's elevation there."""
+    tm = time.gmtime(t)
+    jd, fr = jday(tm.tm_year, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec + t % 1)
+    err, rt, v = sat.sgp4(jd, fr)
+    if err:
+        return None
+    gs = gstime(jd + fr)
+    c, s = math.cos(gs), math.sin(gs)
+    r = (c * rt[0] + s * rt[1], -s * rt[0] + c * rt[1], rt[2])          # TEME -> earth-fixed (polar motion left out)
+    pos, trig = obs
+    az, el = _iss_azel((r[0] - pos[0], r[1] - pos[1], r[2] - pos[2]), trig)
+    ra, dec = sun_radec(t)
+    su = (math.cos(dec) * math.cos(ra - gs), math.cos(dec) * math.sin(ra - gs), math.sin(dec))
+    sd = r[0] * su[0] + r[1] * su[1] + r[2] * su[2]
+    rr = r[0] ** 2 + r[1] ** 2 + r[2] ** 2
+    return {"az": az, "el": el, "h": math.sqrt(rr) - 6371, "v": math.sqrt(v[0] ** 2 + v[1] ** 2 + v[2] ** 2),
+            "lit": sd > 0 or math.sqrt(max(0.0, rr - sd * sd)) > 6371, "sun": _iss_azel(su, trig)[1]}
+
+
+def _iss_seen(k):
+    return bool(k) and k["el"] >= ISS_MIN_EL and k["lit"] and k["sun"] <= ISS_SUN_EL
+
+
+def iss_passes(tle, lat, lon, t0, hours=36):
+    """The visible passes over (lat, lon) from t0 for `hours` (a pass going on at t0 starts at t0)."""
+    if not ISS_OK or not tle:
+        return []
+    sat = Satrec.twoline2rv(tle[0], tle[1])
+    obs = _iss_observer(lat, lon)
+
+    def at(t):
+        return iss_at(sat, obs, t)
+
+    def edge(a, b):                                                       # where being seen changes, to the second
+        sa = _iss_seen(at(a))
+        while b - a > 1:
+            m = (a + b) / 2
+            if _iss_seen(at(m)) == sa:
+                a = m
+            else:
+                b = m
+        return round(a if sa else b)
+    out, t, prev, start, step = [], float(int(t0)), False, None, 20
+    while t <= t0 + hours * 3600:
+        k = at(t)
+        if k and k["el"] < -20:                   # far below the horizon: minutes before it can come up
+            if start is not None:
+                out.append(_iss_pass(at, start, edge(t - step, t)))
+            prev, start = False, None
+            t += 120
+            continue
+        now = _iss_seen(k)
+        if now and not prev:
+            start = edge(t - step, t) if t > t0 else t
+        elif prev and not now and start is not None:
+            out.append(_iss_pass(at, start, edge(t - step, t)))
+            start = None
+        prev = now
+        t += step
+    if start is not None:
+        out.append(_iss_pass(at, start, edge(t - step, t)))
+    return [p for p in out if p["end"] - p["start"] >= 10]
+
+
+def _iss_pass(at, s, e):
+    """A pass from s to e: where it appears and goes, its highest point (to the second), its height and speed there,
+    and its track every 10 s ([t, az, el])."""
+    pts, top, t = [], None, s
+    while True:
+        k = at(t)
+        pts.append([int(t), round(k["az"], 1), round(k["el"], 1)])
+        if not top or k["el"] > top[1]["el"]:
+            top = (t, k)
+        if t >= e:
+            break
+        t = min(e, t + 10)
+    tt, k = max(((u, at(u)) for u in range(int(max(s, top[0] - 10)), int(min(e, top[0] + 10)) + 1)), key=lambda x: x[1]["el"])
+    a, b = at(s), at(e)
+    return {"start": int(s), "end": int(e), "top": int(tt), "maxEl": round(k["el"], 1), "maxAz": round(k["az"], 1),
+            "startAz": round(a["az"], 1), "startEl": round(a["el"], 1), "endAz": round(b["az"], 1), "endEl": round(b["el"], 1),
+            "km": round(k["h"]), "kms": round(k["v"], 2), "pts": pts}
+
+
+def iss_fake(t0):
+    """tools/test/run_test_relay.py --iss: a made-up pass from t0, like the one in the mockups (in from the west, 57° up
+    in the south-south-east, gone in the east-south-east), the same wherever the board is."""
+    D, RE, H, V, TRK, DMIN = math.pi / 180, 6371, 420, 7.2, 106, 205
+
+    def sky(s):                                    # s seconds from its highest point, a straight ground track
+        x = math.sin((TRK + 90) * D) * DMIN + math.sin(TRK * D) * V * s
+        y = math.cos((TRK + 90) * D) * DMIN + math.cos(TRK * D) * V * s
+        g = math.hypot(x, y)
+        return (math.degrees(math.atan2(x, y)) + 360) % 360, math.degrees(math.atan2(H - g * g / (2 * RE), g))
+    s0 = -400
+    while sky(s0)[1] < ISS_MIN_EL:
+        s0 += 1
+    pts = [[int(t0 + s - s0), round(sky(s)[0], 1), round(sky(s)[1], 1)] for s in range(s0, -s0 + 1, 10)]
+    a, b, m = sky(s0), sky(-s0), sky(0)
+    return {"start": int(t0), "end": int(t0 - 2 * s0), "top": int(t0 - s0), "maxEl": round(m[1], 1), "maxAz": round(m[0], 1),
+            "startAz": round(a[0], 1), "startEl": round(a[1], 1), "endAz": round(b[0], 1), "endEl": round(b[1], 1),
+            "km": H, "kms": 7.66, "pts": pts}
+
+
+def iss_json(lat, lon):
+    """/iss: the next visible passes over a place (rounded to 0.1°, some 10 km, which moves a pass by seconds), worked
+    out at most every ten minutes per place, and the age of the orbit they come from."""
+    now = time.time()
+    if ISS_FAKE_AT:
+        return {"status": "ok", "passes": [p for p in [iss_fake(ISS_FAKE_AT)] if p["end"] > now], "orbitAge": 0}
+    if not ISS_OK:
+        return {"status": "off"}
+
+    def load():
+        tle = iss_tle()
+        if not tle:
+            return 503, "", b"", {}
+        try:
+            ps = iss_passes(tle, round(lat, 1), round(lon, 1), now - 900, 36)
+        except Exception as e:                    # a broken orbit: no station rather than a failed request
+            event("warn", f"Space station passes failed: {e}", echo=False)
+            return 503, "", b"", {}
+        return 200, "", json.dumps({"passes": ps, "orbitAge": round((now - _iss["at"]) / 86400, 1)}).encode(), {}
+    status, _, body, _ = cached(f"iss:{lat:.1f},{lon:.1f}", 600, load, fail_ttl=600)
+    if status != 200:
+        return {"status": "none"}
+    j = json.loads(body)
+    return {"status": "ok", "passes": [p for p in j["passes"] if p["end"] > now][:3], "orbitAge": j["orbitAge"]}
+
+
+def _iss_dir(az):
+    return ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"][int((az + 22.5) // 45) % 8]
+
+
+def iss_text(p):
+    """The notification's two lines: "Space station ISS · look up at 18:12" / "From the west, high in the south, gone
+    at 18:19"."""
+    def hm(t):
+        return time.strftime("%H:%M", time.localtime(t))
+    high = "straight overhead" if p["maxEl"] >= 80 else f"{'high' if p['maxEl'] >= 45 else 'low'} in the {_iss_dir(p['maxAz'])}"
+    return (ptext("iss_title", "en", t=hm(p["start"])), ptext("iss_body", "en", dir=_iss_dir(p["startAz"]), high=high, t=hm(p["end"])))
+
+
+def iss_check(who, subs, centre, st):
+    """The "look up" notification (Special planes in Which notifications): one per device and pass, ISS_NOTIFY_S before
+    the station appears, for passes rising ISS_NOTIFY_EL or higher. Quiet at night is kept (passes come in runs, some
+    before dawn)."""
+    want = [s_ for s_ in subs if _push_prefs(s_.get("prefs"))["window"] and _push_prefs(s_.get("prefs"))["special"]]
+    if not want:
+        return
+    now = time.time()
+    for k in [k for k, t in _iss_sent.items() if now - t > 86400]:
+        del _iss_sent[k]
+    p = next((p for p in iss_json(*centre).get("passes") or [] if 0 < p["start"] - now <= ISS_NOTIFY_S and p["maxEl"] >= ISS_NOTIFY_EL), None)
+    if not p:
+        return
+    hour = time.localtime(p["start"]).tm_hour
+    title, body = iss_text(p)
+    for sub in want:
+        key = (sub["endpoint"], p["start"])
+        if key in _iss_sent or (_push_prefs(sub.get("prefs"))["quiet"] and (hour >= 22 or hour < 7)):
+            continue
+        _iss_sent[key] = now
+        _deliver([sub], {"title": title, "body": body, "tag": "iss-" + str(p["start"]), "kind": "special", "url": "/app/"}, urgent=True)
+        event("info", f"Space station alert for {who}: {title}")
+
+
 # ---------- Vienna Airport's arrivals and departures: planned and expected times, so the board can show delays.
 # The airport publishes them for its own website. Read at most every three minutes, and only while a board asks.
 VIE_FLIGHTS = "https://viennaairport.com/jart/prj3/va/data/flights/{}.json"      # inc = arrivals, out = departures
@@ -6573,6 +6828,8 @@ PUSH_TEXT = {
                "nl": "Kijk nu omhoog: {what}"},
     "cd_look": {"en": "look {dir}", "de": "Blick nach {dir}", "fr": "regardez vers {dir}", "es": "mira al {dir}", "nl": "kijk naar {dir}"},
     "cd_up": {"en": "straight up", "de": "direkt nach oben", "fr": "juste au-dessus", "es": "justo encima", "nl": "recht omhoog"},
+    "iss_title": {"en": "Space station ISS · look up at {t}"},
+    "iss_body": {"en": "From the {dir}, {high}, gone at {t}"},
     "test": {"en": "Notifications work. This is how a plane worth a look will show up.", "de": "Benachrichtigungen funktionieren. So erscheint ein Flugzeug, das einen Blick wert ist.",
              "fr": "Les notifications fonctionnent. Voici comment un avion à voir s'affichera.", "es": "Las notificaciones funcionan. Así aparecerá un avión que merece la pena.",
              "nl": "Meldingen werken. Zo verschijnt een vliegtuig dat het bekijken waard is."},
@@ -9118,6 +9375,7 @@ def _push_watch():
         for who, subs, centre, spot, st in push_targets():
             try:
                 window_check(who, subs, centre, spot, st)
+                iss_check(who, subs, centre, st)
                 summary_check(who, subs, spot, st)
                 review_check(who, subs, spot, st)
             except Exception as e:
@@ -9695,6 +9953,17 @@ class Handler(BaseHTTPRequestHandler):
             if r is None:
                 return self.reply(503, "text/plain", b"No position source can be asked right now", {"Retry-After": "60"})
             return self.reply(200, "application/json", json.dumps({"hex": hx, **r}).encode(), {"Cache-Control": "private, max-age=60"})
+        if path == "/iss":                  # relay 110: the space station's next visible passes over a place
+            q = self.query()
+            try:
+                lat, lon = float((q.get("lat") or [""])[0]), float((q.get("lon") or [""])[0])
+            except ValueError:
+                return self.reply(400, "text/plain", b"lat=...&lon=... are required")
+            if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+                return self.reply(400, "text/plain", b"lat=...&lon=... are required")
+            if not allow("iss:" + self.guest[0], 0.2, 6):
+                return self.reply(429, "text/plain", b"Too many requests")
+            return self.reply(200, "application/json", json.dumps(iss_json(lat, lon)).encode(), {"Cache-Control": "private, max-age=300"})
         if path == "/weather":              # relay 109: the weather and local time at a route's airports
             codes = [c for c in re.sub(r"[^A-Z,]", "", ((self.query().get("ap") or [""])[0]).upper()).split(",") if len(c) == 3][:2]
             if not codes:
@@ -9712,7 +9981,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/me":
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/planephoto", "/search", "/now", "/airlines", "/relayinfo", "/facts", "/wherenow", "/weather"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/planephoto", "/search", "/now", "/airlines", "/relayinfo", "/facts", "/wherenow", "/weather", "/iss"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()

@@ -907,15 +907,15 @@ const AIRPORTS = {VIE: {icao:"LOWW", name:"Vienna", lat:48.1103, lon:16.5697, rw
 /* Drums: the order a real flap module turns through. */
 const DRUM_ALPHA = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-/:,'&()";
 const DRUM_DIGIT = " 0123456789:/";      // "/": not known (1.48)
-const DRUM_ALT = " 0123456789,.FTKMH/";   /* short drums for values that change often */
-const DRUM_POS = " 0123456789.:KMNESWICADORV";       // the letters of "in … sec" in every language too
+const DRUM_ALT = " 0123456789,.FTKMHS/";  /* short drums for values that change often (1.133: S for the station's KM/S) */
+const DRUM_POS = " 0123456789.:KMNESWICADORV°";      // the letters of "in … sec" in every language too; 1.133: the station's 57°
 const TRENDS = ["", "UP", "LEVEL", "DOWN"];
 const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
 const REMARKS = ["", "OVERHEAD", "APPROACHING", "FLYING BY", "LEAVING", "PASSED", "NEXT", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
   "CLOSE BY", "NEW TYPE", "NEW AIRLINE", "FAVOURITE", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "MILITARY", "HELICOPTER", "SPECIAL", "EMERGENCY",
   "DIVERTED", "CARGO", "BIZJET", "PRIVATE", "TAKE-OFF", "CLIMBING", "APPROACH", "FINAL", "LANDED", "TAXIING", "PARKED",
   "POLICE", "AMBULANCE", "RESCUE", "FIREFIGHTER", "GOVERNMENT", "ROYAL", "HISTORIC", "CELEBRITY", "VIP",
-  "SKYDIVING", "AEROBATIC", "SURVEY", "UNUSUAL"];
+  "SKYDIVING", "AEROBATIC", "SURVEY", "UNUSUAL", "IN ORBIT"];
 // The airport statuses show a plane taking off or landing in front of the word (tile, the app's chips). 1.49: Tabler
 // Icons' plane-departure and plane-arrival (MIT licence, tabler.io/icons), filled, over a solid runway; LANDED is the
 // take-off plane level on the runway. 24 x 24 units.
@@ -960,7 +960,8 @@ const REMARK_LOOK = {
   GOVERNMENT:{fill:["#23324f","#1a263d"], fg:"#e6c66e", tint:"#e6c66e"}, ROYAL:{fill:["#5b2a86","#47206a"], fg:"#f2d36b"},
   HISTORIC:{fill:["#7a5b3a","#634a2f"], fg:"#f4e6c8"}, CELEBRITY:{fill:["#9b2f8f","#7d2573"], fg:"#ffffff"},
   VIP:{fill:["#1d1d1f","#121214"], fg:"#e6c66e", tint:"#e6c66e"}, SKYDIVING:{fill:["#1f8a9b","#176f7d"], fg:"#ffffff"},
-  AEROBATIC:{fill:["#d8402f","#b53424"], fg:"#ffffff"}, SURVEY:{fill:["#5b6470","#4a525c"], fg:"#e8ebee"}, UNUSUAL:GOLD
+  AEROBATIC:{fill:["#d8402f","#b53424"], fg:"#ffffff"}, SURVEY:{fill:["#5b6470","#4a525c"], fg:"#e8ebee"}, UNUSUAL:GOLD,
+  "IN ORBIT":{fill:["#1c2c52","#142140"], fg:"#e9eefc", tint:"#c9d6f6"}       // 1.133: the space station, night blue
 };
 
 /* ---------- settings ---------- */
@@ -1044,7 +1045,7 @@ function scheduleDiag(){ if (DIAG.open && !diagQueued) { diagQueued = true; requ
 /* ---------- text helpers ---------- */
 function clean(s){
   return String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "SS").replace(/[Øø]/g, "O").replace(/[Łł]/g, "L")
-    .toUpperCase().replace(/[^A-Z0-9 .\-\/:,'&()]/g, "").replace(/\s+/g, " ").trim();
+    .toUpperCase().replace(/[^A-Z0-9 .\-\/:,'&()°]/g, "").replace(/\s+/g, " ").trim();
 }
 function trimTo(s, w){
   if (s.length <= w) return s;
@@ -3541,6 +3542,7 @@ function estArrival(info, o){
   return eta;
 }
 function renderTimes(){
+  if (issShown()) return;                          // 1.133: the station's own times (issRender)
   if (!feat) { ["depTime", "arrTime", "airTime"].forEach(id => setChars(id, "")); return; }
   const info = feat.info || baseInfo(feat.o.ac);
   let dep = utcMs(info.takeoff), arr = null;
@@ -3767,8 +3769,103 @@ function seenLook(){
   f.style = st;
   for (const c of f.cells) drawCell(c, c.anim ? .0001 : null);
 }
+/* ---------- the space station (1.133, relay 110, to-do #309, Dave's pick B) ----------
+   While the ISS passes where it can be seen (a dark sky, the station in sunlight, 10° or more up), it takes the top
+   half in the Overhead style as its own row: the night-blue IN ORBIT status, where it appears and goes, how high it
+   stands now and which way to look, over any plane but an emergency (special planes come every day, the station
+   for a few minutes). The relay hands over the
+   coming passes with their track every 10 s (issCheck, every 15 minutes); where it is now comes from that track. The
+   station is never a plane: feat stays the plane on top, so it never reaches Recent flights, the logbook, the game or
+   the counts. On the Radar its path crosses the scope as a sky chart (issRadar). */
+const ISS_PIC = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/International_Space_Station_after_undocking_of_STS-132.jpg/960px-International_Space_Station_after_undocking_of_STS-132.jpg";
+const DIR16 = az => ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"][Math.round(((az % 360) + 360) % 360 / 22.5) % 16];
+let issPasses = [], issAt = 0, issKey = "", issWas = false;
+function issCheck(){
+  if (S.demo || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 110 || S.lat == null || S.lon == null) return;
+  const key = `${(+S.lat).toFixed(1)},${(+S.lon).toFixed(1)}`, now = Date.now();
+  if (now - issAt < (key === issKey ? 15 * 60000 : 60000)) return;
+  issAt = now; issKey = key;
+  fetchJSON(`${relay()}/iss?lat=${(+S.lat).toFixed(2)}&lon=${(+S.lon).toFixed(2)}`, {}, 8000).then(j => {
+    issPasses = j && j.status === "ok" && Array.isArray(j.passes) ? j.passes : [];
+    if (issPasses[0]) dlog("debug", `Space station: next seen ${new Date(issPasses[0].start * 1000).toLocaleString("en-GB")}, ${issPasses[0].maxEl}° up`);
+  }).catch(() => {});
+}
+// The pass going on now and where the station is in it (between two points of its track), or null.
+function issNow(t = Date.now() / 1000){
+  const p = issPasses.find(p => t >= p.start && t <= p.end && p.pts && p.pts.length);
+  if (!p) return null;
+  const q = p.pts;
+  let i = 0;
+  while (i < q.length - 2 && q[i + 1][0] <= t) i++;
+  const a = q[i], b = q[i + 1] || a, f = b[0] > a[0] ? Math.min(1, Math.max(0, (t - a[0]) / (b[0] - a[0]))) : 0;
+  const daz = ((b[1] - a[1] + 540) % 360) - 180;
+  return {p, az: (a[1] + daz * f + 360) % 360, el: a[2] + (b[2] - a[2]) * f};
+}
+const issShown = () => !S.demo && !airportMode() && !(feat && feat.o && emergencyOf(feat.o.ac)) && issNow();
+function issRender(k){
+  const p = k.p, hm = s => hhmm(new Date(s * 1000)), mins = Math.max(1, Math.round((p.end - p.start) / 60)), dir = DIR16(k.az);
+  setChars("flight", "ISS"); setWord("airline", "-|" + T("SPACE STATION")); setWord("remarks", "IN ORBIT");
+  // where it comes from and goes: over the horizon (RISES, SETS), or out of and into the earth's shadow high up
+  setChars("fromCode", DIR16(p.startAz), 120); setChars("fromCity", p.startEl > 13 ? T("APPEARS") : T("RISES"), 160);
+  setChars("toCode", DIR16(p.endAz), 200); setChars("toCity", p.endEl > 13 ? T("FADES") : T("SETS"), 240);
+  setChars("type", T("SPACE STATION"), 300); setWord("tier", "", 330); setChars("reg", "ISS", 340);
+  setChars("alt", `${p.km} KM`, 380); setWord("trend", "", 390); setChars("speed", `${(+p.kms).toFixed(1)} KM/S`, 400);
+  setChars("pos", `${Math.max(0, Math.round(k.el))}° ${dir}`, 420);
+  setChars("depTime", hm(p.start), 440); setChars("arrTime", hm(p.end), 470);
+  setChars("airTime", `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, "0")}`, 500);
+  if (fields.seen) {
+    setChars("seen", k.el >= 80 ? T("LOOK STRAIGHT UP") : T(k.el >= 45 ? "LOOK UP, HIGH {d}" : "LOOK UP, LOW {d}", {d: dir}), 520);
+    setChars("toGo", "", 510);
+  }
+}
+// Every 5 s while it passes (and once as it goes): where it is now; the plane on top comes back after it.
+setInterval(() => {
+  const on = !!issShown();
+  if (on !== issWas) dlog("info", on ? "Board: the space station is up (IN ORBIT)" : "Board: the space station has gone");
+  if (on || issWas) { renderFeatured(); if (typeof renderAircraftInfo === "function") renderAircraftInfo(); }
+  issWas = on;
+}, 5000);
+// The Radar while it passes: the sky as a chart, the rim the horizon, the centre straight up; its path dashed, the part
+// flown solid, where it appears and goes with their times, the station and how high it is. Part `under` (below the
+// planes) or the station and its words (above them).
+function issSkyXY(cx, cy, R, az, el){ const r = R * (90 - Math.max(0, el)) / 90, a = az * Math.PI / 180; return [cx + Math.sin(a) * r, cy - Math.cos(a) * r]; }
+function issStation(g, x, y, s, col){                       // the station seen from below: a truss and four wings
+  g.save(); g.translate(x, y); g.fillStyle = col; g.strokeStyle = col; g.lineWidth = s * .12;
+  g.beginPath(); g.moveTo(-s, 0); g.lineTo(s, 0); g.stroke();
+  for (const dx of [-.78, -.42, .42, .78]) { g.fillRect(dx * s - s * .13, -s * .62, s * .26, s * .5); g.fillRect(dx * s - s * .13, s * .12, s * .26, s * .5); }
+  g.fillRect(-s * .16, -s * .22, s * .32, s * .44);
+  g.restore();
+}
+function issRadar(g, cx, cy, R, z, k, part){
+  const px = n => n * z, p = k.p, t = Date.now() / 1000, ICE = "#cfe0ff", TAU = Math.PI * 2;
+  const word = (txt, x, y, col, size, align) => {
+    g.font = `700 ${px(size)}px ${FONT}`; g.textAlign = align; g.textBaseline = "middle"; g.lineJoin = "round";
+    g.strokeStyle = "rgba(6,7,8,.85)"; g.lineWidth = px(size * .28); g.strokeText(txt, x, y); g.fillStyle = col; g.fillText(txt, x, y);
+  };
+  const [nx, ny] = issSkyXY(cx, cy, R, k.az, k.el), left = nx > cx + R * .45;
+  g.save();
+  if (part === "under") {
+    const path = upto => { g.beginPath(); p.pts.forEach((q, i) => { if (q[0] > upto) return; const [x, y] = issSkyXY(cx, cy, R, q[1], q[2]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); };
+    g.lineCap = "round"; g.lineJoin = "round";
+    g.setLineDash([px(6), px(5)]); g.strokeStyle = "rgba(201,214,246,.75)"; g.lineWidth = px(1.6); path(Infinity); g.stroke(); g.setLineDash([]);
+    g.strokeStyle = ICE; g.lineWidth = px(2.6); path(t); g.lineTo(nx, ny); g.stroke();
+    for (const [q, tt] of [[p.pts[0], p.start], [p.pts[p.pts.length - 1], p.end]]) {
+      const [x, y] = issSkyXY(cx, cy, R, q[1], q[2]), right = x < cx;
+      g.fillStyle = ICE; g.beginPath(); g.arc(x, y, px(3), 0, TAU); g.fill();
+      word(hhmm(new Date(tt * 1000)), x + px(right ? 8 : -8), y + px(12), "#c9d6f6", 10, right ? "left" : "right");
+    }
+  } else {
+    issStation(g, nx, ny, px(13), ICE);
+    const lx = nx + px(left ? -19 : 19), al = left ? "right" : "left";
+    word("ISS", lx, ny - px(6), "#f3f0e8", 11, al);
+    word(T("{n}° up", {n: Math.max(0, Math.round(k.el))}), lx, ny + px(7), "#c9d6f6", 9.5, al);
+  }
+  g.restore();
+  return {x: nx - px(left ? 62 : 15), y: ny - px(14), w: px(77), h: px(28)};     // the station and its two words
+}
 function renderFeatured(){
   seenLook();
+  { const k = issShown(); if (k) return issRender(k); }
   const ids = ["flight","fromCode","fromCity","toCode","toCity","type","reg","alt","speed","pos"];
   if (!feat) {
     const offline = isOffline();
@@ -3803,6 +3900,7 @@ function renderFeatured(){
 }
 // Like a real board, the status flap alternates with the remark: OVERHEAD, then SUPERJUMBO, and so on.
 function featRemark(){
+  if (issShown()) return "IN ORBIT";              // 1.133: the clock's tick keeps the station's status
   const mode = feat.apSt || MODE_REMARK[feat.mode];
   const badge = feat.o ? badgeFor(liveFacts(feat.o.ac, feat.info)) : "";
   return badge && (badge === "EMERGENCY" || Math.floor(Date.now() / 6000) % 2) ? badge : mode;
@@ -3890,6 +3988,7 @@ const fieldsOf = p => p === "spotted" ? LIST_IDS : isAc(p) ? PAGE_FIELDS.aircraf
 function pageAvailable(p){
   if (p === "spotted") return true;
   if (p === "stats") return spotted.length > 0;
+  if (p === "aircraft" && issShown()) return false;     // 1.133: the station has the flaps, not a plane's page
   if (p === "aircraft") { const d = feat && detailsOf(feat.hex), f = featPic(); return !!(d && d.photo) || f.kind === "ps" || !!f.asking || !!(feat && feat.alert); }   // 1.93: Planespotters' too
   if (p === "aplists") return true;
   if (p === "apland") return !!apFocus("arr");
@@ -5627,8 +5726,8 @@ function paintRadar(g, cx, cy, R, z, t, o = {}){
   g.save(); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.clip();
   radarMapDraw(g, cx, cy, R, range, C, radar.px);
   radarSweep(g, cx, cy, R, (t / 7000) * TAU);                   // slow sweep
-  const ringTags = [], ringStep = radarRing(range);
-  for (let r = ringStep; r <= range; r += ringStep)
+  const ringTags = [], ringStep = radarRing(range), iss = !C.ap && issShown();    // 1.133: the station's sky chart
+  for (let r = ringStep; r <= range && !iss; r += ringStep)
     if (r * k < R - 6) ringTags.push({text: `${nf.format(r)} km`, x: cx + Math.sin(.42) * r * k + px(4), y: cy - Math.cos(.42) * r * k + px(11)});
   airportPos();
   const ap = AP.code === clean(S.home).slice(0, 3) && AP.lat != null && AP.rwys.length ? AP : null;
@@ -5638,12 +5737,12 @@ function paintRadar(g, cx, cy, R, z, t, o = {}){
   // Under the planes, one layer (1.129.21): the overhead circle, the cross, the rings, the dashed spotting radius, the
   // runways (the one in use lit) and the airport's code. Drawn without the clip; it is copied inside it.
   const under = [cx, cy, R, z, range, C.ap ? 1 : 0, C.lat, C.lon, overKm(), S.radiusKm, COL.amber, RADAR_COL.over, FONT,
-    ap ? [S.home, ap.lat, ap.lon, ap.rwys.map(r => used(r) ? 1 : 0).join("")].join() : ""].join();
+    ap ? [S.home, ap.lat, ap.lon, ap.rwys.map(r => used(r) ? 1 : 0).join("")].join() : "", iss ? 1 : 0].join();
   radarLayer(g, "under", under, g => {
     if (!C.ap) { g.fillStyle = rgba(RADAR_COL.over, .12); g.beginPath(); g.arc(cx, cy, overKm() * k, 0, TAU); g.fill(); }
     g.strokeStyle = "rgba(255,255,255,.06)"; g.lineWidth = 1;
     g.beginPath(); g.moveTo(cx - R, cy); g.lineTo(cx + R, cy); g.moveTo(cx, cy - R); g.lineTo(cx, cy + R); g.stroke();
-    for (let r = ringStep; r <= range; r += ringStep) {
+    for (let r = ringStep; r <= range && !iss; r += ringStep) {
       g.strokeStyle = "rgba(255,255,255,.1)"; g.lineWidth = px(.8); g.beginPath(); g.arc(cx, cy, r * k, 0, TAU); g.stroke();
     }
     g.setLineDash([px(8), px(6)]); g.strokeStyle = rgba(COL.amber, .6); g.lineWidth = px(1.4);
@@ -5660,6 +5759,7 @@ function paintRadar(g, cx, cy, R, z, t, o = {}){
   });
   g.font = `600 ${px(10.5)}px ${FONT}`; g.textAlign = "left"; g.textBaseline = "alphabetic";
   if (ap) g.lineJoin = "round";                                  // the planes' trails were always drawn after the airport's code
+  const issBox = iss ? issRadar(g, cx, cy, R, z, iss, "under") : null;   // 1.133: under the planes; the planes' labels keep off it
   const shown = [];
   for (const o_ of radar.planes) {
     const ac = o_.ac, th = (ac.track || 0) * Math.PI / 180, pos = radarPos(o_, now, kx, ky);
@@ -5680,7 +5780,8 @@ function paintRadar(g, cx, cy, R, z, t, o = {}){
   radar.hits = shown.map(s_ => ({o: s_.o, hex: s_.o.ac.hex, x: s_.x, y: s_.y}));   // for a tap on a plane
   const centre = {x: cx - px(12), y: cy - px(12), w: px(24), h: px(24)}, compass = [0, 90, 180, 270].map(d => { const a = d * Math.PI / 180;
     return {x: cx + Math.sin(a) * (R - px(12)) - px(9.5), y: cy - Math.cos(a) * (R - px(12)) - px(9.5), w: px(19), h: px(19)}; });   // N E S W stay readable
-  ringLabels(g, ringTags, radarLabels(g, shown, cx, cy, R, {name: px(11), alt: px(9.5), gap: px(11.5)}, [centre, ...compass, ...(radar.apBox ? [radar.apBox] : [])]), px(10.5));
+  ringLabels(g, ringTags, radarLabels(g, shown, cx, cy, R, {name: px(11), alt: px(9.5), gap: px(11.5)}, [centre, ...compass, ...(radar.apBox ? [radar.apBox] : []), ...(issBox ? [issBox] : [])]), px(10.5));
+  if (iss) issRadar(g, cx, cy, R, z, iss, "over");
   g.restore();
   // Over the planes, one layer (1.129.21): the rim, the glass, N E S W, your place, the engraved range.
   const zoomed = radarZoomed(), over = [cx, cy, R, z, range, C.ap ? 1 : 0, C.lat, C.lon, S.lat, S.lon, COL.amber, COL.housing,
@@ -6471,7 +6572,7 @@ function planePic(ac, info, d, onReady, noPs){
 }
 // A photo's credit: who (the photographer, or what it shows) and where from; on a narrow screen the first part gives way.
 // 1.94: "wm", a card's own photo from Wikimedia Commons (a model's, an airline's plane, an airport).
-const picCreditParts = p => p.kind === "ps" ? ["© " + (p.by || "Planespotters.net"), p.by ? "Planespotters.net" : ""] : p.kind === "own" ? [T("Photo"), "airport-data.com"]
+const picCreditParts = p => p.kind === "iss" ? ["NASA", "Wikimedia Commons"] : p.kind === "ps" ? ["© " + (p.by || "Planespotters.net"), p.by ? "Planespotters.net" : ""] : p.kind === "own" ? [T("Photo"), "airport-data.com"]
   : p.kind === "model" ? [T("Model only"), "Wikimedia Commons"] : p.kind === "wm" ? [T("Photo"), "Wikimedia Commons"] : ["", ""];
 const picCredit = p => picCreditParts(p).filter(Boolean).join(" · ");
 const picCreditHtml = p => { const [a, b] = picCreditParts(p), go = p.kind === "ps" ? '<i aria-hidden="true"> ↗</i>' : "";
@@ -8022,6 +8123,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.133", date: "2026-11-04", notes: [
+    "The space station takes the board while it passes where you can see it: its own IN ORBIT row, how high to look and which way, and its path across the Radar.",
+    "Special planes notifications also say a few minutes ahead when the space station will be up.",
+  ]},
   {v: "1.131", date: "2026-11-03", notes: [
     "A picture you take in Sky view stays with the plane: its row gets a camera, and its card opens on your photo, the usual photo a swipe away.",
   ]},
@@ -10295,7 +10400,7 @@ async function poll(force){
   if (!list) return;
   if (liveWaiting() && !S.demo) { const none = []; none.now = list.now; list = none; }   // 1.90: not around a spot saved before
   lastList = list;
-  try { skyCheck(); listsLoad(); process(list); watchAsk(list); if (typeof arFeed === "function") arFeed(list); snapSave(); }
+  try { skyCheck(); issCheck(); listsLoad(); process(list); watchAsk(list); if (typeof arFeed === "function") arFeed(list); snapSave(); }
   catch (e) { dlog("error", `Couldn't draw the update: ${e && e.message || e}`); }
 }
 // 1.84 (the tracking review): between updates (10 s on a board, 5 s in the app) the board looks at the last one again

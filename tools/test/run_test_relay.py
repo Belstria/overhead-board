@@ -6,6 +6,8 @@ are not touched: the test relay runs from a temporary folder.
     py tools/test/run_test_relay.py --quiet    no special planes, so the pages rotate undisturbed
     py tools/test/run_test_relay.py --hover    adds a police helicopter hovering overhead
     py tools/test/run_test_relay.py --far      the landing starts 32 km out (its photo, then the runway radar)
+    py tools/test/run_test_relay.py --iss      the space station passes over a minute after the start, for 7 minutes (--iss 0:
+                                               at once; --iss 600: in ten minutes, its notification first)
     py tools/test/run_test_relay.py --ring     two more planes from the south: one comes within 15 km (passive points and its
                                                scan ticket) and then within 10 km, the other passes 12 km out (1.98)
     py tools/test/run_test_relay.py --fr24     the relay acts as if it had a Flightradar24 key (served by the fake); David's
@@ -58,6 +60,7 @@ def main():
     p.add_argument("--quiet", action="store_true", help="no special planes")
     p.add_argument("--hover", action="store_true", help="add a helicopter hovering overhead")
     p.add_argument("--far", action="store_true", help="the landing starts 32 km out")
+    p.add_argument("--iss", type=int, nargs="?", const=60, default=None, help="the space station passes over, starting SECONDS after the start (60; the pass lasts 7 min)")
     p.add_argument("--ring", action="store_true", help="a plane coming within 15, then 10 km, and one passing 12 km out (both can be scanned)")
     p.add_argument("--fr24", action="store_true", help="pretend the relay has a Flightradar24 key")
     p.add_argument("--late-routes", action="store_true", help="with --fr24: David has old sightings without a route and the route back-fill starts at once")
@@ -132,6 +135,8 @@ def run(a, tmp, procs):
             raise SystemExit(f"relay/serve.py no longer has {real}; update run_test_relay.py")
         src = src.replace(real, fake, 1)
     src = re.sub(r"^FR24_GAP_S = [\d.]+", "FR24_GAP_S = 0.5", src, flags=re.M)
+    if a.iss is not None:                 # relay 110: a made-up visible pass of the space station, a.iss seconds from now
+        src = re.sub(r"^ISS_FAKE_AT = 0", f"ISS_FAKE_AT = {int(time.time()) + a.iss}", src, count=1, flags=re.M)
     src = re.sub(r"^SKY_REPORTS_MAX = \d+", "SKY_REPORTS_MAX = 2", src, flags=re.M)   # flows.py checks the cap
     gold = "    return int(h[:8], 16) % GOLD_ONE_IN == 0"    # relay 84: golden tickets only as asked (--gold)
     if gold not in src:

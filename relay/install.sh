@@ -16,8 +16,9 @@ SRC=https://raw.githubusercontent.com/Belstria/overhead-board/main/relay
 HERE=/nonexistent
 [ -f "$0" ] && HERE=$(cd "$(dirname "$0")" && pwd)       # run as a file: use the copies next to it (not when piped)
 
-if ! command -v python3 >/dev/null || ! command -v curl >/dev/null || ! python3 -c "import cryptography" 2>/dev/null; then
-  apt-get update -q && apt-get install -y -q python3 curl python3-cryptography   # cryptography: push notifications
+if ! command -v python3 >/dev/null || ! command -v curl >/dev/null || ! python3 -c "import cryptography" 2>/dev/null || ! python3 -c "import sgp4" 2>/dev/null; then
+  # cryptography: push notifications; sgp4 (relay 110, 0.4 MB on disk, under 2 MB of memory): the space station's passes
+  apt-get update -q && apt-get install -y -q python3 curl python3-cryptography python3-sgp4
 fi
 id overhead >/dev/null 2>&1 || useradd --system --home-dir "$DIR" --shell /usr/sbin/nologin overhead
 mkdir -p "$DIR/data"

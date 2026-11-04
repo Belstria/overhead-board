@@ -63,6 +63,17 @@ way it says **No traffic**. Before 1.85 it showed the nearest plane flying by, e
 **Spotted today** once per pass. The list marks the ones that came overhead (by the same rule) and otherwise shows
 Arriving or Departing for your home airport. The Spotted today panel also lists each plane's closest distance.
 
+**The space station** (1.133, relay 110): while the ISS passes where you can see it (a dark enough sky, the station in
+sunlight, at least 10° up), it takes the top half in the Overhead style over any plane but an emergency: FLIGHT ISS, a
+night-blue **IN ORBIT** status, FROM where it rises (or APPEARS, coming out of the earth's shadow high up), TO where it
+sets (or FADES into the shadow), the times it appears and goes, POSITION how high it stands now and which way ("57° SSE"),
+and REMARKS "LOOK UP, HIGH SSE". The phone app shows NASA's photo of it under the flaps, without the scan row (it can't
+be scanned) and without a card on a tap. On the Radar its path crosses the scope as a sky chart: the rim is the horizon,
+the centre straight up, the path dashed, the part flown solid, with the times it appears and goes and "ISS 57° up" by
+the station; the km rings step aside while it is up. The station is never a plane: it never goes into Recent flights,
+Spotted today, the Logbook, the game or the counts. It needs a relay of version 110 with the `sgp4` package
+(`relay/install.sh` installs it); the test relay shows a made-up pass with `--iss`.
+
 ## The three boards
 
 | Address | What it is |
@@ -1070,6 +1081,11 @@ the remote).
   shown when the plane is actually along it and heading towards its destination; otherwise the route stays blank.
 - The watchlist: [plane-alert-db](https://github.com/sdr-enthusiasts/plane-alert-db) (ODbL 1.0 / DbCL 1.0).
 - Cloud base at the home airport: its METAR from [aviationweather.gov](https://aviationweather.gov), through the relay.
+- The space station's orbit (relay 110): its two-line elements from [CelesTrak](https://celestrak.org) (free, no key),
+  fetched by the relay once a day and kept on disk (`data/iss-tle.txt`), so a day CelesTrak is down works on the last
+  one (up to 14 days old). The passes are worked out by the relay with the [sgp4](https://pypi.org/project/sgp4/)
+  library (MIT); the sun's position with the same formulas Sky view uses. Checked against Heavens-Above's pass times
+  (`tools/test/iss_passes.py`).
 - Planned and expected times : [Vienna Airport](https://www.viennaairport.com/en/passengers/arrival__departure)'s
   own arrivals and departures lists, read by the relay at most every three minutes while a board is open.
 - Airline logos: the public airline logo service from Aviasales. When an airline has no logo there, its
@@ -1267,6 +1283,9 @@ Since relay 31 each alert says why (a special plane, on the watchlist: police, a
 favourites, a type never seen here, passing very low), and About → Notifications chooses which kinds you get (special
 planes, the watchlist, military and favourites are on; new types and very low passes off). At most one every 15
 minutes and none from 22:00 to 07:00, except emergencies and special planes; hidden planes never notify.
+Since relay 110 Special planes also covers the space station: five minutes before a visible pass that rises at least
+25° up, "Space station ISS · look up at 18:12" / "From the west, high in the south, gone at 18:19" (once per pass;
+quiet at night is kept for it, as passes come in runs, some before dawn).
 Since 1.32 only one notification shows at a time (a new one replaces the last), so Android never stacks them into a
 group with its own icon. With the app open, an alert plays the airport bell instead of the phone's sound; with the app
 closed the phone plays its own notification sound (the "Save the bell" download was removed in 1.40).

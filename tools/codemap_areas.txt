@@ -479,7 +479,7 @@ test/index.html: +COCKPIT +DEFAULTS +applySettings
 tools/app/head.html: .pushOpt #pushBox .pushKinds
 tools/app/main.js: PUSH_KINDS PUSH_KIND_DEFAULTS PUSH_PREFS SW_DIR NATIVE_PUSH NATIVE_ON nativeOn nativeToken pushSub
     pushPossible swReady swRegister enablePush pushBusy renderPush sendSub +DEFAULTS +applySettings
-relay/serve.py: try: VAPID_FILE _vapid SUMMARY_AT _sent _b64u _ub64 vapid _hkdf FCM_FILE _fcm fcm_ready _fcm_token
+relay/serve.py: "from cryptography.hazmat.primitives import hashes" VAPID_FILE _vapid SUMMARY_AT _sent _b64u _ub64 vapid _hkdf FCM_FILE _fcm fcm_ready _fcm_token
     fcm_send push_send PUSH_TEXT DIRS ptext push_targets PUSH_HOSTS push_endpoint_ok _deliver _fav_tokens PUSH_KINDS
     WINDOW_GAP_S _last_window _countdown _push_prefs now_json window_planes window_check countdown_send summary_check
     review_check _push_watch /push/key /push/test /push/subscribe /push/unsubscribe /now +main
@@ -729,6 +729,18 @@ README.md: "**Hue lights (relay 47"
 tools/test/fakehue.py: "class"
 tools/test/run_test_relay.py: "--hue"
 changelog: \bhue\b|lamp|light pulse
+
+[iss] The space station (1.133, relay 110): its visible passes from CelesTrak's orbit (sgp4), the IN ORBIT row, the Radar's sky chart, the "look up" notification
+test/index.html: ISS_PIC DIR16 issPasses issAt issKey issWas issCheck issNow issShown issRender issSkyXY issStation issRadar
+    +renderFeatured +featRemark +renderTimes +paintRadar +pageAvailable +picCreditParts +REMARKS +REMARK_LOOK +DRUM_ALT +DRUM_POS +clean +poll
+tools/app/main.js: +renderAircraftInfo +drawLook +nowEmptyNote +nowPanels "issShown()) return;"
+relay/serve.py: ISS_TLE_URL ISS_TLE_FILE ISS_TLE_MAX_DAYS ISS_MIN_EL ISS_SUN_EL ISS_NOTIFY_EL ISS_NOTIFY_S ISS_FAKE_AT _iss _iss_sent
+    "from sgp4.api import Satrec" iss_tle sun_radec _iss_observer _iss_azel iss_at _iss_seen iss_passes _iss_pass iss_fake iss_json _iss_dir
+    iss_text iss_check /iss +PUSH_TEXT +_push_watch
+relay/install.sh: "python3-sgp4"
+tools/test/iss_passes.py: "Heavens-Above"
+tools/test/run_test_relay.py: "--iss"
+changelog: space station|\bISS\b
 
 [tests] Tests and tools: smoke.py, flows.py, the test relay and fake source, screenshots, lint, CI workflows, this code map
 .github/workflows/check.yml: "name: Check" "The test browser, kept between runs"

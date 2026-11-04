@@ -87,7 +87,7 @@ adsb.fi, adsb.lol (in reserve for its 500 a day, relay 68), airplanes.live, Avio
 (Explorer plan, pacing and per-profile daily limits; boards fall back to free sources when off; relay 66: away from
 home it fills in the low planes the free sources miss for the owner's screens, `fill_*`; relay 67: one record per
 profile, not for pages in the background), cards' data (relay 109: where an aircraft is now, `/wherenow`, and a route's weather and local time, `/weather` from Open-Meteo), geo search, a health watch that pushes the owner (relay 45), week/month review (`/review`, push; relay 46),
-photos for the share picture (`/photo`) and the owner's Hue light pulse (`data/hue.json`, admin page; relay 47), QR sign-in, and since relay 48 board files named by version (`i18n.js?v=<sha256 start>`) with a year's cache when the copy matches. Credit links are in About.
+photos for the share picture (`/photo`) and the owner's Hue light pulse (`data/hue.json`, admin page; relay 47), the space station's visible passes (relay 110, `/iss`: its orbit from CelesTrak once a day, kept in `data/iss-tle.txt`; the passes from the `sgp4` package, Debian's `python3-sgp4`, 0.4 MB on disk and under 2 MB of memory, installed by `install.sh`; without it the relay answers `off` and shows no station), QR sign-in, and since relay 48 board files named by version (`i18n.js?v=<sha256 start>`) with a year's cache when the copy matches. Credit links are in About.
 
 **Profiles and access (relay 42+)**: there is no Home. Every visitor is a profile's device (cookie from a personal invite
 link, an account sign-in, or a QR pairing) or a stranger (only the private page with the QR sign-in, `/health`, the app's

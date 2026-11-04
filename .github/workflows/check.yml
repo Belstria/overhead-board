@@ -29,7 +29,7 @@ jobs:
       # Playwright version; system packages only when the runner lacks some (its image has Chrome's); and every attempt
       # has its own time limit, so a stalled first one still leaves the second its time.
       - name: Python packages
-        run: pip install playwright cryptography
+        run: pip install playwright cryptography sgp4
       - name: Playwright's version
         id: pw
         run: echo "version=$(python -c 'import importlib.metadata as m; print(m.version("playwright"))')" >> "$GITHUB_OUTPUT"
@@ -56,6 +56,8 @@ jobs:
           python -c "$launch"
       - name: The relay compiles
         run: python -m py_compile relay/serve.py
+      - name: The space station's passes match published ones
+        run: python tools/test/iss_passes.py
       - name: The phone app is built from the board
         run: |
           python tools/app/build.py
