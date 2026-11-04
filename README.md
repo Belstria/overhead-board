@@ -873,6 +873,12 @@ Five buttons along the bottom:
   the time engraved with its line running to a round metal knob (⌃), the photo in a window cut into the metal, an engraved line
   from each airport to the plane, and Aircraft, Closest and Height between machined lines; as it opens the lines draw in. The photo (Planespotters' first, its credit a link to the photo's page) opens the
   plane's whole card, the airline, the places and the aircraft type theirs, and the knob, the bar it sits in or another plane folds it back.
+  Since 1.136 (relay 113) the card **draws your pass**: Aircraft, Closest and Height stack on the left and a small radar sits on
+  the right, with you in the middle, your circle, the line the plane flew, a white dot at its closest point and the plane (a
+  jet, a four-engined jumbo, a propeller plane, a helicopter or a fighter) where it left; the letters by the dot say where it
+  passed you, the amber ones by the plane where it was heading. The line draws in as the card opens; a tap on the radar says it
+  in words. The relay keeps about ten points of each pass for it; a sighting from before relay 113 has none, and its card
+  keeps the three boxes in a row.
   Since 1.130 (relay 109) the card also says **where that aircraft is right now**, in a box across under the three:
   **Where now** "Over Serbia · 11,300 m", "On the ground · Dubai", or **Not seen now** when the free tracking networks
   can't hear it ("/" when the relay can't ask just then); a tap on it explains it. The relay looks it up only when a card

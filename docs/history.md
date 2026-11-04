@@ -982,6 +982,23 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.136 (to-do #308 "Your pass, drawn", Dave's picks A "Mini scope", C "letters inside the scope", A "tiles beside the
+  scope, the radar right"; relay 113): `tlCardHtml` passes `infoCard` a `tilesSide` (new, shared): the tiles then sit in
+  `.cPass` (a grid: `.cTiles` stacked in one column on the left with engraved lines, the scope on the right) with
+  `afterTiles` (Where now) still under it. `passLine(e)` reads `e.pass` (`fromRelay` now keeps `pass` and `adsbCat`), cuts
+  the line where it left the circle (`passEdge`), draws it back to the circle along its first leg when it was first seen
+  within 3 km of it, and is null for none, fewer than two points or under 0.5 km of line. `passScope(e, P, V)` is the
+  SVG (`button.cScope[data-pass]` > `svg.psSv`, side `passSize()`: 136 px, down to 112 on a narrow phone): the gradient
+  face, 5 and 10 km rings, the cross, the dashed circle, N, the dashed line to the closest point, you (the logo square),
+  `path.psLine` (clipped, `pathLength=1`), `circle.psDot`, `g.psEnd` (the kind's `KIND_PATHS` by `planeKind`), the letters
+  `text.psIn.psLP` (cream, passed: along the line from you through the dot) and `.psLH` (amber, heading: beside the plane,
+  towards the middle), outlined by `paint-order: stroke`, pushed apart 3 px a step until neither touches the other or the N;
+  then the bezel and four screws. Text sizes are the SVG's own attributes (a drawing, like the canvas radar), so
+  `tokens.py` is unaffected. `passMotion(card, TL_MS * .5)` from `tlOpen` (only a tap's opening): the line draws
+  (dash offset, 1.1 s), the plane rides its points, the dot pops when the plane reaches it, the dashed line and the passed
+  letter fade in with it, the heading letter as the plane arrives. A tap: `passSheet(e)`, a two-line `plateSheet` "Your
+  pass". `rowSig` counts the points, so an open card redraws as a pass grows.
+
 - 1.135 (to-do #314): **the call on Now.** The app's own `setFeat()` calls `voiceCall()` as the board's does (the board's
   part, above); the Chimes knob is the cockpit's, in the Flaps & sound sheet, and `setLine("flaps")` says "sound and
   voice on" or "voice on, sound off" while VOICE plays.
@@ -2140,6 +2157,15 @@ and keeps the screen on while it is open (`FLAG_KEEP_SCREEN_ON`, since 1.13.3.1;
 it, and never replace it, or phones refuse the update. Bump nothing by hand: the APK is named after the newest patch-notes entry plus the build number.
 
 ## The relay
+
+- Relay 113 (1.136, to-do #308): **the line of each pass.** `_record` calls `pass_note(e, _pass_xy(...), radius,
+  closer, track)` on a new sighting and every reading of it from its own place: `e["pass"] = {"r": circle km, "p":
+  points [km east, km north] of the place to 0.1 km, "c": the closest reading, "h": the last track}`. A point is added
+  once the plane has moved `PASS_STEP_KM` (0.5) from the last, a closer reading near it takes its place; one point past
+  the circle ends the line (a plane coming back in carries on). Past `PASS_PTS` (10) `_pass_thin` drops the inner point
+  with the smallest triangle (Visvalingam), never the first, the last or the closest. About 170 bytes a sighting; it goes
+  to the boards with the rows of `/sightings` and `/logbook/flights` (gzipped), no new endpoint. A line marks the day
+  changed. Checks: `flows.py`'s `pass_line_checks`.
 
 - Relay 112 (1.135, to-do #314): **the board's voice.** `/voice?airline&flight&cs&reg&kind&from&to&way&type&now`
   (signed in; `allow` 0.1/s, 6 in a row; `&words=1` gives only the words) answers an MP3. `voice_args()` keeps each
