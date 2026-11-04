@@ -573,7 +573,7 @@ function rowInner(e, now){
 }
 const rowHtml = (e, now) => `<li class="fl" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e, now)}" tabindex="0">${rowInner(e, now)}</li>`;
 const rowSig = e => [e.id || e.hex, e.time, e.flight, e.callsign, e.airline, e.owner, e.type, e.reg, code3(e.from), code3(e.to), e.from && e.from.city, e.to && e.to.city,
-  e.minDist, e.altAtMin, remarkFor(e), e.done, e.place, e.scan, (myPhOf(e) || {}).at].join("|");
+  e.minDist, e.altAtMin, remarkFor(e), e.done, e.place, e.scan, (myPhOf(e) || {}).at, e.pass && e.pass.p && e.pass.p.length].join("|");
 // The card in the list: 1.94's info card (D's): the photo (Planespotters' first; it opens the whole plane card, so only
 // its credit links to Planespotters) with the flight, airline and remark on it, the route band and three boxes.
 const tlPic = e => planePic({hex: e.hex, r: e.reg, t: e.typeCode, desc: e.desc}, {reg: e.reg, type: e.type}, detailsOf(e.hex) || {photo: e.photo}, tlLate);
@@ -592,6 +592,132 @@ function tlAgo(e){
   const m = Math.max(0, Math.floor((Date.now() - (e.ts || 0)) / 6e4));
   return m < 1 ? T("just now") : m < 60 ? T("{n} min ago", {n: m}) : T("{h} h {m} min ago", {h: Math.floor(m / 60), m: m % 60});
 }
+/* 1.136 (to-do #308, Dave's picks A, C and A, 4 Nov 2026): your pass, drawn. Relay 113 keeps about ten points of each
+   pass (`e.pass`: r the circle in km, p the points in km east and north of you, c the closest, h the heading). The opened
+   card (tlCardHtml: the Logbook's and Now's Recent flights) draws them in a small scope right of its three tiles, which
+   stack: you in the middle, the circle, the line the plane flew, a dot at its closest point and the plane's own kind at
+   the line's end; inside, the letters of where it passed you (cream, by the dot) and where it was heading (amber, by the
+   plane), outlined dark so they read over the lines. A tap opens the two-line sheet. A sighting from before relay 113
+   has no points, so its card keeps the row of tiles. */
+const PASS_LTR = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+const PASS_DIR = ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"];
+const passOct = (x, y) => Math.round(((Math.atan2(x, y) * 180 / Math.PI + 360) % 360) / 45) % 8;
+// where the segment from a (inside the circle of radius r) to b (outside) crosses it
+function passEdge(a, b, r){
+  const dx = b[0] - a[0], dy = b[1] - a[1], A = dx * dx + dy * dy, B = 2 * (a[0] * dx + a[1] * dy), C = a[0] * a[0] + a[1] * a[1] - r * r;
+  const t = A ? Math.max(0, Math.min(1, (-B + Math.sqrt(Math.max(0, B * B - 4 * A * C))) / (2 * A))) : 0;
+  return [a[0] + dx * t, a[1] + dy * t];
+}
+// The line to draw: cut where it left the circle, drawn back to the circle along its first leg when it was first seen
+// near it; null when there is none (before relay 113) or it hardly moved.
+function passLine(e){
+  const p = e && e.pass, ok = q => Array.isArray(q) && isFinite(q[0]) && isFinite(q[1]), hyp = q => Math.hypot(q[0], q[1]);
+  if (!p || !Array.isArray(p.p)) return null;
+  const r = +p.r > 0 ? +p.r : 15;
+  let pts = p.p.filter(ok).map(q => [+q[0], +q[1]]);
+  if (pts.length < 2 || hyp(pts[0]) > r + .2) return null;
+  const out = pts.findIndex((q, i) => i && hyp(q) > r && hyp(pts[i - 1]) <= r);
+  if (out > 0) pts = pts.slice(0, out).concat([passEdge(pts[out - 1], pts[out], r)]);
+  let len = 0;
+  for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+  if (len < .5) return null;
+  const a = pts[0], b = pts[1], ab = Math.hypot(a[0] - b[0], a[1] - b[1]);
+  if (hyp(a) > r - 3 && ab > 0) pts.unshift(passEdge(a, [a[0] + (a[0] - b[0]) / ab * 2 * r, a[1] + (a[1] - b[1]) / ab * 2 * r], r));
+  const cp = ok(p.c) ? [+p.c[0], +p.c[1]] : pts.reduce((m, q) => hyp(q) < hyp(m) ? q : m);
+  const l = pts[pts.length - 1], m = pts[pts.length - 2];
+  const hdg = isFinite(p.h) && p.h !== null ? +p.h : (Math.atan2(l[0] - m[0], l[1] - m[1]) * 180 / Math.PI + 360) % 360;
+  return {pts, cp, hdg, r};
+}
+// The scope's side: 136 px, less on a narrow phone so the tiles beside it keep their width
+const passSize = () => Math.max(112, Math.min(136, Math.round((document.documentElement.clientWidth || 390) - 254)));
+function passScope(e, P, V){
+  const f1 = n => n.toFixed(1), id = "ps" + String(e.id || e.hex || "").replace(/\W/g, "");
+  const c = V / 2, R = Math.round((V - 13) / 2), k = R / P.r, AMB = "#f0b429", INK = "#f3f0e8";
+  const xy = q => [c + q[0] * k, c - q[1] * k], pts = P.pts.map(xy), cp = xy(P.cp);
+  const last = pts[pts.length - 1], prev = pts[pts.length - 2], deg = Math.atan2(last[0] - prev[0], -(last[1] - prev[1])) * 180 / Math.PI;
+  const pol = (rr, b) => [c + Math.sin(b * Math.PI / 180) * rr, c - Math.cos(b * Math.PI / 180) * rr], dd = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]);
+  const kind = planeKind({t: e.typeCode, category: e.adsbCat}), ps = R > 56 ? 16 : 15;
+  let s = `<defs><radialGradient id="${id}G" cx="50%" cy="42%" r="60%"><stop offset="0" stop-color="#15181a"/><stop offset="1" stop-color="#08090a"/></radialGradient>` +
+    `<clipPath id="${id}C"><circle cx="${c}" cy="${c}" r="${R + 1}"/></clipPath></defs><circle cx="${c}" cy="${c}" r="${R}" fill="url(#${id}G)"/>`;
+  for (const r of [5, 10]) if (r < P.r) s += `<circle cx="${c}" cy="${c}" r="${f1(r * k)}" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="1"/>`;
+  s += `<path d="M${c - R} ${c}H${c + R}M${c} ${c - R}V${c + R}" stroke="rgba(255,255,255,.07)" stroke-width="1"/>` +
+    `<circle cx="${c}" cy="${c}" r="${R - 1}" fill="none" stroke="rgba(240,180,41,.45)" stroke-width="1.2" stroke-dasharray="3 3"/>` +
+    `<text x="${c}" y="${c - R + 11}" text-anchor="middle" font-size="8" class="psN">${escH(T("N"))}</text>` +
+    `<path class="psDash" d="M${c} ${c}L${f1(cp[0])} ${f1(cp[1])}" stroke="${INK}" stroke-opacity=".75" stroke-width="1.2" stroke-dasharray="2.5 2.5"/>`;
+  const hs = 10;                                     // you: the logo's square in the middle
+  s += `<rect x="${c - hs / 2}" y="${c - hs / 2}" width="${hs}" height="${hs}" rx="${hs * .2}" fill="${AMB}"/>` +
+    `<path transform="translate(${f1(c - hs * .36)} ${f1(c - hs * .36)}) scale(${hs * .72 / 100}) rotate(45 50 50)" d="${KIND_PATHS.jet}" fill="#141414"/>`;
+  s += `<path class="psLine" clip-path="url(#${id}C)" d="${pts.map((q, i) => (i ? "L" : "M") + f1(q[0]) + " " + f1(q[1])).join("")}" fill="none" stroke="${AMB}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" pathLength="1"/>` +
+    `<circle class="psDot" cx="${f1(cp[0])}" cy="${f1(cp[1])}" r="3.6" fill="${INK}" stroke="#08090a" stroke-width="1.2"/>` +
+    `<g class="psEnd" data-s="${ps / 100}" transform="translate(${f1(last[0])} ${f1(last[1])}) rotate(${f1(deg)}) scale(${ps / 100}) translate(-50 -50)"><path d="${KIND_PATHS[kind] || KIND_PATHS.jet}" fill="${AMB}"/></g>`;
+  // the letters: where it was heading beside the plane (on the side towards the middle), where it passed you along
+  // the line from you through the dot, on whichever side of the dot is farther from the other letter
+  const pT = escH(T(PASS_LTR[passOct(P.cp[0], P.cp[1])])), hT = escH(T(PASS_LTR[passOct(Math.sin(P.hdg * Math.PI / 180), Math.cos(P.hdg * Math.PI / 180))]));
+  const tr = deg * Math.PI / 180, inR = q => { const rr = dd(q, [c, c]), m = R - 9; return rr > m ? [c + (q[0] - c) * m / rr, c + (q[1] - c) * m / rr] : q; };
+  let lh = inR([[last[0] + Math.cos(tr) * 15, last[1] + Math.sin(tr) * 15], [last[0] - Math.cos(tr) * 15, last[1] - Math.sin(tr) * 15]].sort((a, b) => dd(a, [c, c]) - dd(b, [c, c]))[0]);
+  const rd = dd(cp, [c, c]), pb = Math.atan2(P.cp[0], P.cp[1]) * 180 / Math.PI;
+  const outs = [Math.max(rd + 11, 19), Math.max(rd - 11, 19)].filter(r => r < R - 9).map(r => pol(r, pb));
+  let lp = (outs.length ? outs : [pol(R - 11, pb)]).sort((a, b) => dd(b, lh) - dd(a, lh))[0];
+  // at the circle's edge the two can meet, and either can land on the N at the top: pushed apart a step at a time (and
+  // kept inside) until no two boxes touch; the N stays where it is
+  const half = t => t.length * 3.6 + 2.5, N = [c, c - R + 8], bh = 12;
+  const hit = (p, tp, q, tq) => Math.abs(p[0] - q[0]) < half(tp) + half(tq) && Math.abs(p[1] - q[1]) < bh;
+  const away = (p, q) => { let vx = p[0] - q[0], vy = p[1] - q[1], n = Math.hypot(vx, vy); if (n < .01) { vx = c - q[0]; vy = c - q[1]; n = Math.hypot(vx, vy) || 1; } return [vx / n * 3, vy / n * 3]; };
+  for (let i = 0; i < 12; i++) {
+    let moved = false;
+    if (hit(lp, pT, lh, hT)) { const v = away(lp, lh); lp = inR([lp[0] + v[0], lp[1] + v[1]]); lh = inR([lh[0] - v[0], lh[1] - v[1]]); moved = true; }
+    if (hit(lp, pT, N, "N")) { const v = away(lp, N); lp = inR([lp[0] + v[0] * 2, lp[1] + v[1] * 2]); moved = true; }
+    if (hit(lh, hT, N, "N")) { const v = away(lh, N); lh = inR([lh[0] + v[0] * 2, lh[1] + v[1] * 2]); moved = true; }
+    if (!moved) break;
+  }
+  const lab = (q, t, col, cls) => `<text class="psIn ${cls}" x="${f1(q[0])}" y="${f1(q[1] + 3.3)}" text-anchor="middle" font-size="9.5" fill="${col}">${t}</text>`;
+  s += lab(lp, pT, INK, "psLP") + lab(lh, hT, AMB, "psLH");
+  // the bezel and its four screws
+  s += `<circle cx="${c}" cy="${c}" r="${R + 3.5}" fill="none" stroke="#2c2e32" stroke-width="5"/><circle cx="${c}" cy="${c}" r="${R + 6}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1"/>` +
+    [45, 135, 225, 315].map(a => { const q = pol(R + 3.5, a); return `<circle cx="${f1(q[0])}" cy="${f1(q[1])}" r="1.5" fill="#4a4d52"/>`; }).join("");
+  const say = T("Passed you {a}, heading {b}", {a: T(PASS_DIR[passOct(P.cp[0], P.cp[1])]), b: T(PASS_DIR[passOct(Math.sin(P.hdg * Math.PI / 180), Math.cos(P.hdg * Math.PI / 180))])});
+  return `<button type="button" class="cScope" data-pass aria-label="${escH(say)}"><svg class="psSv" viewBox="0 0 ${V} ${V}" width="${V}" height="${V}" aria-hidden="true">${s}</svg></button>`;
+}
+// Rule 2: the scope's tap. Two lines: where it passed you, where it was heading.
+function passSheet(e){
+  const P = passLine(e);
+  if (!P) return;
+  const near = Math.hypot(P.cp[0], P.cp[1]) < .5, h = PASS_DIR[passOct(Math.sin(P.hdg * Math.PI / 180), Math.cos(P.hdg * Math.PI / 180))];
+  plateSheet(T("Your pass"), `<p class="sum">${escH(near ? T("Right over you at its closest (the white dot)") :
+    T("Closest to you in the {dir}, {km} away (the white dot)", {dir: T(PASS_DIR[passOct(P.cp[0], P.cp[1])]), km: distText(e.minDist)}))}</p>` +
+    `<p class="sum">${escH(T("Heading {dir} as it left your circle (the amber plane)", {dir: T(h)}))}</p>`);
+}
+// The motion, with the card's opening (tlOpen, from t0 ms): the line draws in the plane's direction with the plane riding
+// its end; at the closest point the dot sets, the dashed line to you and the passed letter show; the heading letter
+// when the plane arrives.
+function passMotion(card, t0){
+  const sv = card.querySelector(".psSv");
+  if (!sv) return;
+  const line = sv.querySelector(".psLine"), dash = sv.querySelector(".psDash"), dot = sv.querySelector(".psDot"), pl = sv.querySelector(".psEnd"), D = 1100;
+  const E = "cubic-bezier(.45,.05,.55,.95)", fade = (el, delay) => el && el.animate([{opacity: 0}, {opacity: 1}], {duration: 320, delay, easing: "ease-out", fill: "backwards"});
+  line.style.strokeDasharray = "1 1";
+  line.animate([{strokeDashoffset: 1}, {strokeDashoffset: 0}], {duration: D, delay: t0, easing: E, fill: "backwards"});
+  const pts = (line.getAttribute("d").match(/[\d.-]+ [\d.-]+/g) || []).map(q => q.split(" ").map(Number)), L = [];
+  let tot = 0;
+  for (let i = 1; i < pts.length; i++) { tot += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); L.push(tot); }
+  if (!tot) return;
+  const sc = +pl.dataset.s, kf = pts.map((q, i) => {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, Math.max(1, i))], deg = Math.atan2(b[0] - a[0], -(b[1] - a[1])) * 180 / Math.PI;
+    return {transform: `translate(${q[0]}px, ${q[1]}px) rotate(${deg}deg) scale(${sc}) translate(-50px, -50px)`, offset: i ? L[i - 1] / tot : 0};
+  });
+  pl.style.transform = kf[kf.length - 1].transform;
+  pl.removeAttribute("transform");
+  pl.animate(kf, {duration: D, delay: t0, easing: E, fill: "backwards"});
+  const cx = +dot.getAttribute("cx"), cy = +dot.getAttribute("cy");
+  let ci = 0, bd = 1e9;
+  for (let i = 0; i < pts.length; i++) { const d = Math.hypot(pts[i][0] - cx, pts[i][1] - cy); if (d < bd) { bd = d; ci = i; } }
+  const at = t0 + D * (ci ? L[ci - 1] / tot : 0) * .92;
+  dot.style.transformBox = "fill-box"; dot.style.transformOrigin = "50% 50%";
+  dot.animate([{opacity: 0, transform: "scale(.2)"}, {opacity: 1, transform: "scale(1.35)", offset: .6}, {opacity: 1, transform: "scale(1)"}], {duration: 360, delay: at, easing: "ease-out", fill: "backwards"});
+  fade(dash, at + 100);
+  fade(sv.querySelector(".psLP"), at + 120);
+  fade(sv.querySelector(".psLH"), t0 + D - 50);
+}
 function tlCardHtml(e){
   const r = remarkFor(e), name = rowName(e), m = rowMarks(e), words = [m.status, m.flag, m.star].filter(Boolean);   // 1.115: the row's pill and marks, by name
   const chips = words.length ? words.map(chipHtml).join("") : chipHtml(r);
@@ -600,6 +726,7 @@ function tlCardHtml(e){
   const card = infoCard({pic: tlPic(e), picAttr: " data-full", picFn: myPhOf(e) ? (p, over, attrs) => myPhHtml(e, p, over, attrs) : null, title: name, sub: e.airline || (e.owner !== name ? e.owner || "" : ""), subAttr: e.airline ? " data-al" : "",
     chip: chips, band: e.from || e.to ? [end(e.from, "from"), "", end(e.to, "to")] : e.done !== false ? noRoute(e) : null,
     tiles: [["Aircraft", shortType(e.type), "", e.type ? " data-ty" : ""], ["Closest", distText(e.minDist)], ["Height", altText(e.altAtMin)]],
+    tilesSide: (P => P ? passScope(e, P, passSize()) : "")(passLine(e)),       // 1.136: your pass, drawn
     afterTiles: hx ? `<div class="cTiles cWhere"><button type="button" class="cTile" data-wn="${hx}"><span>${escH(T("Where now"))}</span><b>${escH(wnText(hx))}</b></button></div>` : ""});
   const tier = TIER_NAME[rowTier(e)];                       // 1.122 (to-do #232): the rarity the bubble's colour shows, in words
   return `<div class="tlCard cardish">${'<i class="scr"></i>'.repeat(4)}<i class="tlBg"></i><p class="tlK"><span>${escH(e.time || "")} · <span data-ago>${escH(tlAgo(e))}</span>${tier ? ` · ${escH(T(tier))}` : ""}</span>` +
@@ -5822,6 +5949,7 @@ document.addEventListener("click", e => {
   if (ty) return typeCard(x);
   if (e.target.closest("[data-wn]")) { ctlSound.nav(); return plateSheet(T("Where now"), `<p class="sum">${escH(T("Where this aircraft is now, from the free tracking networks"))}</p>` +
     `<p class="sum">${escH(T("The country it flies over or the airport it stands at; Not seen now when they can't hear it"))}</p>`); }
+  if (e.target.closest("[data-pass]")) { ctlSound.nav(); return passSheet(x); }
   if (pl) return placeCard(x[pl.dataset.pl]);
   if (e.target.closest("[data-full]") && !e.target.closest("a")) planeCard(sightPlane(x));
 }, true);
@@ -5874,6 +6002,7 @@ function tlOpen(L, li, e){
   go(card.querySelector(".tlBg"), [{opacity: 0}, {opacity: 1}], {duration: TL_MS * .35, easing: TL_OUT});
   for (const el of card.querySelectorAll(".tlK, .cInfo"))
     go(el, [{opacity: 0}, {opacity: 1}], {duration: TL_MS * .5, delay: TL_MS * .2, easing: TL_OUT});
+  passMotion(card, TL_MS * .5);                  // 1.136: the pass draws in as the card's content shows
   li.tlNow = grow;                               // a folding that starts meanwhile takes over the row's height
   const end = () => { was.remove(); if (li.tlNow === grow) { li.classList.remove("tlAnim"); tlScroll(li); } tlEnd(); };
   grow.finished.then(end, end);

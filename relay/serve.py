@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 111
+RELAY_VERSION = 113
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -555,6 +555,60 @@ def _backfill_records(spot):
     spot.changed("book")
 
 
+# Relay 113 (to-do #308): the line of each pass, for the card's scope. A sighting keeps "pass": {"r": the circle (km),
+# "p": up to PASS_PTS points of the line in km east and north of the place, "c": its closest point, "h": the last
+# heading (degrees, when known)}, about 170 bytes. A point is added when the plane has moved PASS_STEP_KM, and one past
+# the circle ends the line (more if it comes back in); past PASS_PTS the inner point that bends the line least goes,
+# never the first, the last or the closest, so a straight pass stays straight and a helicopter's wandering keeps its shape.
+PASS_PTS = 10
+PASS_STEP_KM = 0.5
+
+
+def _pass_xy(lat, lon, la, lo):
+    return [round((lo - lon) * 111.32 * math.cos(math.radians(lat)), 1), round((la - lat) * 110.57, 1)]
+
+
+def _pass_thin(pts, keep):
+    while len(pts) > PASS_PTS:
+        best, at = None, None
+        for i in range(1, len(pts) - 1):
+            if pts[i] == keep:
+                continue
+            a, b, c = pts[i - 1], pts[i], pts[i + 1]
+            area = abs((b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1]))
+            if best is None or area < best:
+                best, at = area, i
+        if at is None:
+            break
+        del pts[at]
+
+
+def pass_note(e, xy, radius, closest=False, track=None):
+    """Add a reading (`xy`, km from the place) to a sighting's line; `closest`: it is the pass's new closest point.
+    Returns whether the line changed."""
+    p = e.get("pass")
+    if not isinstance(p, dict) or not isinstance(p.get("p"), list):
+        p = e["pass"] = {"r": round(float(radius), 1), "p": [], "c": None}
+    pts, r = p["p"], p.get("r") or radius
+    if pts and math.hypot(*xy) > r and math.hypot(*pts[-1]) > r:
+        return False                        # gone past the circle: the line already ends there
+    if closest:
+        p["c"] = xy
+    if pts and math.hypot(xy[0] - pts[-1][0], xy[1] - pts[-1][1]) < PASS_STEP_KM:
+        if not closest:
+            return False
+        if len(pts) > 1:
+            pts[-1] = xy                    # a closer reading near the last point takes its place
+        else:
+            pts.append(xy)
+    else:
+        pts.append(xy)
+    if isinstance(track, (int, float)):
+        p["h"] = round(track) % 360
+    _pass_thin(pts, p["c"])
+    return True
+
+
 def _record(self, planes, lat, lon, key="home", radius=None):
     """Called with every fresh position update: log planes that enter the spotting radius. `key` is the place the
     screen watches; a plane already logged today from another of the profile's places (within the same pass) stays
@@ -592,9 +646,12 @@ def _record(self, planes, lat, lon, key="home", radius=None):
             if e:
                 e["lastSeen"] = now
                 moved = False
-                if d < e["minDist"] - 0.05:
+                closer = d < e["minDist"] - 0.05
+                if closer:
                     e["minDist"], e["altAtMin"], changed = round(d, 2), alt, True
                     moved = True
+                if pass_note(e, _pass_xy(lat, lon, la, lo), radius, closer, ac.get("track")):
+                    changed = True
                 gs = ac.get("gs")
                 if isinstance(gs, (int, float)) and gs > e.get("maxSpeed", 0) + 1:
                     e["maxSpeed"], changed = round(gs), True
@@ -620,6 +677,7 @@ def _record(self, planes, lat, lon, key="home", radius=None):
                      "pos": [round(la, 4), round(lo, 4), ac.get("track")],
                      "military": bool(flags & 1), "interesting": bool(flags & 2), "emergency": _emergency(ac),
                      "adsbCat": str(ac.get("category") or "")}
+                pass_note(e, _pass_xy(lat, lon, la, lo), radius, True, ac.get("track"))
                 if ac.get("src") == "fr24":
                     e["src"] = "fr24"               # relay 66: only Flightradar24 had it (the gap filler)
                 if key != "home":

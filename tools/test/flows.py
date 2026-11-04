@@ -49,6 +49,8 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - the Now tab's Sky view row (1.128): each state, In range through the relay's list, the ★ the same, its key, label and strip
 - the private page (relay 99): the QR code and the two ways in, nothing of the board; the invite field opens only this
   site's /join/ link and refuses another site's, a bare //host, javascript: and another path
+- the line of each pass a sighting keeps for the card's scope (relay 113): ten points at most, the closest among them,
+  one past the circle, a helicopter's shape kept
 - the owner's map of where boards are (relay 108, to-do #278): one pin for each profile with a place, none for the test and
   demo profiles or one with no place, only [lat, lon] in shuffled order, no name or id in it; Leaflet from a fixed version
   with integrity; a guest's admin page is still refused
@@ -2949,6 +2951,50 @@ def now_extras_checks(expect):
     expect("/search kept days: the same answer twice", (s1.get("total"), s1.get("rows")) == (s2.get("total"), s2.get("rows")), True)
 
 
+def pass_line_checks(expect):
+    """Relay 113 (to-do #308): the line of each pass a sighting keeps for the card's scope, on the relay's own recording
+    (no relay needed): about ten points in km east and north of the place, the closest point among them, the heading,
+    one point past the circle and no more, a helicopter's wandering kept in shape, and small enough for the lists."""
+    import math
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    lat0, lon0 = 48.2085, 16.3731
+    kx, ky = 111.32 * math.cos(math.radians(lat0)), 110.57
+    sp = serve.Spot(Path(tempfile.mkdtemp(prefix="fb-pass-")), lambda: (lat0, lon0), lambda: 15)
+
+    def fly(hx, path, t="A320", track=None):
+        for i, (x, y) in enumerate(path):
+            tr = track if track is not None else (math.degrees(math.atan2(path[min(i + 1, len(path) - 1)][0] - path[max(i - 1, 0)][0],
+                                                                         path[min(i + 1, len(path) - 1)][1] - path[max(i - 1, 0)][1])) % 360)
+            sp.record([{"hex": hx, "lat": lat0 + y / ky, "lon": lon0 + x / kx, "alt_baro": 8000, "gs": 300, "t": t, "track": tr}], lat0, lon0)
+        return sp.by_hex[hx]["pass"]
+    # a straight pass from west to east, 2 km north of you, a reading every 0.9 km from 25 km out to 25 km past
+    p = fly("4400a1", [(-25 + 0.9 * i, 2.0) for i in range(56)], track=90)
+    pts = p["p"]
+    expect("pass line: ten points at most, the circle and the heading kept", (len(pts) <= serve.PASS_PTS, len(pts) >= 2, p["r"], p.get("h")), (True, True, 15.0, 90))
+    expect("... the closest point (2 km north of you) is one of the points", (p["c"] in pts, p["c"][1], abs(p["c"][0]) <= 0.5), (True, 2.0, True))
+    expect("... it starts inside the circle and ends one point past it", (math.hypot(*pts[0]) <= 15, math.hypot(*pts[-1]) > 15, math.hypot(*pts[-2]) <= 15), (True, True, True))
+    expect("... a straight pass stays on its line", all(abs(q[1] - 2.0) < 0.15 for q in pts), True)
+    expect("... small enough to go with every row (under 200 bytes)", len(json.dumps(p, separators=(",", ":"))) < 200, True)
+    # a helicopter wandering about: the shape kept, the closest point kept
+    wig = [(-14 + 0.7 * i, 3 * math.sin(i / 3) - 4) for i in range(34)]
+    h = fly("3c0b01", wig, t="EC35")
+    near = min(wig, key=lambda q: math.hypot(*q))
+    expect("a helicopter's line: ten points, the closest among them", (len(h["p"]), h["c"] in h["p"], [round(v, 1) for v in near] == h["c"]), (10, True, True))
+    ys = [q[1] for q in h["p"]]
+    expect("... its wandering kept (the line still goes up and down by most of 6 km)", max(ys) - min(ys) > 4.5, True)
+    # an entry without a pass (recorded before relay 113) gets one on the next reading
+    e = sp.by_hex["4400a1"]
+    del e["pass"]
+    e["lastSeen"] = serve.time.time()
+    sp.record([{"hex": "4400a1", "lat": lat0 + 2.0 / ky, "lon": lon0 + 3 / kx, "alt_baro": 8000, "gs": 300, "t": "A320", "track": 90}], lat0, lon0)
+    expect("a sighting from before relay 113 starts its line with the next reading", len(e.get("pass", {}).get("p", [])), 1)
+
+
 def checks():
     bad = []
 
@@ -2981,6 +3027,7 @@ def checks():
     screens_checks(expect)
     live_hidden_checks(expect)
     flights_page_checks(expect)
+    pass_line_checks(expect)
 
     code, _, body = call("/logbook/flights", "test-device")
     expect("/logbook/flights for a profile: a page", (code, sorted(json.loads(body)) if code == 200 else None), (200, ["cursor", "date", "entries", "more", "rev", "version"]))
