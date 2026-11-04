@@ -14,7 +14,8 @@ ExecStart=/usr/bin/python3 -u /opt/overhead-relay/serve.py
 Restart=always
 RestartSec=5
 UMask=0077
-MemoryMax=400M
+# relay 112: 700M with room for the board's voice (Piper, about 230 MB while it speaks, stopped when idle)
+MemoryMax=700M
 
 NoNewPrivileges=yes
 CapabilityBoundingSet=
@@ -41,6 +42,9 @@ MemoryDenyWriteExecute=yes
 SystemCallArchitectures=native
 SystemCallFilter=@system-service
 SystemCallFilter=~@privileged @resources
+# relay 112: the voice's numpy (OpenBLAS) sets where its memory lives (mbind) as it loads; harmless, and without it
+# the process is killed
+SystemCallFilter=mbind
 
 [Install]
 WantedBy=multi-user.target
