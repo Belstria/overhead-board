@@ -722,7 +722,8 @@ button.lbPlate:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba
 .rv strong span{display:block;margin-top:4px;font-weight:500;color:var(--muted);font-size:var(--fs-s);overflow:hidden;text-overflow:ellipsis}
 .rv strong span:empty{display:none}
 .rv .num{font:600 var(--fs-s)/1 var(--f-board);color:#c9c6bf;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
-.flights li.rv::before{content:"";position:absolute;left:4px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--lamp);box-shadow:0 0 6px var(--lamp)}
+.flights li.rv::before{display:none}
+.rvK{position:absolute;left:1px;top:50%;width:13px;height:13px;margin-top:-6.5px;display:block;overflow:visible}
 .rv .chip{min-width:78px}
 @media (max-width:380px){
   #rvList{grid-template-columns:38px minmax(0,1fr) auto auto;column-gap:6px}
@@ -4754,6 +4755,8 @@ function drawTierIcon(g, cx, cy, s, tier, col){
   g.closePath(); g.fill(); g.restore();
 }
 function tile(f, value, variant = 0){
+  let kind = "";
+  if (f.words === "lamp" && value) { const k = value.indexOf("|"); if (k >= 0) { kind = value.slice(k + 1); value = value.slice(0, k); } }
   const isLogo = f.kind === "logo", isAirline = f.kind === "word" && f.words === "airline";
   let code = "", text = value;
   if (isLogo) { code = value; text = ""; }
@@ -4764,7 +4767,7 @@ function tile(f, value, variant = 0){
   if (f.words === "lamp" || f.words === "tier") text = "";
   if (f.words === "remarks" && text) text = T(text);
   const fin = FINISH(), plain = !look.fill && !(isLogo && logoOk);
-  const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${logoOk ? 1 : 0}|${variant}|${LANG}|${REAL() ? 1 : 0}|${fin}`;
+  const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${kind}|${logoOk ? 1 : 0}|${variant}|${LANG}|${REAL() ? 1 : 0}|${fin}`;
   let cv = tiles.get(key);
   if (cv) return cv;
   const w = f.pw, h = f.ph;
@@ -4815,6 +4818,7 @@ function tile(f, value, variant = 0){
     drawApIcon(g, icon, h * .2, h * .08, h * .82, fg);
     ax = h * 1.14; aw = w - ax - h * .2;
   }
+  if (kind) { g.save(); g.translate(w / 2, h / 2); g.rotate(-Math.PI / 4); drawKind(g, 0, 0, Math.min(w, h) * .78, "rgba(12,12,14,.86)", kind); g.restore(); }
   if (f.words === "tier" && TIER_COL[value]) drawTierIcon(g, w / 2, h / 2, Math.min(w, h * 1.1), value, "#fbf8f0");
   if (f.words === "trend") {
     text = "";
@@ -5069,6 +5073,33 @@ function drawPlane(g, cx, cy, size, color){
   rr(g, 45.5, 8, 9, 82, 4.5); g.fill();
   g.beginPath(); g.moveTo(50, 34); g.lineTo(92, 56); g.lineTo(92, 63); g.lineTo(50, 52); g.lineTo(8, 63); g.lineTo(8, 56); g.closePath(); g.fill();
   g.beginPath(); g.moveTo(50, 76); g.lineTo(67, 86); g.lineTo(67, 91); g.lineTo(50, 87); g.lineTo(33, 91); g.lineTo(33, 86); g.closePath(); g.fill();
+  g.restore();
+}
+const KIND_PATHS = {
+  jet: "M45.5 12.5a4.5 4.5 0 0 1 9 0V85.5a4.5 4.5 0 0 1-9 0z M50 34L92 56V63L50 52L8 63V56z M50 76L67 86V91L50 87L33 91V86z",
+  jumbo: "M44 10a6 6 0 0 1 12 0V90a6 6 0 0 1-12 0z M50 30L98 58V65L50 50L2 65V58z M50 78L71 89V94L50 90L29 94V89z M62 36h5.5v11h-5.5z M76.5 44h5.5v11h-5.5z M32.5 36h5.5v11h-5.5z M18 44h5.5v11h-5.5z",
+  prop: "M46 15a4 4 0 0 1 8 0V87a4 4 0 0 1-8 0z M3 39h94v9H3z M27 29h7v16h-7z M66 29h7v16h-7z M20 25h21v4H20z M59 25h21v4H59z M33 82h34v7H33z",
+  heli: "M17 21L21 17L83 79L79 83z M79 17L83 21L21 83L17 79z M50 28a11 17 0 1 1 0 34a11 17 0 1 1 0-34z M47.5 58h5v32h-5z M41 84h18v5H41z",
+  fighter: "M50 5L55 26L56 34L93 76V84L58 81L56 92H44L42 81L7 84V76L44 34L45 26z M44 27L31 35V39L44 34z M56 27L69 35V39L56 34z"};
+const KIND_TYPES = {
+  jumbo: /^(A34[0-6]|IL76|B74[1-8RS])$/,
+  prop: /^(AT4\d|AT7\d|DH8[A-D]|C130|C30J|A400|C295|C160|C208|PC12|PC6|PC7|PC9|DA4\d|DA62|C17[0-9]|C182|P180|B350|BE20|SF34|D228|L410|AN2|DHC6|C27J|P3|P28A)$/,
+  fighter: /^(EUFI|F16|F15|F18|F35|F22|L159|L39|M2000|RFAL|TOR|GRIF|SB39|A10|HAWK|T38|MB39|JAS39)$/,
+  heli: /^(EC\d\d|AS\d\d|H1[2-6]\d|A1[0-9]9|B06|B407|B429|R22|R44|R66|S76|S92|NH90|UH1|H60|AW\d+|MD\d\d|BK17|EH10)$/};
+function planeKind(ac){
+  const t = String(ac.t || "").toUpperCase(), sp = SPECIAL_TYPES[t];
+  if (sp === "HELICOPTER" || ac.category === "A7" || KIND_TYPES.heli.test(t)) return "heli";
+  if (sp === "SUPERJUMBO" || sp === "JUMBO" || sp === "ANTONOV" || KIND_TYPES.jumbo.test(t)) return "jumbo";
+  if (KIND_TYPES.fighter.test(t)) return "fighter";
+  if (KIND_TYPES.prop.test(t)) return "prop";
+  return "jet";
+}
+const kindPaths = {};
+function drawKind(g, cx, cy, size, color, kind){
+  if (!kind || kind === "jet" || typeof Path2D !== "function" || !KIND_PATHS[kind]) return drawPlane(g, cx, cy, size, color);
+  g.save();
+  g.translate(cx, cy); g.rotate(Math.PI / 4); g.scale(size / 100, size / 100); g.translate(-50, -50);
+  g.fillStyle = color; g.fill(kindPaths[kind] || (kindPaths[kind] = new Path2D(KIND_PATHS[kind])));
   g.restore();
 }
 function pictogram(g, x, y, s, badge){
@@ -7102,7 +7133,7 @@ function paintRadar(g, cx, cy, R, z, t, o = {}){
       g.lineTo(x, y); g.stroke();
     }
     g.save(); g.translate(x, y); g.rotate(th - Math.PI / 4);
-    drawPlane(g, 0, 0, px(radarZoomed() ? (ac.alt_baro === "ground" ? 17.5 : 21.5) : o_.kind ? 19.5 : 14.5), col);
+    drawKind(g, 0, 0, px(radarZoomed() ? (ac.alt_baro === "ground" ? 17.5 : 21.5) : o_.kind ? 19.5 : 14.5), col, planeKind(ac));
     g.restore();
     if (radar.sel === ac.hex) { g.strokeStyle = "#f3f0e8"; g.lineWidth = px(2); g.beginPath(); g.arc(x, y, px(17), 0, TAU); g.stroke(); }
     shown.push({o: o_, x, y, col});
@@ -11181,6 +11212,7 @@ function rvColours(){
 }
 $("rvInfo").onclick = rvColours;
 let rvSig = "";
+const kindSvg = (ac, col) => `<svg class="rvK" viewBox="0 0 100 100" aria-hidden="true"><path d="${KIND_PATHS[planeKind(ac)] || KIND_PATHS.jet}" fill="${col}"/></svg>`;
 function renderRadarList(){
   if (tab !== "radar") return;
   const range = +S.radiusKm || 15;
@@ -11188,7 +11220,7 @@ function renderRadarList(){
     const info = radarInfo(o), name = radarName(o);
     const code = airlineCodeOf(info), L = code ? logo(code, true) : null, g = o.ac.alt_baro === "ground" ? gateFor(info) : "";
     const lg = L && L.state === "ok" ? `<img src="${escH(L.img.src)}" alt="">` : code ? escH(code) : "";
-    return `<li class="rv${radar.sel === o.ac.hex ? " sel" : ""}" data-hex="${escH(o.ac.hex)}" style="--lamp:${radarColor(o)}"><span class="rvLogo${L && L.state === "ok" ? " ok" : ""}">${lg}</span><strong>${escH(name)}<span>${escH(arType(o.ac, info))}</span></strong>` +
+    return `<li class="rv${radar.sel === o.ac.hex ? " sel" : ""}" data-hex="${escH(o.ac.hex)}" style="--lamp:${radarColor(o)}">${kindSvg(o.ac, radarColor(o))}<span class="rvLogo${L && L.state === "ok" ? " ok" : ""}">${lg}</span><strong>${escH(name)}<span>${escH(arType(o.ac, info))}</span></strong>` +
       `<span class="num">${distText(dist)} ${dir}</span><span class="num">${escH(altShort(o.alt))}</span>${chip(st, g && (st ? g : T("GATE {g}", {g})))}</li>`;
   });
   const head = `<li class="rvHead" aria-hidden="true"><span></span><span></span><span>${escH(T("Distance"))}</span><span>${escH(T("Height"))}</span><span></span></li>`;
@@ -12272,6 +12304,10 @@ setInterval(() => {
   nowTurn = Date.now();
 }, 1000);
 const CHANGELOG = [
+  {v: "1.132", date: "2026-11-04", notes: [
+    "The Radar draws a plane by its kind: a jumbo with four engines, a propeller plane, a helicopter and a fighter, besides the usual jet, in the same colours.",
+    "The Nearest list shows the same shape in front of each plane.",
+  ]},
   {v: "1.131", date: "2026-11-03", notes: [
     "A picture you take in Sky view stays with the plane: its row gets a camera, and its card opens on your photo, the usual photo a swipe away.",
   ]},

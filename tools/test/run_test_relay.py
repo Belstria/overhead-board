@@ -5,6 +5,7 @@ are not touched: the test relay runs from a temporary folder.
     py tools/test/run_test_relay.py            every kind of plane, including special ones and an emergency
     py tools/test/run_test_relay.py --quiet    no special planes, so the pages rotate undisturbed
     py tools/test/run_test_relay.py --hover    adds a police helicopter hovering overhead
+    py tools/test/run_test_relay.py --kinds    adds a fighter and a small propeller plane (the radar draws a plane by its kind)
     py tools/test/run_test_relay.py --far      the landing starts 32 km out (its photo, then the runway radar)
     py tools/test/run_test_relay.py --ring     two more planes from the south: one comes within 15 km (passive points and its
                                                scan ticket) and then within 10 km, the other passes 12 km out (1.98)
@@ -57,6 +58,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--quiet", action="store_true", help="no special planes")
     p.add_argument("--hover", action="store_true", help="add a helicopter hovering overhead")
+    p.add_argument("--kinds", action="store_true", help="add a fighter and a small propeller plane")
     p.add_argument("--far", action="store_true", help="the landing starts 32 km out")
     p.add_argument("--ring", action="store_true", help="a plane coming within 15, then 10 km, and one passing 12 km out (both can be scanned)")
     p.add_argument("--fr24", action="store_true", help="pretend the relay has a Flightradar24 key")
@@ -263,7 +265,7 @@ def run(a, tmp, procs):
     if music.is_file():
         (tmp / "data" / "media").mkdir()
         shutil.copy(music, tmp / "data" / "media" / music.name)
-    env = dict(os.environ, QUIET="1" if a.quiet else "", HOVER="1" if a.hover else "", FAR="1" if a.far else "", RING="1" if a.ring else "",
+    env = dict(os.environ, QUIET="1" if a.quiet else "", HOVER="1" if a.hover else "", KINDS="1" if a.kinds else "", FAR="1" if a.far else "", RING="1" if a.ring else "",
                SLOW_NAMES="1" if a.slow_names else "", PYTHONIOENCODING="utf-8",
                FAKE_PORT=str(fake_port))
     fake = subprocess.Popen([sys.executable, str(HERE / "fakesrc.py")], env=env)

@@ -331,6 +331,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   full board − and + sit at the radar's top corners, Map at its bottom left, and the range is engraved in the dial (1.63).
   In the Airport style the list, the plane card and the colours say what each plane does at the airport: taking off,
   landing, passing or on the ground (1.63).
+  Each plane is drawn by its kind (1.132): a jumbo with four engines, a propeller plane with straight wings, a helicopter
+  as a rotor cross, a fighter as a delta, and any other as the usual jet; the Nearest list and the TV board's colour flaps show the same shape.
   Since 1.65 zooming works in the Overhead style too, around your place. On the phone (1.69) the controls sit on a
   **Radar** plate like Settings: the **Range km** thumbwheel (▲ wider, ▼ closer; since 1.82.2 every 5 km down to 5, then
   2.5 km, the closest; it was 10, 5 and 2.5 km) and the **Map**
@@ -1011,7 +1013,7 @@ Five buttons along the bottom:
 - **Radar**: the radar instrument and the **Nearest** list, nothing in between (1.118). The **cogwheel** by the title
   shows the range and raises the **Radar** plate (Range km, Map) from below as a panel, as Settings' sections do; the
   **(i)** beside the cogwheel explains the colours, one line each; the list names its **Distance** and **Height** columns.
-  The planes within the spotting radius. Tap a plane on the radar (or its row)
+  The planes within the spotting radius, each with its kind's shape in front (1.132). Tap a plane on the radar (or its row)
   for a card with its photo, route, aircraft, registration, operator, height, speed and distance, and Favourite… /
   Hide… (1.33). Leaving planes are soft red (1.55), apart from the dark grey of the ones too high to count. **Map**
   (in the cogwheel's panel) shows the map under the radar (as on the board).
