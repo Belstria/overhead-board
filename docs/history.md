@@ -3005,6 +3005,15 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   (`myPh.side`) across redraws. Tabs don't swipe from it (`.tline li.open` is claimed), and it lives in the list's card, not the sheet, so the
   sheet's swipe-down is untouched. flows.py `your_photo_checks`: the shutter keeps a JPEG under 150 KB, the camera on the Logbook and Recent
   flights rows, the card on your photo, CDP touch swipes left and right, the dots, the label's sheet, a reload, the cap of 200.
+- 1.132 (to-do #313, Dave's pick A of three, "The app's plane, grown"; app, test board and the TV board's radar, no relay change): **Planes drawn by kind on the Radar.**
+  `planeKind(ac)` (next to `drawPlane`, in E6) names the kind from the type code: `heli` (`SPECIAL_TYPES` HELICOPTER, the ADS-B category A7 or `KIND_TYPES.heli`),
+  `jumbo` (SUPERJUMBO, JUMBO, ANTONOV or `KIND_TYPES.jumbo`: A340s, IL76), `fighter` and `prop` (regexes of ICAO designators), else `jet`. `KIND_PATHS` holds the
+  four new shapes plus the jet in one 100 box, nose up, flat fills like `drawPlane`; `drawKind(g, cx, cy, size, color, kind)` is `drawPlane` for any kind (north-east
+  like it, so `paintRadar` still turns it to the track; the jet, an old screen without `Path2D` and an unknown kind all go to `drawPlane`). `paintRadar` calls it, with
+  the same sizes as before (14.5 px at rest). Nearest (app): `kindSvg` puts the shape, nose up in the lamp colour, where the dot was (`.rvK`, 13 px at left 1 px,
+  inside the row's 16 px of padding, so it stays clear of a wide logo; the old `li.rv::before` dot is hidden). TV board: the radar list's lamp flap value is
+  `"colour|kind"` (`tile` splits it, so the flap turns when only the kind changes) and prints the shape upright, dark on the colour. Test data: `run_test_relay.py
+  --kinds` (`KINDS=1` in `fakesrc.py`) adds a fighter (EUFI) and a small propeller plane (DA42); the C130, A388 and EC35 were already there.
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 

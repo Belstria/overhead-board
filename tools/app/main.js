@@ -5063,6 +5063,8 @@ function rvColours(){
 }
 $("rvInfo").onclick = rvColours;
 let rvSig = "";
+// 1.132: the plane in its kind's shape, nose up, in the lamp's colour (the Nearest list's icon, where the dot was)
+const kindSvg = (ac, col) => `<svg class="rvK" viewBox="0 0 100 100" aria-hidden="true"><path d="${KIND_PATHS[planeKind(ac)] || KIND_PATHS.jet}" fill="${col}"/></svg>`;
 function renderRadarList(){
   if (tab !== "radar") return;
   const range = +S.radiusKm || 15;
@@ -5070,7 +5072,7 @@ function renderRadarList(){
     const info = radarInfo(o), name = radarName(o);
     const code = airlineCodeOf(info), L = code ? logo(code, true) : null, g = o.ac.alt_baro === "ground" ? gateFor(info) : "";
     const lg = L && L.state === "ok" ? `<img src="${escH(L.img.src)}" alt="">` : code ? escH(code) : "";
-    return `<li class="rv${radar.sel === o.ac.hex ? " sel" : ""}" data-hex="${escH(o.ac.hex)}" style="--lamp:${radarColor(o)}"><span class="rvLogo${L && L.state === "ok" ? " ok" : ""}">${lg}</span><strong>${escH(name)}<span>${escH(arType(o.ac, info))}</span></strong>` +
+    return `<li class="rv${radar.sel === o.ac.hex ? " sel" : ""}" data-hex="${escH(o.ac.hex)}" style="--lamp:${radarColor(o)}">${kindSvg(o.ac, radarColor(o))}<span class="rvLogo${L && L.state === "ok" ? " ok" : ""}">${lg}</span><strong>${escH(name)}<span>${escH(arType(o.ac, info))}</span></strong>` +
       `<span class="num">${distText(dist)} ${dir}</span><span class="num">${escH(altShort(o.alt))}</span>${chip(st, g && (st ? g : T("GATE {g}", {g})))}</li>`;   // 1.65: with its gate while on the ground
   });
   // 1.118: the two number columns get their names in a row of small labels (a shared grid lines them up), not with no list

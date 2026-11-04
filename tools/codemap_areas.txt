@@ -244,10 +244,10 @@ test/index.html: radar RADAR_COL RADAR_GEO rgba radarTrack radarPos radarCentre 
     radarZoomCan radarBase radarRange radarRangeText RADAR_MAP_KEY RADAR_MAP_CREDIT radarMapOn radarMapSet radarMap
     radarMapDraw MVT_LAYERS mvtRead mvtPath RADAR_MAP_LOOK radarMapTiles radarMapBuild radarBox resizeRadar startRadar
     stopRadar radarStatic altShort radarColor radarLegend radarAsked radarInfo radarName radarLabels ringLabels
-    radarLayers radarLayer radarSweep paintRadar drawRadar renderRadarList radarObj +boardTap #radarCv 'vdef("radar"'
-tools/app/head.html: .rv .rvLogo .rvRange .litKey .rvCard .scope .rvPlate .rvCredit .rlegend .rvTop .rvSet .rvHead .rvCols #radarBg
+    radarLayers radarLayer radarSweep paintRadar drawRadar renderRadarList radarObj KIND_PATHS KIND_TYPES planeKind kindPaths drawKind +boardTap #radarCv 'vdef("radar"'
+tools/app/head.html: .rv .rvK .rvLogo .rvRange .litKey .rvCard .scope .rvPlate .rvCredit .rlegend .rvTop .rvSet .rvHead .rvCols #radarBg
     #radarCv #rvCredit #rvInfo #rvList #rvMap #rvReset #rvSet #rvSetKm #rvWheel #rvZoomIn #rvZoomKm #rvZoomOut #scope #t-radar
-tools/app/main.js: +secPlate $("radarCv").addEventListener("click") $("rvList").addEventListener("click")
+tools/app/main.js: kindSvg +secPlate $("radarCv").addEventListener("click") $("rvList").addEventListener("click")
     radarPlaneCard radarSelOpen RG radarSize radarStatic startRadar stopRadar drawRadar buildRadarLegend rvSig
     renderRadarList $("rvSet").onclick RADAR_WHAT rvColours $("rvInfo").onclick $("rvMap").onclick $("rvReset").onclick $("rvWheel").onkeydown radarZoomTo pinch
 docs/architecture.md: "The radar's optional map (1.55)"
