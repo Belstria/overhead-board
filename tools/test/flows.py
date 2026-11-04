@@ -4403,6 +4403,10 @@ def sky_read_checks(browser):
         arList = [{hex: "abc001", flight: "TST261", category: "A3", lat: here.lat + d * Math.cos(r) / 111200, lon: here.lon + d * Math.sin(r) / (111200 * Math.cos(here.lat * Math.PI / 180)),
           alt_baro: d * Math.tan(c.el * Math.PI / 180) / .3048, gs: 0, track: 0, seen_pos: 0}]; arListAt = Date.now(); };
       setInterval(() => { if (window.__keep && arQ) window.__plane(); }, 100);
+      // the relay's refresh (every few seconds) replaces the list with its made-up flights: put the plane back in the same
+      // task, so no frame draws the real list. Before, a read that fell on a refresh found no plane in the picture, and the
+      // refresh's phase against this test's steps shifted with how long the checks before it took (to-do #316).
+      const feed = arFeed; arFeed = l => { feed(l); if (window.__keep && arQ) window.__plane(); };
       arBodyAt = Infinity; arBody = {...skyBodies(48.2, 16.37, Date.now())}; arBody.moon = {...arBody.moon, el: -30}; return 1; })()""")
     e("$('arVid').muted = true; $('arVid').play().catch(() => {}); 1")                   # (a headless browser's autoplay)
     pg.wait_for_function("document.getElementById('arVid').videoWidth && !document.getElementById('arVid').paused", timeout=15000)
