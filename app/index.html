@@ -5352,6 +5352,7 @@ function chime(kind, opts = {}){
   if ((!opts.force && (!S.chimes || nightOn)) || !actx || actx.state !== "running") return;
   const t0 = actx.currentTime + .03, out = actx.createGain();
   out.gain.value = .55; out.connect(sfxOut());
+  chimeAt = Date.now();
   if (kind === "special") return airportBell(out, t0);
   const notes = kind === "fav" ? [[523.25, 0], [659.25, .17], [783.99, .34]] : kind === "emergency" ? [[587.33, 0], [440, .32], [587.33, .64], [440, .96]] : [[659.25, 0], [523.25, .55]];
   for (const [freq, dt] of notes) {
@@ -5382,8 +5383,9 @@ function fanfare(){
 }
 
 let dingAt = 0;
+const dingQuiet = () => !S.chimes || nightOn || document.hidden || !onMainPage() || performance.now() < 8000 || Date.now() - dingAt < 15000;
 function seatbeltDing(force){
-  if (!force && (!S.chimes || nightOn || document.hidden || !onMainPage() || performance.now() < 8000 || Date.now() - dingAt < 15000)) return;
+  if (!force && dingQuiet()) return;
   if (!actx || actx.state !== "running") return;
   dingAt = Date.now();
   const t = actx.currentTime + .02, out = actx.createGain(), rec = SND.ding && SND.ding[0];
@@ -5399,6 +5401,47 @@ function seatbeltDing(force){
     o.type = "sine"; o.frequency.value = 1318.5 * mult;
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(amp, t + .012); g.gain.exponentialRampToValueAtTime(amp * .002, t + dec);
     o.connect(g).connect(out); o.start(t); o.stop(t + dec + .05);
+  }
+}
+
+const voiceOk = () => !S.demo && !!relay() && window.OVERHEAD_VOICE === true && (window.OVERHEAD_RELAY_VERSION || 0) >= 112 && !voiceBroken &&
+  (() => { try { return !!new Audio().canPlayType("audio/mpeg"); } catch { return false; } })();
+const voiceOn = () => S.chimes === "voice" && voiceOk();
+let voiceBroken = false, chimeAt = 0;
+function voiceParams(h, mode){
+  const info = h.info || {}, ac = (h.o && h.o.ac) || {}, home = String(S.home || "").toUpperCase();
+  const cs = String(info.callsign || ac.flight || "").trim().toUpperCase(), t = String(ac.t || "").toUpperCase();
+  const p = {cs, reg: info.reg || ac.r || "", now: mode === "soon" ? "soon" : "over",
+    kind: planeKind(ac) === "heli" ? "helicopter" : SPECIAL_TYPES[t] === "MILITARY" || (ac.dbFlags & 1) ? "military" : ""};
+  if (info.airline && /^[A-Z0-9]{2} ?\d/.test(info.flightNo || "")) Object.assign(p, {airline: info.airline, flight: info.flightNo});
+  if (info.from && info.from.city) p.from = info.from.city;
+  if (info.to && info.to.city) p.to = info.to.city;
+  p.way = info.from && info.from.code === home ? "out" : info.to && info.to.code === home ? "in" : "";
+  if (info.type && info.typeSure !== false) p.type = info.type;
+  return Object.entries(p).filter(([, v]) => v).map(([k, v]) => k + "=" + encodeURIComponent(v)).join("&");
+}
+async function voiceCall(h, mode){
+  if (!actx || actx.state !== "running") return;
+  dingAt = Date.now();
+  for (let i = 0; i < 10 && !(h.info && h.info.done) && feat === h; i++) await new Promise(r => setTimeout(r, 200));
+  if (feat !== h || nightOn || !voiceOn()) return;
+  const t0 = actx.currentTime + .05, bell = Date.now() - chimeAt > 10000;
+  if (bell) { const out = actx.createGain(); out.gain.value = .55; out.connect(sfxOut()); airportBell(out, t0); }
+  try {
+    const res = await timedFetch(`${relay()}/voice?${voiceParams(h, mode)}`, {}, 8000);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const words = decodeURIComponent(res.headers.get("X-Voice-Words") || "");
+    const data = await res.arrayBuffer();
+    const buf = await new Promise((ok, no) => { const p = actx.decodeAudioData(data, ok, no); if (p && p.catch) p.catch(no); });
+    if (feat !== h || nightOn || !voiceOn()) return;
+    const src = actx.createBufferSource(), g = actx.createGain();
+    src.buffer = buf; g.gain.value = .5;
+    src.connect(g).connect(sfxOut());
+    src.start(Math.max(actx.currentTime + .02, bell ? t0 + 2.6 : 0));
+    dlog("info", `Voice: ${words || planeName(h, h.o && h.o.ac)}`);
+  } catch (e) {
+    if (e && e.name === "EncodingError") { voiceBroken = true; dlog("warn", "Voice: this screen can't play the relay's calls; back to the ding"); }
+    else dlog("debug", `Voice: no call (${(e && e.message) || e})`);
   }
 }
 
@@ -6236,7 +6279,10 @@ function setFeat(o, mode, alert = false){
     const h = feat = {hex: o.ac.hex, since: now, logged: false, info: p.info};
     p.then(info => { h.info = info; if (feat === h) { renderFeatured(); renderAircraftInfo(); } });
   }
-  if (!alert && !feat.dinged && (mode === "over" || mode === "soon")) { feat.dinged = true; seatbeltDing(); }
+  if (!feat.dinged && (mode === "over" || mode === "soon") && (!alert || voiceOn())) {
+    feat.dinged = true;
+    if (!voiceOn()) seatbeltDing(); else if (!dingQuiet()) voiceCall(feat, mode);
+  }
   if (feat.mode !== mode) dlog("info", `Board: ${planeName(feat, o.ac)} · ${MODE_REMARK[mode]} · ${o.dist.toFixed(1)} km`);
   feat.o = o; feat.mode = mode;
   if (mode === "over" || mode === "soon") feat.lastSeen = now;
@@ -11443,7 +11489,8 @@ const COCKPIT = [
     {k: "flapSpeed", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5, dflt: 50, flaps: true},
     {k: "imperfect", type: "switch", label: "Worn hardware", flaps: true},
     {k: "sound", type: "switch", label: "Flap sound", light: {label: "Button sounds"}},
-    {k: "chimes", type: "switch", label: "Chimes"}]},
+    {k: "chimes", type: "rotary", label: "Chimes", voice: true, opts: [[false, "OFF"], [true, "CHIMES"], ["voice", "VOICE"]],
+      hint: "A chime for special planes and favourites. VOICE: each new plane overhead is called out, like at an airport."}]},
   {id: "control", title: "Control", actions: true, for: "tv"},
   {id: "night", title: "Night", cols: 3, items: [
     {k: "night", type: "switch", label: "Night mode", phone: {hint: "Quiet at night while the app is open: no chimes, dings or flap sounds."}},
@@ -11614,6 +11661,7 @@ function itemHtml(it){
   const cap = `<span>${escH(T(it.label))}</span>`, hint = it.hint || HINTS[it.type === "styles" && COCKPIT_FOR === "tv" ? "stylesTv" : it.k || it.type];
   const cell = (cls, body) => `<div class="inst${cls ? " " + cls : ""}"${it.span > 1 && !it.wide ? ` style="--span:${it.span}"` : ""}${hint ? ` data-hint="${escH(T(hint))}"` : ""}>${body}${cap}</div>`;
   if (it.type === "location") return itemHtml({...it, type: "update", inline: it.layout === "split"});
+  if (it.voice && !voiceOk()) return itemHtml({...it, type: "switch", voice: false, hint: ""});
   if (it.type === "lcd") {
     const wait = it.k === "place" && !placeNow();
     return cell(it.wide ? "wide" : "", `<input class="lcd" data-k="${it.k}" maxlength="${it.max || 12}" spellcheck="false" autocomplete="off" ` +
@@ -12413,6 +12461,9 @@ setInterval(() => {
   nowTurn = Date.now();
 }, 1000);
 const CHANGELOG = [
+  {v: "1.135", date: "2026-11-04", notes: [
+    "Chimes is a knob now: OFF, CHIMES or VOICE. On VOICE a new plane overhead is called out after the airport bell, like an announcement in a terminal: its flight, where it goes or comes from, its type.",
+  ]},
   {v: "1.134", date: "2026-11-04", notes: [
     "Name that plane: a Sky view scan first asks the plane's type, with three names to pick from. No points either way; right answers count toward the new Eagle eye trophy.",
     "Until then Sky view shows a ? for the type of a plane you can scan.",
@@ -13691,7 +13742,8 @@ function setLine(id){
     if (LANG_CHOICE) try { lang = setCap(new Intl.DisplayNames([LANG], {type: "language"}).of(LANG)); } catch {}
     return [lang, T(S.units === "metric" ? "metric" : "feet and knots"), setCap(String(styleShort(lookKind()) || "").toLowerCase())].filter(Boolean).join(" · ");
   }
-  if (id === "flaps") return T(S.sound && S.chimes ? "sound and chimes on" : S.sound ? "sound on, chimes off" : S.chimes ? "chimes on, sound off" : "all quiet");
+  if (id === "flaps") return voiceOn() ? T(S.sound ? "sound and voice on" : "voice on, sound off")
+    : T(S.sound && S.chimes ? "sound and chimes on" : S.sound ? "sound on, chimes off" : S.chimes ? "chimes on, sound off" : "all quiet");
   if (id === "night") return S.night ? T("quiet {a} – {b}", {a: S.nightFrom || "", b: S.nightTo || ""}) : T("off");
   if (id === "favs") { const f = userLists.fav.length, h = userLists.hide.length;
     return f || h ? [f ? T(f === 1 ? "1 favourite" : "{n} favourites", {n: f}) : "", h ? T("{n} hidden", {n: h}) : ""].filter(Boolean).join(" · ") : T("none yet"); }

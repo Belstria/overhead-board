@@ -265,6 +265,16 @@ The main board has everything below. New features are tried on `/test/` first; o
   The chime for special planes is the **airport bell** (1.32): three soft notes rising, like the chime before
   an announcement in a terminal. Since 1.129.6 it is the only one: the Classic chime and the Special bell setting
   are gone on the test board and in the app, and **Chimes** turns the bell, the other chimes and the new-plane ding on or off together.
+- **The board announces the plane** (1.135): Settings → Flaps & sound → **Chimes** is a knob, **OFF · CHIMES · VOICE**
+  (CHIMES by default). On VOICE, when a plane on top becomes overhead or approaching (a special plane too), the airport
+  bell rings and a voice calls it out over ceiling speakers in a big hall, like a terminal announcement: "Austrian four
+  one one, to Paris. An A three-twenty, overhead now." The airline is said as a word and the flight number letter by
+  letter and digit by digit (no airline: the whole callsign; a helicopter by its registration, "Helicopter O E X E N"),
+  then the route ("to Paris" leaving here, "from Athens" landing, "from Rome to Warsaw" passing over; the board waits
+  up to two seconds for it), then the type. It replaces the new-plane ding and keeps its rules: not at night, not with
+  a view open, at most every 15 seconds. The home relay makes the call (with Piper, a free text-to-speech engine) and
+  sends a short MP3; the board plays it like the chimes, after the first click or key press. Where the relay has no
+  voice installed, or the screen can't play it, Chimes stays the ON/OFF switch.
 - **The day runs from 00:00 to 23:59**, for everything: Spotted today, the Logbook's days, the points limits, the streak, the standby, the league and bingo.
 - **Airtime limit**: a plane that hangs around (a police helicopter over an incident, a light aircraft circling) gets at
   most 3 minutes an hour on the top half while other planes are within the spotting radius, then gives them a turn.
@@ -1148,6 +1158,9 @@ and restarts itself; the second line saves your location (press Ctrl+C once it h
 again updates the relay and keeps your settings and logbook; first it saves `data/` as
 `/root/data-before-relay<new version>.tgz` and keeps the newest three of those copies (relay 68). Set the machine's time zone (`timedatectl
 set-timezone Europe/Vienna`): the logbook's days follow it. The relay's messages: `journalctl -u overhead-relay -f`.
+Since relay 112 it also installs the board's voice (Piper and one English voice, about 260 MB, in
+`/opt/overhead-relay/voice`; it needs 600 MB free the first time and takes a minute). Without it, or with
+`OVERHEAD_NO_VOICE=1 sh install.sh`, the relay works as before and the boards don't offer VOICE.
 Moving from another computer: stop the relay there and copy its `overhead.json` and `data` folder into
 `/opt/overhead-relay` (then `chown -R overhead:overhead /opt/overhead-relay` and restart the service).
 
