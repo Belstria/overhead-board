@@ -2688,15 +2688,15 @@ const AIRPORTS = {VIE: {icao:"LOWW", name:"Vienna", lat:48.1103, lon:16.5697, rw
 
 const DRUM_ALPHA = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-/:,'&()";
 const DRUM_DIGIT = " 0123456789:/";
-const DRUM_ALT = " 0123456789,.FTKMH/";
-const DRUM_POS = " 0123456789.:KMNESWICADORV";
+const DRUM_ALT = " 0123456789,.FTKMHS/";
+const DRUM_POS = " 0123456789.:KMNESWICADORV°";
 const TRENDS = ["", "UP", "LEVEL", "DOWN"];
 const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
 const REMARKS = ["", "OVERHEAD", "APPROACHING", "FLYING BY", "LEAVING", "PASSED", "NEXT", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
   "CLOSE BY", "NEW TYPE", "NEW AIRLINE", "FAVOURITE", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "MILITARY", "HELICOPTER", "SPECIAL", "EMERGENCY",
   "DIVERTED", "CARGO", "BIZJET", "PRIVATE", "TAKE-OFF", "CLIMBING", "APPROACH", "FINAL", "LANDED", "TAXIING", "PARKED",
   "POLICE", "AMBULANCE", "RESCUE", "FIREFIGHTER", "GOVERNMENT", "ROYAL", "HISTORIC", "CELEBRITY", "VIP",
-  "SKYDIVING", "AEROBATIC", "SURVEY", "UNUSUAL"];
+  "SKYDIVING", "AEROBATIC", "SURVEY", "UNUSUAL", "IN ORBIT"];
 const AP_ICON = {"TAKE-OFF": "dep", CLIMBING: "dep", APPROACH: "arr", FINAL: "arr", LANDED: "landed"};
 const AP_PATH = {dep: "M14.639 10.258l4.83 -1.294a2 2 0 1 1 1.035 3.863l-14.489 3.883l-4.45 -5.02l2.897 -.776l2.45 1.414l2.897 -.776l-3.743 -6.244l2.898 -.777l5.675 5.727z",
   arr: "M15.157 11.81l4.83 1.295a2 2 0 1 1 -1.036 3.863l-14.489 -3.882l-1.345 -6.572l2.898 .776l1.414 2.45l2.898 .776l-.12 -7.279l2.898 .777l2.052 7.797z"};
@@ -2738,7 +2738,8 @@ const REMARK_LOOK = {
   GOVERNMENT:{fill:["#23324f","#1a263d"], fg:"#e6c66e", tint:"#e6c66e"}, ROYAL:{fill:["#5b2a86","#47206a"], fg:"#f2d36b"},
   HISTORIC:{fill:["#7a5b3a","#634a2f"], fg:"#f4e6c8"}, CELEBRITY:{fill:["#9b2f8f","#7d2573"], fg:"#ffffff"},
   VIP:{fill:["#1d1d1f","#121214"], fg:"#e6c66e", tint:"#e6c66e"}, SKYDIVING:{fill:["#1f8a9b","#176f7d"], fg:"#ffffff"},
-  AEROBATIC:{fill:["#d8402f","#b53424"], fg:"#ffffff"}, SURVEY:{fill:["#5b6470","#4a525c"], fg:"#e8ebee"}, UNUSUAL:GOLD
+  AEROBATIC:{fill:["#d8402f","#b53424"], fg:"#ffffff"}, SURVEY:{fill:["#5b6470","#4a525c"], fg:"#e8ebee"}, UNUSUAL:GOLD,
+  "IN ORBIT":{fill:["#1c2c52","#142140"], fg:"#e9eefc", tint:"#c9d6f6"}
 };
 
 const LIGHT = false;
@@ -2813,7 +2814,7 @@ function nightCheck(){
 nightCheck(); setInterval(() => nightCheck(), 30000);
 function clean(s){
   return String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "SS").replace(/[Øø]/g, "O").replace(/[Łł]/g, "L")
-    .toUpperCase().replace(/[^A-Z0-9 .\-\/:,'&()]/g, "").replace(/\s+/g, " ").trim();
+    .toUpperCase().replace(/[^A-Z0-9 .\-\/:,'&()°]/g, "").replace(/\s+/g, " ").trim();
 }
 function trimTo(s, w){
   if (s.length <= w) return s;
@@ -3353,7 +3354,7 @@ function planePic(ac, info, d, onReady, noPs){
   if (m && picIsDead(m)) return {src: "", kind: ""};
   return m ? {src: m, kind: "model"} : {src: "", kind: "", asking: modelAsking(names, ac.t)};
 }
-const picCreditParts = p => p.kind === "ps" ? ["© " + (p.by || "Planespotters.net"), p.by ? "Planespotters.net" : ""] : p.kind === "own" ? [T("Photo"), "airport-data.com"]
+const picCreditParts = p => p.kind === "iss" ? ["NASA", "Wikimedia Commons"] : p.kind === "ps" ? ["© " + (p.by || "Planespotters.net"), p.by ? "Planespotters.net" : ""] : p.kind === "own" ? [T("Photo"), "airport-data.com"]
   : p.kind === "model" ? [T("Model only"), "Wikimedia Commons"] : p.kind === "wm" ? [T("Photo"), "Wikimedia Commons"] : ["", ""];
 const picCredit = p => picCreditParts(p).filter(Boolean).join(" · ");
 const picCreditHtml = p => { const [a, b] = picCreditParts(p), go = p.kind === "ps" ? '<i aria-hidden="true"> ↗</i>' : "";
@@ -6386,6 +6387,7 @@ function estArrival(info, o){
   return eta;
 }
 function renderTimes(){
+  if (issShown()) return;
   if (!feat) { ["depTime", "arrTime", "airTime"].forEach(id => setChars(id, "")); return; }
   const info = feat.info || baseInfo(feat.o.ac);
   let dep = utcMs(info.takeoff), arr = null;
@@ -6585,8 +6587,89 @@ function seenLook(){
   f.style = st;
   for (const c of f.cells) drawCell(c, c.anim ? .0001 : null);
 }
+const ISS_PIC = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/International_Space_Station_after_undocking_of_STS-132.jpg/960px-International_Space_Station_after_undocking_of_STS-132.jpg";
+const DIR16 = az => ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"][Math.round(((az % 360) + 360) % 360 / 22.5) % 16];
+let issPasses = [], issAt = 0, issKey = "", issWas = false;
+function issCheck(){
+  if (S.demo || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 110 || S.lat == null || S.lon == null) return;
+  const key = `${(+S.lat).toFixed(1)},${(+S.lon).toFixed(1)}`, now = Date.now();
+  if (now - issAt < (key === issKey ? 15 * 60000 : 60000)) return;
+  issAt = now; issKey = key;
+  fetchJSON(`${relay()}/iss?lat=${(+S.lat).toFixed(2)}&lon=${(+S.lon).toFixed(2)}`, {}, 8000).then(j => {
+    issPasses = j && j.status === "ok" && Array.isArray(j.passes) ? j.passes : [];
+    if (issPasses[0]) dlog("debug", `Space station: next seen ${new Date(issPasses[0].start * 1000).toLocaleString("en-GB")}, ${issPasses[0].maxEl}° up`);
+  }).catch(() => {});
+}
+function issNow(t = Date.now() / 1000){
+  const p = issPasses.find(p => t >= p.start && t <= p.end && p.pts && p.pts.length);
+  if (!p) return null;
+  const q = p.pts;
+  let i = 0;
+  while (i < q.length - 2 && q[i + 1][0] <= t) i++;
+  const a = q[i], b = q[i + 1] || a, f = b[0] > a[0] ? Math.min(1, Math.max(0, (t - a[0]) / (b[0] - a[0]))) : 0;
+  const daz = ((b[1] - a[1] + 540) % 360) - 180;
+  return {p, az: (a[1] + daz * f + 360) % 360, el: a[2] + (b[2] - a[2]) * f};
+}
+const issShown = () => !S.demo && !airportMode() && !(feat && feat.o && emergencyOf(feat.o.ac)) && issNow();
+function issRender(k){
+  const p = k.p, hm = s => hhmm(new Date(s * 1000)), mins = Math.max(1, Math.round((p.end - p.start) / 60)), dir = DIR16(k.az);
+  setChars("flight", "ISS"); setWord("airline", "-|" + T("SPACE STATION")); setWord("remarks", "IN ORBIT");
+  setChars("fromCode", DIR16(p.startAz), 120); setChars("fromCity", p.startEl > 13 ? T("APPEARS") : T("RISES"), 160);
+  setChars("toCode", DIR16(p.endAz), 200); setChars("toCity", p.endEl > 13 ? T("FADES") : T("SETS"), 240);
+  setChars("type", T("SPACE STATION"), 300); setWord("tier", "", 330); setChars("reg", "ISS", 340);
+  setChars("alt", `${p.km} KM`, 380); setWord("trend", "", 390); setChars("speed", `${(+p.kms).toFixed(1)} KM/S`, 400);
+  setChars("pos", `${Math.max(0, Math.round(k.el))}° ${dir}`, 420);
+  setChars("depTime", hm(p.start), 440); setChars("arrTime", hm(p.end), 470);
+  setChars("airTime", `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, "0")}`, 500);
+  if (fields.seen) {
+    setChars("seen", k.el >= 80 ? T("LOOK STRAIGHT UP") : T(k.el >= 45 ? "LOOK UP, HIGH {d}" : "LOOK UP, LOW {d}", {d: dir}), 520);
+    setChars("toGo", "", 510);
+  }
+}
+setInterval(() => {
+  const on = !!issShown();
+  if (on !== issWas) dlog("info", on ? "Board: the space station is up (IN ORBIT)" : "Board: the space station has gone");
+  if (on || issWas) { renderFeatured(); if (typeof renderAircraftInfo === "function") renderAircraftInfo(); }
+  issWas = on;
+}, 5000);
+function issSkyXY(cx, cy, R, az, el){ const r = R * (90 - Math.max(0, el)) / 90, a = az * Math.PI / 180; return [cx + Math.sin(a) * r, cy - Math.cos(a) * r]; }
+function issStation(g, x, y, s, col){
+  g.save(); g.translate(x, y); g.fillStyle = col; g.strokeStyle = col; g.lineWidth = s * .12;
+  g.beginPath(); g.moveTo(-s, 0); g.lineTo(s, 0); g.stroke();
+  for (const dx of [-.78, -.42, .42, .78]) { g.fillRect(dx * s - s * .13, -s * .62, s * .26, s * .5); g.fillRect(dx * s - s * .13, s * .12, s * .26, s * .5); }
+  g.fillRect(-s * .16, -s * .22, s * .32, s * .44);
+  g.restore();
+}
+function issRadar(g, cx, cy, R, z, k, part){
+  const px = n => n * z, p = k.p, t = Date.now() / 1000, ICE = "#cfe0ff", TAU = Math.PI * 2;
+  const word = (txt, x, y, col, size, align) => {
+    g.font = `700 ${px(size)}px ${FONT}`; g.textAlign = align; g.textBaseline = "middle"; g.lineJoin = "round";
+    g.strokeStyle = "rgba(6,7,8,.85)"; g.lineWidth = px(size * .28); g.strokeText(txt, x, y); g.fillStyle = col; g.fillText(txt, x, y);
+  };
+  const [nx, ny] = issSkyXY(cx, cy, R, k.az, k.el), left = nx > cx + R * .45;
+  g.save();
+  if (part === "under") {
+    const path = upto => { g.beginPath(); p.pts.forEach((q, i) => { if (q[0] > upto) return; const [x, y] = issSkyXY(cx, cy, R, q[1], q[2]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); };
+    g.lineCap = "round"; g.lineJoin = "round";
+    g.setLineDash([px(6), px(5)]); g.strokeStyle = "rgba(201,214,246,.75)"; g.lineWidth = px(1.6); path(Infinity); g.stroke(); g.setLineDash([]);
+    g.strokeStyle = ICE; g.lineWidth = px(2.6); path(t); g.lineTo(nx, ny); g.stroke();
+    for (const [q, tt] of [[p.pts[0], p.start], [p.pts[p.pts.length - 1], p.end]]) {
+      const [x, y] = issSkyXY(cx, cy, R, q[1], q[2]), right = x < cx;
+      g.fillStyle = ICE; g.beginPath(); g.arc(x, y, px(3), 0, TAU); g.fill();
+      word(hhmm(new Date(tt * 1000)), x + px(right ? 8 : -8), y + px(12), "#c9d6f6", 10, right ? "left" : "right");
+    }
+  } else {
+    issStation(g, nx, ny, px(13), ICE);
+    const lx = nx + px(left ? -19 : 19), al = left ? "right" : "left";
+    word("ISS", lx, ny - px(6), "#f3f0e8", 11, al);
+    word(T("{n}° up", {n: Math.max(0, Math.round(k.el))}), lx, ny + px(7), "#c9d6f6", 9.5, al);
+  }
+  g.restore();
+  return {x: nx - px(left ? 62 : 15), y: ny - px(14), w: px(77), h: px(28)};
+}
 function renderFeatured(){
   seenLook();
+  { const k = issShown(); if (k) return issRender(k); }
   const ids = ["flight","fromCode","fromCity","toCode","toCity","type","reg","alt","speed","pos"];
   if (!feat) {
     const offline = isOffline();
@@ -6620,6 +6703,7 @@ function renderFeatured(){
   renderTimes();
 }
 function featRemark(){
+  if (issShown()) return "IN ORBIT";
   const mode = feat.apSt || MODE_REMARK[feat.mode];
   const badge = feat.o ? badgeFor(liveFacts(feat.o.ac, feat.info)) : "";
   return badge && (badge === "EMERGENCY" || Math.floor(Date.now() / 6000) % 2) ? badge : mode;
@@ -7090,8 +7174,8 @@ function paintRadar(g, cx, cy, R, z, t, o = {}){
   g.save(); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.clip();
   radarMapDraw(g, cx, cy, R, range, C, radar.px);
   radarSweep(g, cx, cy, R, (t / 7000) * TAU);
-  const ringTags = [], ringStep = radarRing(range);
-  for (let r = ringStep; r <= range; r += ringStep)
+  const ringTags = [], ringStep = radarRing(range), iss = !C.ap && issShown();
+  for (let r = ringStep; r <= range && !iss; r += ringStep)
     if (r * k < R - 6) ringTags.push({text: `${nf.format(r)} km`, x: cx + Math.sin(.42) * r * k + px(4), y: cy - Math.cos(.42) * r * k + px(11)});
   airportPos();
   const ap = AP.code === clean(S.home).slice(0, 3) && AP.lat != null && AP.rwys.length ? AP : null;
@@ -7099,12 +7183,12 @@ function paintRadar(g, cx, cy, R, z, t, o = {}){
   const [ax, ay] = ap ? toXY(ap.lat, ap.lon) : [0, 0], apText = !!ap && Math.hypot(ax - cx, ay - cy) < R - px(27);
   radar.apBox = apText ? {x: ax + px(9.5), y: ay + px(5.5), w: px(31), h: px(14.5)} : null;
   const under = [cx, cy, R, z, range, C.ap ? 1 : 0, C.lat, C.lon, overKm(), S.radiusKm, COL.amber, RADAR_COL.over, FONT,
-    ap ? [S.home, ap.lat, ap.lon, ap.rwys.map(r => used(r) ? 1 : 0).join("")].join() : ""].join();
+    ap ? [S.home, ap.lat, ap.lon, ap.rwys.map(r => used(r) ? 1 : 0).join("")].join() : "", iss ? 1 : 0].join();
   radarLayer(g, "under", under, g => {
     if (!C.ap) { g.fillStyle = rgba(RADAR_COL.over, .12); g.beginPath(); g.arc(cx, cy, overKm() * k, 0, TAU); g.fill(); }
     g.strokeStyle = "rgba(255,255,255,.06)"; g.lineWidth = 1;
     g.beginPath(); g.moveTo(cx - R, cy); g.lineTo(cx + R, cy); g.moveTo(cx, cy - R); g.lineTo(cx, cy + R); g.stroke();
-    for (let r = ringStep; r <= range; r += ringStep) {
+    for (let r = ringStep; r <= range && !iss; r += ringStep) {
       g.strokeStyle = "rgba(255,255,255,.1)"; g.lineWidth = px(.8); g.beginPath(); g.arc(cx, cy, r * k, 0, TAU); g.stroke();
     }
     g.setLineDash([px(8), px(6)]); g.strokeStyle = rgba(COL.amber, .6); g.lineWidth = px(1.4);
@@ -7121,6 +7205,7 @@ function paintRadar(g, cx, cy, R, z, t, o = {}){
   });
   g.font = `600 ${px(10.5)}px ${FONT}`; g.textAlign = "left"; g.textBaseline = "alphabetic";
   if (ap) g.lineJoin = "round";
+  const issBox = iss ? issRadar(g, cx, cy, R, z, iss, "under") : null;
   const shown = [];
   for (const o_ of radar.planes) {
     const ac = o_.ac, th = (ac.track || 0) * Math.PI / 180, pos = radarPos(o_, now, kx, ky);
@@ -7141,7 +7226,8 @@ function paintRadar(g, cx, cy, R, z, t, o = {}){
   radar.hits = shown.map(s_ => ({o: s_.o, hex: s_.o.ac.hex, x: s_.x, y: s_.y}));
   const centre = {x: cx - px(12), y: cy - px(12), w: px(24), h: px(24)}, compass = [0, 90, 180, 270].map(d => { const a = d * Math.PI / 180;
     return {x: cx + Math.sin(a) * (R - px(12)) - px(9.5), y: cy - Math.cos(a) * (R - px(12)) - px(9.5), w: px(19), h: px(19)}; });
-  ringLabels(g, ringTags, radarLabels(g, shown, cx, cy, R, {name: px(11), alt: px(9.5), gap: px(11.5)}, [centre, ...compass, ...(radar.apBox ? [radar.apBox] : [])]), px(10.5));
+  ringLabels(g, ringTags, radarLabels(g, shown, cx, cy, R, {name: px(11), alt: px(9.5), gap: px(11.5)}, [centre, ...compass, ...(radar.apBox ? [radar.apBox] : []), ...(issBox ? [issBox] : [])]), px(10.5));
+  if (iss) issRadar(g, cx, cy, R, z, iss, "over");
   g.restore();
   const zoomed = radarZoomed(), over = [cx, cy, R, z, range, C.ap ? 1 : 0, C.lat, C.lon, S.lat, S.lon, COL.amber, COL.housing,
     COL.muted, FONT, zoomed ? 1 : 0, radarMapOn ? 1 : 0, o.engrave ? 1 : 0, nf.format(range), RADAR_MAP_CREDIT].join();
@@ -7415,11 +7501,12 @@ $("recent").addEventListener("click", e => {
 $("recentAll").onclick = () => { ctlSound.nav(); showTab("today"); };
 let shownPhoto = null;
 function renderAircraftInfo(){
-  $("acSec").hidden = !feat;
+  const iss = !!issShown();
+  $("acSec").hidden = !feat && !iss;
   nowEmptyNote(); nowPanels(); lookSoon();
-  if (!feat) return;
-  const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
-  const p = planePic(feat.o.ac, info, d, () => renderAircraftInfo(), !!rwyE()), src = p.src, a = $("photoLink");
+  if (!feat && !iss) return;
+  const info = iss ? {} : feat.info || baseInfo(feat.o.ac), d = iss ? {} : detailsOf(feat.hex) || {};
+  const p = iss ? {src: ISS_PIC, kind: "iss"} : planePic(feat.o.ac, info, d, () => renderAircraftInfo(), !!rwyE()), src = p.src, a = $("photoLink");
   $("photoCr").innerHTML = picCreditHtml(p);
   if (p.kind === "ps") Object.assign(a, {href: p.link, target: "_blank", rel: "noopener"}); else a.removeAttribute("href");
   if (src !== shownPhoto) {
@@ -7437,6 +7524,7 @@ function renderAircraftInfo(){
     } else img.removeAttribute("src");
   }
   paintRwy();
+  if (iss) return;
   const done = !!info.done && detailsDone(feat.hex);
   setChars("naReg", orNA(info.reg || d.reg, done));
   setChars("naHex", feat.hex.toUpperCase(), 60);
@@ -9571,7 +9659,7 @@ function drawLook(){
   skyMem.k = K; skyMem.hex = s.hex; skyMem.s = s;
   const home = feat ? $("bezel") : $("hero");
   if (box.previousElementSibling !== home) home.after(box);
-  box.hidden = SIDEWAYS.matches || !feat && !arPossible() && K !== "nolive";
+  box.hidden = SIDEWAYS.matches || !!issShown() || !feat && !arPossible() && K !== "nolive";
   if (box.hidden) return;
   box.className = "look sk-" + K + (feat ? "" : " skyRow") + (feat && !L && K !== "ground" && K !== "in" ? " why" : "");
   const [lab, val] = SKY_WORDS[K];
@@ -12279,12 +12367,12 @@ function nowPanels(){
   const on = tab === "now" && SIDEWAYS.matches, ap = airportMode(), lists = on && nowPage === "lists";
   let changed = false;
   const up = tab === "now" && !SIDEWAYS.matches && ap;
-  for (const [P, show] of [[RECENTP, lists && !ap], [APP, lists && ap], [ACP, on && isAcPage(nowPage) && !!feat], [APDP, up], [APAP, up]])
+  for (const [P, show] of [[RECENTP, lists && !ap], [APP, lists && ap], [ACP, on && isAcPage(nowPage) && !!feat && !issShown()], [APDP, up], [APAP, up]])
     if (P.off === show) { P.off = !show; changed = true; }
   if (changed) refreshPanels(true);
 }
 function nowEmptyNote(){
-  const el = $("nowEmpty"), empty = isAcPage(nowPage) && !feat;
+  const el = $("nowEmpty"), empty = isAcPage(nowPage) && !feat && !issShown();
   el.hidden = !empty;
   const say = nowPage === "dep" ? "No plane taking off right now" : nowPage === "land" ? "No plane landing right now" : "No plane to show right now";
   if (empty) el.innerHTML = isOffline() ? escH(T("Offline · retrying")) : `${escH(T(say))}<small>${escH(T("The page fills in as soon as there is one."))}</small>`;
@@ -12304,6 +12392,10 @@ setInterval(() => {
   nowTurn = Date.now();
 }, 1000);
 const CHANGELOG = [
+  {v: "1.133", date: "2026-11-04", notes: [
+    "The space station takes the board while it passes where you can see it: its own IN ORBIT row, how high to look and which way, and its path across the Radar.",
+    "Special planes notifications also say a few minutes ahead when the space station will be up.",
+  ]},
   {v: "1.132", date: "2026-11-04", notes: [
     "The Radar draws a plane by its kind: a jumbo with four engines, a propeller plane, a helicopter and a fighter, besides the usual jet, in the same colours.",
     "The Nearest list shows the same shape in front of each plane.",
@@ -13815,7 +13907,7 @@ function settingsExtra(){
 const topSize = () => document.documentElement.style.setProperty("--topH", $("top").offsetHeight + "px");
 if (window.ResizeObserver) new ResizeObserver(topSize).observe($("top")); else topSize();
 $("hero").addEventListener("click", e => {
-  if (!feat || !feat.o) return;
+  if (!feat || !feat.o || issShown()) return;
   const r = HERO.el.getBoundingClientRect(), x = (e.clientX - r.left) * HERO.w / r.width, y = (e.clientY - r.top) * HERO.h / r.height;
   const id = ["airline", "fromCode", "fromCity", "toCode", "toCity", "flight", "type", "tier", "reg", "remarks", "seen"].find(k => {
     const f = fields[k]; if (!f || f.x == null || f.hidden) return false;
@@ -13897,7 +13989,7 @@ function lookAuto(){
 }
 lookAuto();
 addEventListener("pointerup", function lookFirst(){ removeEventListener("pointerup", lookFirst); lookAuto(); });
-const PUSH_KINDS = [["special", "Special planes (A380, 747, Beluga, Antonov, emergencies)"], ["watch", "Watchlist (police, ambulance, government, historic …)"],
+const PUSH_KINDS = [["special", "Special planes (A380, 747, Beluga, Antonov, emergencies, the space station)"], ["watch", "Watchlist (police, ambulance, government, historic …)"],
   ["military", "Military planes"], ["fav", "Your favourites"], ["newtype", "Types never seen here"], ["low", "Very low passes"],
   ["quiet", "Quiet at night (22:00–07:00), except emergencies and special planes"]];
 const PUSH_KIND_DEFAULTS = {special: true, watch: true, military: true, fav: true, newtype: false, low: false, quiet: true};
@@ -14629,7 +14721,7 @@ async function poll(force){
   if (!list) return;
   if (liveWaiting() && !S.demo) { const none = []; none.now = list.now; list = none; }
   lastList = list;
-  try { skyCheck(); listsLoad(); process(list); watchAsk(list); if (typeof arFeed === "function") arFeed(list); snapSave(); }
+  try { skyCheck(); issCheck(); listsLoad(); process(list); watchAsk(list); if (typeof arFeed === "function") arFeed(list); snapSave(); }
   catch (e) { dlog("error", `Couldn't draw the update: ${e && e.message || e}`); }
 }
 function lookAgain(){

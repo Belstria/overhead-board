@@ -804,12 +804,13 @@ $("recent").addEventListener("click", e => {
 $("recentAll").onclick = () => { ctlSound.nav(); showTab("today"); };
 let shownPhoto = null;
 function renderAircraftInfo(){
-  $("acSec").hidden = !feat;
+  const iss = !!issShown();                    // 1.133: the space station passing: its photo, no plane's facts or scan
+  $("acSec").hidden = !feat && !iss;
   nowEmptyNote(); nowPanels(); lookSoon();
-  if (!feat) return;
-  const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
+  if (!feat && !iss) return;
+  const info = iss ? {} : feat.info || baseInfo(feat.o.ac), d = iss ? {} : detailsOf(feat.hex) || {};
   // 1.93: Planespotters' photo first (not on the runway screen, which has no room for its credit), its credit a link
-  const p = planePic(feat.o.ac, info, d, () => renderAircraftInfo(), !!rwyE()), src = p.src, a = $("photoLink");
+  const p = iss ? {src: ISS_PIC, kind: "iss"} : planePic(feat.o.ac, info, d, () => renderAircraftInfo(), !!rwyE()), src = p.src, a = $("photoLink");
   $("photoCr").innerHTML = picCreditHtml(p);
   if (p.kind === "ps") Object.assign(a, {href: p.link, target: "_blank", rel: "noopener"}); else a.removeAttribute("href");
   if (src !== shownPhoto) {
@@ -827,6 +828,7 @@ function renderAircraftInfo(){
     } else img.removeAttribute("src");
   }
   paintRwy();
+  if (iss) return;
   const done = !!info.done && detailsDone(feat.hex);           // "/": looked up, not known (1.48)
   setChars("naReg", orNA(info.reg || d.reg, done));
   setChars("naHex", feat.hex.toUpperCase(), 60);
@@ -3164,7 +3166,7 @@ function drawLook(){
   skyMem.k = K; skyMem.hex = s.hex; skyMem.s = s;
   const home = feat ? $("bezel") : $("hero");
   if (box.previousElementSibling !== home) home.after(box);
-  box.hidden = SIDEWAYS.matches || !feat && !arPossible() && K !== "nolive";
+  box.hidden = SIDEWAYS.matches || !!issShown() || !feat && !arPossible() && K !== "nolive";   // 1.133: the station can't be scanned
   if (box.hidden) return;
   box.className = "look sk-" + K + (feat ? "" : " skyRow") + (feat && !L && K !== "ground" && K !== "in" ? " why" : "");
   const [lab, val] = SKY_WORDS[K];
@@ -5296,12 +5298,12 @@ function nowPanels(){
   const on = tab === "now" && SIDEWAYS.matches, ap = airportMode(), lists = on && nowPage === "lists";
   let changed = false;
   const up = tab === "now" && !SIDEWAYS.matches && ap;
-  for (const [P, show] of [[RECENTP, lists && !ap], [APP, lists && ap], [ACP, on && isAcPage(nowPage) && !!feat], [APDP, up], [APAP, up]])
+  for (const [P, show] of [[RECENTP, lists && !ap], [APP, lists && ap], [ACP, on && isAcPage(nowPage) && !!feat && !issShown()], [APDP, up], [APAP, up]])
     if (P.off === show) { P.off = !show; changed = true; }
   if (changed) refreshPanels(true);
 }
 function nowEmptyNote(){
-  const el = $("nowEmpty"), empty = isAcPage(nowPage) && !feat;
+  const el = $("nowEmpty"), empty = isAcPage(nowPage) && !feat && !issShown();
   el.hidden = !empty;
   const say = nowPage === "dep" ? "No plane taking off right now" : nowPage === "land" ? "No plane landing right now" : "No plane to show right now";
   if (empty) el.innerHTML = isOffline() ? escH(T("Offline · retrying")) : `${escH(T(say))}<small>${escH(T("The page fills in as soon as there is one."))}</small>`;
@@ -5705,7 +5707,7 @@ const topSize = () => document.documentElement.style.setProperty("--topH", $("to
 if (window.ResizeObserver) new ResizeObserver(topSize).observe($("top")); else topSize();
 //@L:taps
 $("hero").addEventListener("click", e => {
-  if (!feat || !feat.o) return;
+  if (!feat || !feat.o || issShown()) return;               // 1.133: the station's row opens nothing: its facts are on the flaps
   const r = HERO.el.getBoundingClientRect(), x = (e.clientX - r.left) * HERO.w / r.width, y = (e.clientY - r.top) * HERO.h / r.height;
   const id = ["airline", "fromCode", "fromCity", "toCode", "toCity", "flight", "type", "tier", "reg", "remarks", "seen"].find(k => {
     const f = fields[k]; if (!f || f.x == null || f.hidden) return false;
@@ -5798,7 +5800,7 @@ addEventListener("pointerup", function lookFirst(){ removeEventListener("pointer
    The lists live on the relay (userLists, shared code), so the boards and the notifications follow them. Here: a sheet
    to switch a plane's aircraft, type, airline or flight on or off as a favourite or hidden (from the lists' + and
    This aircraft), and the manager in Settings. */
-const PUSH_KINDS = [["special", "Special planes (A380, 747, Beluga, Antonov, emergencies)"], ["watch", "Watchlist (police, ambulance, government, historic …)"],
+const PUSH_KINDS = [["special", "Special planes (A380, 747, Beluga, Antonov, emergencies, the space station)"], ["watch", "Watchlist (police, ambulance, government, historic …)"],
   ["military", "Military planes"], ["fav", "Your favourites"], ["newtype", "Types never seen here"], ["low", "Very low passes"],
   ["quiet", "Quiet at night (22:00–07:00), except emergencies and special planes"]];
 const PUSH_KIND_DEFAULTS = {special: true, watch: true, military: true, fav: true, newtype: false, low: false, quiet: true};

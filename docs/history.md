@@ -10,6 +10,24 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.133 (to-do #309, Dave's pick B, relay 110): **the space station as its own row.** `issCheck()` (from `poll`, every
+  15 minutes or when the place moves 0.1°) asks `/iss?lat&lon` for the coming visible passes (`issPasses`: start, end,
+  where it appears and goes, its highest point, height and speed, and its track every 10 s, `pts: [t, az, el]`).
+  `issNow()` finds the pass on now and interpolates where it is; `issShown()` is that, in the Overhead style, not in
+  demo, and not while the plane on top is an emergency. `renderFeatured()` then hands over to `issRender()`: FLIGHT and
+  REG. ISS, airline and type SPACE STATION, the night-blue **IN ORBIT** status (appended to `REMARKS`, its look in
+  `REMARK_LOOK`; `featRemark()` keeps it on the clock's tick), FROM/TO the 16-point direction it appears and goes with
+  RISES/SETS (APPEARS/FADES when that happens above 13°, in or out of the earth's shadow), the times, POSITION "57° SSE"
+  and REMARKS "LOOK UP, HIGH SSE" (LOW under 45°, LOOK STRAIGHT UP from 80°); `renderTimes()` stands aside. A 5 s timer
+  redraws it while it passes and once as it goes. `clean()` keeps "°"; `DRUM_POS` gained "°" and `DRUM_ALT` "S" (KM/S).
+  The plane on top stays `feat`, so the station never reaches Recent flights, Spotted today, the logbook, the game or the
+  counts. The board's This aircraft page is unavailable during a pass (`pageAvailable`). **The Radar**
+  (`paintRadar`): while `issShown()` (not in the Airport style's airport-centred radar) the km rings and their labels
+  step aside and `issRadar()` draws the sky chart (rim = horizon, centre = straight up, `issSkyXY`): the path dashed,
+  the part flown solid, dots and times where it appears and goes (under the planes), then the station (`issStation`,
+  a truss and four wings) with "ISS" and "57° up" over them; its box is passed to `radarLabels` so plane labels keep off
+  it. The picture: NASA's STS-132 photo from Wikimedia Commons (`ISS_PIC`, public domain; credit kind `iss`).
+
 - 1.96.1 (to-do #124, Dave's picks: chip C2, the model from the front): **the band's middle says what the card is**.
   `bandMid(kind)` replaces "— ✈ —" (and the place card's "— 1,702 km —"): a solid gold chip (`.cKind`) with a filled
   icon (`BAND_ICONS`: the model an airliner from the front, the airline a tail fin, the place a control tower) and the
@@ -950,6 +968,11 @@ The repository is public: no addresses, keys or personal data here either.
   radio callsign (`airlineInfo`), and wait for the logo (`logoReady`); tips follow each other within ~60 ms (fade .18 s).
 
 ## The phone app
+
+- 1.133 (to-do #309): **the space station on Now.** `renderAircraftInfo()` shows `acSec` during a pass even with no
+  plane, with the station's photo and its credit ("NASA · Wikimedia Commons") and no plane facts; the scan row (`#look`,
+  `drawLook`) is hidden (it can't be scanned), the sideways This aircraft panel too (`nowPanels`), and a tap on the flaps
+  opens nothing (the facts are on the flaps). Settings → Notifications' Special planes line names the station.
 
 - 1.129 (to-do #262; relay 106): **filled-in routes show like any other.** `fromRelay` passes `routeSrc`; `borrowFilledRoutes` (after `syncSightings`, board and app) gives the plane's `infoCache` entry the shared list's filled route when its own lookups have none, for the plane on top and the Radar; a real answer arriving later overwrites it. No new mark or words.
 - 1.129.1 (to-do #263, #264, #265; Dave: "passport and frequent flyer cards on skyview can be full size again", a torn ticket always compact, the Today header, smaller footers; app only, no relay change): **Sky view's pop-ups.** `gAwBig()` (the box is Sky view's) puts `.big` on `ppNew` and `lyNew` where they rise:
@@ -2086,6 +2109,20 @@ and keeps the screen on while it is open (`FLAG_KEEP_SCREEN_ON`, since 1.13.3.1;
 it, and never replace it, or phones refuse the update. Bump nothing by hand: the APK is named after the newest patch-notes entry plus the build number.
 
 ## The relay
+
+- Relay 110 (1.133, to-do #309): **the space station's visible passes.** `iss_tle()` fetches the ISS's two-line
+  elements from CelesTrak (`ISS_TLE_URL`, the relay's User-Agent) once a day, kept in `data/iss-tle.txt`; while CelesTrak
+  fails it asks again at most hourly and keeps the last (`ISS_TLE_MAX_DAYS` 14). `iss_passes()` steps 36 h in 20 s
+  (2 min far below the horizon) with `sgp4` (`iss_at`: TEME to earth-fixed by GMST, azimuth and elevation from the WGS 84
+  observer, lit unless in the earth's cylindrical shadow, the sun's elevation from `sun_radec`, Sky view's formulas);
+  a pass is seen while it is 10° up (`ISS_MIN_EL`), lit, and the sun 6° down (`ISS_SUN_EL`); edges to the second by
+  halving; passes under 10 s dropped. `_iss_pass` keeps the track every 10 s and the highest point to the second.
+  `iss_json()` (`/iss?lat&lon`, rate-limited per profile) caches per 0.1° place for ten minutes and returns the next
+  three. `iss_check()` (in `_push_watch`) sends one notification per device and pass (`_iss_sent`) `ISS_NOTIFY_S` (5
+  min) before a pass rising `ISS_NOTIFY_EL` (25°) or more, to subscriptions with window alerts and Special planes on,
+  keeping quiet at night; words in `PUSH_TEXT` `iss_title`/`iss_body` (`iss_text`). `ISS_FAKE_AT`/`iss_fake()`: the test
+  relay's `--iss [SECONDS]`, a made-up pass like the mockup's. `tools/test/iss_passes.py` (in CI) checks four passes over
+  central Vienna against Heavens-Above's published times (within 10 s; they agree to 1–3 s) and the orbit kept on disk.
 
 - Relay 107 (1.129.4, to-do #98): **`_fr24_late_all`, a one-off Flightradar24 back-fill of the owner's saved days.** Waits `FR24_LATE_WAIT_S`, then for one profile named `HOME_OWNER` with `fr24` on, the airports, and the logbook's `vrsFill` (VRS first, so nothing it fills is paid for). `_fr24_late_run`: days before the first run's day (`startDay`), newest first, by (ts, hex), the place kept in the logbook's `fr24Late.at`, so a restart asks again at most what the saver hadn't written (4 s; the job asks every `FR24_LATE_GAP_S`). `_fr24_lookup(cs, hx, around=)` asks `FR24_LATE_BACK_S` before to `FR24_LATE_AHEAD_S` after the sighting; 16 hours back because the docs couldn't be read and the filter may go by take-off, and `_fr24_row_spans` then refuses a flight whose own times don't hold the sighting (`FR24_LATE_SLACK_S`), on top of the hex check. Live lookups pass no `around` and ask as before. `_fr24_late_write` writes only `from`, `to` and `routeSrc: "fr24late"`: no flight number (the row's airline follows it) and no diversion. Never into `_fr24["flights"]`: `fr24_info` and `_fr24_keep_cached` would serve it as live, and pay. `ROUTE_UNPAID` ("vrs", "fr24late") is read by `note_records`, `route_countries`, the enricher, `fr24_keep` and `fr24_overlay`; `_vrs_catchup`, `now_json` and `borrowFilledRoutes` stay on "vrs" alone (`_vrs_catchup` counts only VRS's, the other two only see today's, which the job never writes). **Holds back:** `fr24_on`, `fr24_paced(1, .5)` (half the day's share, so the rest stays for the live lookups), `_fr24_q` not empty. `FR24_LATE_CAP` is checked before each request with `FR24_LATE_COST`, so it is never passed. `fr24_spent` gets no pid, so no profile's daily limit moves. **Ends:** 401/403 at once, without touching `_fr24_state` (on an old date it may be the plan, and a refused state would stop live lookups for six hours; a live lookup finds a bad key itself); another 4xx after `FR24_LATE_BAD` in a row; 429 pauses; 5xx and unreachable (`fetch` gives both as 5xx) pause 10 minutes and cost nothing. Stopped stays stopped. Result: `usage.routeBackfill` in `fr24.json` (counts and one date, kept by `_fr24_usage` over the month's reset), one `event`. Test: `run_test_relay.py --fr24 --late-routes`, `route_backfill_checks`.
 - Relay 106 (1.129, to-do #262): **Virtual Radar Server's routes fill the gaps.** `_enricher` puts a sighting no source has a route for on `_vrs_q`; `_vrs_worker`, its own thread, so a slow or failed download holds up nothing, fills it from `_vrs_route`. `_vrs_listed` normalises the callsign (README's rule) and `_vrs_piece` gets the file: `<CODE>-all.csv`, on a 404 `<CODE>-<first digit>.csv` (an airline with over 10,000 routes: RYR, EZY, WZZ, ...), kept in `data/vrs-routes/<name>.json`, a 404 too (`routes: null`), for `VRS_EVERY_S`, at `VRS_GAP_S` apart, with `VRS_KEEP` in memory; a failure stops downloads for `VRS_FAIL_S` and is never remembered as missing. Airports come from the OurAirports table the relay already has, so VRS's airport files aren't fetched. `_route_fits` lets through what it can't check, so `_vrs_route` first demands a position with a track and both airports' coordinates. A stopover: of the legs that fit, one the plane heads along, then the smallest detour. **The 80 km rule stays:** on simulated positions (the real Flightradar24 routes near Vienna, 106 listed) it caught 7 of 10 wrong routes and refused none of the 96 right, and checking the heading inside 80 km caught no more. `routeSrc: "vrs"` keeps it apart: `route_countries` (stamps, pay, `_passport_make`) and `note_records` (the farthest record) treat it as no route. `fr24_keep`, `fr24_overlay` and the enricher replace it; a Flightradar24 flight number alone leaves the mark. `now_json` (the widget) shows it. **`_vrs_catchup_all`:** `VRS_CATCHUP_WAIT_S` after start, per profile once (the logbook's `vrsFill`, the counts), a day at a time, only the route and mark, through the saver; a failed download ends the run without the marker, an hour later it goes on. It also counts the sightings with Flightradar24's route (`_vrs_truth_check`, changing nothing), so its one log line gives the real rates.
