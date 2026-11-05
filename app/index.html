@@ -1826,9 +1826,37 @@ html:has(#t-game:not([hidden]),#t-logbook:not([hidden])){overscroll-behavior-x:n
 .plFoot.wrap span{display:block;white-space:normal}
 .plFoot.wrap span+span::before{content:none}
 .plFoot.one span{display:inline;white-space:normal}
-.perCard .perHead{gap:10px}
-.perCard .perHead .seg{flex:1;margin:0}
-.perCard .perHead .perArr{margin-left:auto}
+.perCard .perHead{gap:8px}
+.perCard .perHead .seg{flex:1;margin:0;min-width:0;padding:3px 2px}
+.perCard .perHead .perArr{margin-left:auto;gap:5px}
+.perCard .seg.lbPer button{flex:1 1 auto;padding:0 5px;white-space:nowrap}
+#cardBox .perCard .perArr .cBtn{min-height:34px;padding:4px 9px}
+.perNums{display:grid;grid-template-columns:repeat(4,minmax(min-content,1fr));gap:10px 6px;margin:12px 0 0}
+.perN{all:unset;box-sizing:border-box;position:relative;display:flex;flex-direction:column;gap:5px;min-width:0;padding-bottom:7px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.perN b{display:block;font:700 var(--fs-2xl)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums}
+.perN span{font:600 var(--fs-tag)/1.15 var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:var(--amber);white-space:nowrap}
+.perN::after{content:"";position:absolute;left:0;bottom:0;width:28px;height:2px;border-radius:1px;background:transparent}
+.perN.on b{color:var(--amber)}
+.perN.on::after{background:var(--amber);box-shadow:0 1px 0 rgba(0,0,0,.8)}
+.perN:disabled{cursor:default}
+.perN:disabled span{color:var(--muted)}
+.perN.on:disabled b{color:var(--ink)}
+.perN.on:disabled::after{background:var(--muted)}
+.perN:not(:disabled):active b{color:var(--amber)}
+.perN:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:4px}
+.perPane{margin:14px 0 0}
+.perPaneH{margin:0 0 2px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--label2)}
+.perList .perPaneH{margin-top:16px}
+.perPane .ranks li{padding:6px 0}
+.perPane .sum{margin:8px 0 0}
+.perAll{margin:6px 0 0}
+.ranks .n.perWhen{color:var(--muted);font-weight:600}
+.perRecs{margin-top:12px}
+.perRecs div.off dt{color:var(--muted)}
+.perActs{margin-top:12px}
+.perActs .cBtn{text-decoration:none}
+#cardBox .perActs a.cBtn{display:inline-flex;align-items:center}
+#cardBox .perActs .cBtn[disabled],#cardBox .perActs .cBtn[aria-disabled=true]{opacity:.35;pointer-events:none}
 .hgPlate .hgRow{margin:0 -14px;padding:2px 14px 8px;scroll-padding:0 14px}
 .hgPlate .hgShelf:first-of-type{margin-top:6px}
 .ppPlate .hgRow{margin:0 -14px;padding:2px 14px 8px;scroll-padding:0 14px}
@@ -2173,7 +2201,7 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
 .perHead h3{margin:0}
 .perArr{display:flex;gap:6px}
 .perArr .cBtn{min-height:34px;padding:4px 12px}
-.perArr .cBtn[disabled]{opacity:.35;pointer-events:none}
+.perArr .cBtn[disabled],#cardBox .perArr .cBtn[disabled]{opacity:.35;pointer-events:none}
 .yearCard .seg.lbPer{margin:10px 0 4px}
 .cats li.catTap,.ranks li.lbTap{cursor:pointer} .cats li.catTap .chev{color:var(--muted);font-size:var(--fs-s)}
 .dd{flex:none;display:inline-block;width:14px;height:14px;vertical-align:middle;overflow:visible}
@@ -2462,7 +2490,6 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
       <div class="lbStrip" id="lbStrip">
         <button type="button" class="lbPlate" id="tdPlate"></button>
         <button type="button" class="lbPlate" id="lbYear" hidden></button>
-        <div class="lbPlate lbOpens" id="lbPlate" hidden></div>
       </div>
       <div class="lbFilter" id="lbFilter">
         <div class="tools" id="svTools"></div>
@@ -6834,7 +6861,7 @@ const typeLabel = (code, name) => TYPES[code] || typeName(code, name).name || co
 const MAKERS = /^(Airbus Helicopters|De Havilland Canada|De Havilland|McDonnell Douglas|Lockheed Martin|AgustaWestland|Airbus|Boeing|Embraer|Bombardier|Cessna|Dassault|Gulfstream|Pilatus|Beechcraft|Beech|Diamond|Piper|Cirrus|Lockheed|Antonov|Eurocopter|Leonardo|Sikorsky|Robinson|Fokker|Saab|ATR)\s+/i;
 function typeShown(t, n){
   t = String(t || "");
-  const full = TYPES[t.toUpperCase()] || t, short = full.replace(MAKERS, "") || full;
+  const full = TYPES[t.toUpperCase()] || t, rest = full.replace(MAKERS, ""), short = rest && (!/^\d/.test(rest) || /^Boeing\s/i.test(full)) ? rest : full;
   return !n ? short : full.length <= n ? full : short.length <= n ? short : t;
 }
 function demoLogbook(){
@@ -7863,7 +7890,7 @@ function tdOpen(){
   });
 }
 $("tdPlate").onclick = tdOpen;
-const LB_PLATES = {today: "tdPlate", period: "lbYear", all: "lbPlate"};
+const LB_PLATES = {today: "tdPlate", period: "lbYear"};
 let lbPlateOn = "today", lbStripSig = "";
 const lbPlateNum = (v, k) => `<span><b>${v == null ? "–" : nf.format(v)}</b><small>${escH(T(k))}</small></span>`;
 const lbPlateHtml = (title, nums, chev) => `<span class="lbPlH"><small>${escH(title)}</small>${chev ? '<i aria-hidden="true">›</i>' : ""}</span><span class="lbPlN">${nums.map(([v, k]) => lbPlateNum(v, k)).join("")}</span>`;
@@ -7971,10 +7998,10 @@ function lblPlate(){ return $(LB_PLATES[lbPlateOn]).hidden ? "today" : lbPlateOn
 const lblOn = () => tab === "logbook" && relayV5() && (window.OVERHEAD_RELAY_VERSION || 0) >= 105 && !S.demo && !liveWaiting() && lblPlate() !== "today";
 const lblIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 function lblSpan(today){
-  const plate = lblPlate(), per = reviewOk() ? lbPeriod : "year", back = per === "year" ? yearBack : review.back, k = [plate, per, back].join();
+  const plate = lblPlate(), per = perOn(), back = per === "year" ? yearBack : review.back, k = [plate, per, back].join();
   if (k === lbl.spanKey) return lbl.span;
   lbl.spanKey = k;
-  if (plate === "all") return lbl.span = ["", ""];
+  if (per === "all") return lbl.span = ["", ""];
   const d = new Date(today + "T12:00:00");
   if (per === "year") { const y = d.getFullYear() - back; return lbl.span = [`${y}-01-01`, back ? `${y}-12-31` : ""]; }
   const s = per === "week" ? new Date(d.getTime() - ((d.getDay() + 6) % 7 + 7 * back) * 864e5) : new Date(d.getFullYear(), d.getMonth() - back, 1, 12);
@@ -8423,7 +8450,7 @@ async function lbFind(){
 }
 const catOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 61;
 let lbCat = "", lbCatView = "types", lbCatData = {};
-const lbCatKey = () => lbCat + "|" + (lbPlace || "");
+const lbCatKey = () => lbCat + "|" + (lbPlace || "") + "|" + perKey(perNow());
 function catOpenHtml(k){
   const d = lbCatData[lbCatKey()];
   if (!d) return `<li class="catSub"><p class="sum">${escH(T("Loading …"))}</p></li>`;
@@ -8438,7 +8465,8 @@ function catOpenHtml(k){
 async function catFetch(){
   const key = lbCatKey();
   if (lbCatData[key]) return;
-  try { lbCatData[key] = await fetchJSON(`${relay()}/logbook/category?c=${lbCat}${lbPlace ? "&place=" + encodeURIComponent(lbPlace) : ""}`, {}, 15000); }
+  const r = perShown(), span = perOn() !== "all" && r && r.start && perAllOk() ? `&from=${r.start}&to=${r.end}` : "";
+  try { lbCatData[key] = await fetchJSON(`${relay()}/logbook/category?c=${lbCat}${lbPlace ? "&place=" + encodeURIComponent(lbPlace) : ""}${span}`, {}, 15000); }
   catch { lbCatData[key] = {types: [], regs: [], operators: []}; }
   lbSig = ""; renderLogbook();
 }
@@ -8446,12 +8474,12 @@ document.addEventListener("click", e => {
   const t = e.target && e.target.closest && e.target.closest(".lbSheet [data-cat], .lbSheet [data-cv], .lbSheet .catRow, .lbSheet .lbTap, .lbSheet [data-pk], #lbFound [data-fp]");
   if (!t) return;
   ctlSound.click();
-  if (t.dataset.pk != null) { cardClose(); if (t.dataset.pk !== lbPlace) lbPick(t.dataset.pk); return; }
+  if (t.dataset.pk != null) { lbDrop(); cardClose(); if (t.dataset.pk !== lbPlace) lbPick(t.dataset.pk); return; }
   if (t.dataset.cat){ lbCat = lbCat === t.dataset.cat ? "" : t.dataset.cat; lbCatView = "types"; if (lbCat) catFetch(); }
   else if (t.dataset.cv) lbCatView = t.dataset.cv;
   else if (t.dataset.ct) return typeCard({typeCode: t.dataset.ct, type: t.dataset.cn});
   else if (t.dataset.co != null && t.matches(".catRow, .lbTap")) return airlineCard({airlineIcao: t.dataset.co, airline: t.dataset.cn, airlineCode: t.dataset.ci});
-  else if (t.dataset.cr) { if (t.closest("#cardBox")) cardClose(); const inp = $("lbFindBox").querySelector("[data-q]"); if (inp) { inp.value = t.dataset.cr; inp.dispatchEvent(new Event("input")); window.scrollTo({top: 0, behavior: "smooth"}); } return; }
+  else if (t.dataset.cr) { if (t.closest("#cardBox")) { lbDrop(); cardClose(); } const inp = $("lbFindBox").querySelector("[data-q]"); if (inp) { inp.value = t.dataset.cr; inp.dispatchEvent(new Event("input")); window.scrollTo({top: 0, behavior: "smooth"}); } return; }
   else if (t.dataset.fp) return foundCard(t.dataset.fp, lbFoundRows[+t.dataset.fi]);
   lbSig = ""; renderLogbook();
 });
@@ -8485,16 +8513,31 @@ async function foundCard(k, g){
   for (const t0 = Date.now(); (pic().asking || (ac.hex && acDetails.get(ac.hex) === null)) && Date.now() - t0 < 2500 && tok === cardTok;) await new Promise(r => setTimeout(r, 150));
   shown = await cardWhenReady(tok, html(), wire);
 }
-let lbPanels = {}, lbPanel = "", lbPanelTok = 0;
-const lbPanelOn = () => !!lbPanel && cardTok === lbPanelTok && cardOpenNow();
+let lbPanels = {}, lbPanel = "", lbHeld = null, lbHoldNext = false;
+const lbPanelOn = () => !!lbPanel && cardOpenNow() && !!document.querySelector(`#cardBox .lbIn[data-lbp="${lbPanel}"]`);
 function lbPanelOpen(k){
-  if (!lbPanels[k]) return;
+  if (!lbPanels[k]) { lbHoldNext = false; return; }
   ctlSound.nav();
+  if (!lbHoldNext) lbHeld = null;
   lbPanel = k;
-  lbPanelTok = cardOpen(`<div class="lbIn">${lbPanels[k]}</div>`, ci => ci.classList.add("tdSheet", "lbSheet"));
+  cardOpen(`<div class="lbIn" data-lbp="${k}">${lbPanels[k]}</div>`, ci => ci.classList.add("tdSheet", "lbSheet"));
+  lbHoldNext = false;
 }
+function lbRestore(b){
+  const ci = lbHeld;
+  lbHeld = null; perListK = "";
+  if (!ci || tab !== "logbook") return false;
+  b.replaceChildren(ci);
+  b.classList.remove("closing", "drag"); ci.style.transform = ""; ci.style.height = "";
+  if (b.hidden) { b.hidden = false; b.classList.remove("in"); void b.offsetWidth; }
+  b.classList.add("in");
+  cardSheetHtml = ""; lbPanel = "year";
+  lbSig = ""; renderLogbook();
+  return true;
+}
+const lbDrop = () => { lbHeld = null; perListK = ""; };
 function lbPanelSync(){
-  const el = lbPanelOn() && document.querySelector("#cardBox .lbIn");
+  const el = lbPanelOn() && document.querySelector(`#cardBox .lbIn[data-lbp="${lbPanel}"]`);
   if (!el) return;
   const html = lbPanels[lbPanel] || "", ci = el.closest(".cardIn"), h0 = ci.offsetHeight;
   if (el.dataset.h === html) return;
@@ -8507,55 +8550,27 @@ function renderLogbook(){
   lbViewsBar();
   const v = lbView;
   if (S.demo && !lbDemoPer) { lbDemoPer = true; lbPeriod = "week"; }
-  if (v === "logbook") { if (lbPeriod === "year") fetchYear(); else fetchReview(() => { lbSig = ""; renderLogbook(); }); }
+  if (v === "logbook") perLoad(perNow()).catch(() => {});
   const all = lbData() || {}, pl = v === "logbook" && lbPlaceOk() ? lbChips() : [];
   if (v === "logbook" && lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
   if (lblOn() && lblKey() !== lbl.key) renderToday();
   const place = v === "logbook" ? lbPlace : "";
   const live = pl.find(c => c.id === "live"), saved = pl.filter(c => c.id !== "live"), cur = pl.find(c => c.id === lbPlace);
-  const b = place ? lbPlaceData[place] || {} : all, has = place ? !!lbPlaceData[place] : !!lbData();
   $("lbSum").hidden = v === "review" || v === "logbook";
   $("lbSum").textContent = v === "collection" ? T("How rare a type is depends on how many fly today. Every type you see fills its place in the collections; points come in the Spotters' Club.")
     : v === "records" ? T("The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.") : "";
-  const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
-  const types = byCount(b.types), airlines = byCount(b.airlines);
-  const foot = v !== "logbook" ? "" : plFoot(place ? !has ? T("Loading …")
-    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(place), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"}) : "",
-    logbookSummary(true));
   $("t-logbook").classList.toggle("lbOther", v !== "logbook");
-  const noBook = S.demo ? !all.sightings : !relayV5() || (lbCache ? !lbCache.sightings : !!lbError);
-  $("lbYear").hidden = v !== "logbook" || !!place || noBook || !(S.demo || relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 29);
-  $("lbPlate").hidden = v !== "logbook" || !place && noBook;
+  const noBook = S.demo ? !all.sightings : !relayV5() || (lbCache ? !lbCache.sightings && !(perShown() || {}).planes : !!lbError);
+  $("lbYear").hidden = v !== "logbook" || !place && noBook || !(S.demo || relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 29) || !!place && !perAllOk();
   tdFilDot();
   lbStripSync();
-  const sig = JSON.stringify([v, place, foot, b.since, b.sightings, b.regsCount, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, pl, all.game, all.records, yearData, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], lbPeriod, yearBack, perMore, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
+  const sig = JSON.stringify([v, place, all.since, all.sightings, all.regsCount, pl, all.game, all.records, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], perOn(), yearBack, review.back, perWant, perShown(), perPick, perListK, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
-  const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
-  const li = (name, n, sub, tap = "") => `<li${tap ? ` class="lbTap"${tap}` : ""}><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
   const P = {};
   let html = "";
   const g0 = all.game;
   if (v === "logbook") {
-    if (b.categories) {
-      const max = Math.max(1, ...LB_CATS.map(([k]) => b.categories[k] || 0));
-      if (LB_CATS.some(([k]) => b.categories[k])) P.cats = secPlate(T("Categories"), `<ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
-        const n = b.categories[k] || 0;
-        const open = lbCat === k && catOk() && n;
-        return `<li style="--lamp:${col}"${n && catOk() ? ` data-cat="${k}" class="catTap${open ? " open" : ""}"` : ""}><i class="lamp"></i><span class="name">${escH(T(en))}${n && catOk() ? ` <span class="chev">${DD}</span>` : ""}</span><span class="n">${nf.format(n)}</span>` +
-          `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>` + (open ? catOpenHtml(k) : "");
-      }).join("") + "</ul>" + foot);
-    }
-    if (types.length) {
-      P.types = secPlate(T("Aircraft types"), rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0), "", ` data-ct="${escH(c)}" data-cn="${escH(t.name || "")}"`))) + foot);
-    }
-    if (airlines.length) {
-      P.airlines = secPlate(T("Airlines"), rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0), "",
-        ` data-co="${escH(c)}" data-cn="${escH(a.name || "")}" data-ci="${escH((AIRLINES[c] || [])[0] || "")}"`))) + foot);
-    }
-    if ((b.regsTop || []).length) {
-      P.regs = secPlate(T("Most seen aircraft"), rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name, ` data-cr="${escH(r.reg)}"`))) + foot);
-    }
     if (pl.length) {
       const name = saved.length ? T("Saved places") : live.name;
       const opt = (k, n, cnt) => `<li class="catTap" data-pk="${escH(k)}" style="--lamp:${k === lbPlace ? "var(--c-gold)" : "#3a3c41"}"><i class="lamp"></i><span class="name">${escH(n)}</span><span class="n">${cnt != null ? nf.format(cnt) : ""}</span></li>`;
@@ -8564,10 +8579,9 @@ function renderLogbook(){
       $("lbFilPlace").innerHTML = `<li><button type="button" data-lp="places"><b>${escH(name)}</b><small>${escH(cur ? cur.name : T("All"))}</small><i aria-hidden="true">›</i></button></li>`;
     }
     $("lbFilPlace").hidden = !pl.length;
-    const opener = (n, k, panel) => `<button type="button" data-lp="${panel}"${P[panel] ? "" : " disabled"}><b>${has ? nf.format(n || 0) : "–"}</b><small>${escH(T(k))}</small></button>`;
-    $("lbPlate").innerHTML = `<span class="lbPlH"><small>${escH(cur ? `${T("All time")} · ${cur.name}` : T("All time"))}</small></span><span class="lbPlN">` +
-      opener(b.sightings, "Sightings", "cats") + opener(b.regsCount, "Aircraft", "regs") + opener(types.length, "Types", "types") + opener(airlines.length, "Airlines", "airlines") + `</span>`;
-    if (!place) { P.year = periodHtml(); lbYearCard(); }
+    P.year = periodHtml();
+    if (perListK) P.list = perListHtml();
+    lbYearCard();
   } else if (v === "collection") html = collectionHtml(g0);
   else if (v === "records") html = recordsHtml(all, g0);
   else html = reviewHtml();
@@ -8577,19 +8591,18 @@ function renderLogbook(){
   lbPanelSync();
 }
 function lbYearCard(){
-  const per = reviewOk() ? lbPeriod : "year", yr = new Date().getFullYear() - yearBack;
-  const r = per === "year" ? (yearData && yearData.year === yr ? yearData : null) : reviewData();
-  const title = per === "year" ? T("{y} in planes", {y: yr}) : T("{p} in planes", {p: reviewTitle()}), n = k => r ? r[k] || 0 : null;
-  $("lbYear").innerHTML = lbPlateHtml(title, [[n("planes"), "Planes"], [n("airframes"), "Aircraft"], [n("types"), "Types"], [n("airlines"), "Airlines"]], true);
+  const r = perShown(), b = perOn() === "all" && !lbPlace && !r && lbData(), n = k => r ? r[k] || 0 : null;
+  $("lbYear").innerHTML = lbPlateHtml(perTitle(), b ? [[b.sightings, "Planes"], [b.regsCount, "Aircraft"], [Object.keys(b.types || {}).length, "Types"], [Object.keys(b.airlines || {}).length, "Airlines"]]
+    : [[n("planes"), "Planes"], [n("airframes"), "Aircraft"], [n("types"), "Types"], [n("airlines"), "Airlines"]], true);
 }
 $("lbYear").onclick = () => { lbPanelOpen("year"); perWarm(); };
 document.addEventListener("click", e => {
-  const b = e.target.closest && e.target.closest("#lbPlate [data-lp], #lbFilPlace [data-lp]");
+  const b = e.target.closest && e.target.closest("#lbFilPlace [data-lp]");
   if (!b) return;
   lbPanelOpen(b.dataset.lp);
 });
 async function lbPick(id){
-  lbPlace = id; if (id) lbPlateOn = "all";
+  lbPlace = id; if (id) lbPlateOn = "period";
   lbSig = ""; renderLogbook(); lbStripSync(true); renderToday();
   if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
 }
@@ -9624,75 +9637,155 @@ new MutationObserver(() => plFootFit()).observe(document.body, {childList: true,
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => plFootFit(true));
 const secPlate = (title, body, cls = "") => `<section class="plate secPlate${cls ? " " + cls : ""}" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${escH(title)}</h3>${body}</section>`;
 const CUP = '<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10c0 5-1.5 8-5 8.5C8.5 11 7 8 7 3zM11 11.5h2l.5 4h-3zM8 16h8v2.2H8z"/><path d="M7 4.5C4.5 4.5 4 8 7.5 9M17 4.5c2.5 0 3 3.5-.5 4.5" fill="none" stroke-width="1.6"/></svg>';
-let yearData = null, yearAt = {}, yearCache = {};
-function fetchYear(){
-  const y = new Date().getFullYear() - yearBack;
-  yearData = yearCache[y] || null;
-  if (!relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 29 || Date.now() - (yearAt[y] || 0) < 60000) return;
-  perLoad({per: "year", yb: yearBack}).catch(() => {});
+const perCache = {}, perAt = {};
+const perAllOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 115;
+const PER_TABS = [["week", "Week"], ["month", "Month"], ["year", "Year"], ["all", "All time"]];
+const perTabs = () => PER_TABS.filter(([k]) => k === "all" ? perAllOk() : k === "year" || reviewOk());
+const perOn = () => perTabs().some(([k]) => k === lbPeriod) ? lbPeriod : "year";
+const perNow = () => ({per: perOn(), yb: yearBack, rb: review.back});
+const perYear = p => new Date().getFullYear() - p.yb;
+const perKey = p => (p.per === "year" ? "y" + perYear(p) : p.per === "all" ? "all" : p.per + p.rb) + "|" + (lbPlace || "");
+const perPlaceQ = () => lbPlace ? lbPlace.split("\n").map(k => "&place=" + encodeURIComponent(k)).join("") : "";
+function perDemo(p){
+  if (p.per === "year" || p.per === "all") return null;
+  const was = [review.span, review.back];
+  review.span = p.per; review.back = p.rb;
+  const r = demoReview();
+  [review.span, review.back] = was;
+  return r;
 }
-const perKey = p => p.per === "year" ? new Date().getFullYear() - p.yb : p.per + p.rb;
-const perHas = p => S.demo || !relay() || !!(p.per === "year" ? yearCache[perKey(p)] : review.data[perKey(p)]);
-function perLoad(p){
-  const k = perKey(p), year = p.per === "year", at = year ? yearAt : review.at;
-  if (S.demo || !relay() || !reviewOk() && !year) return Promise.resolve();
-  at[k] = Date.now();
-  return fetchJSON(year ? `${relay()}/year?y=${k}` : `${relay()}/review?span=${p.per}&back=${p.rb}`, {}, 12000).then(j => {
-    if (year) { yearCache[k] = j; if (k === new Date().getFullYear() - yearBack) yearData = j; }
-    else review.data[k] = j;
-    lbSig = ""; renderLogbook();
-  }).catch(e => { at[k] = 0; throw e; });
+const perGet = p => S.demo ? perDemo(p) : (r => r && p.per === "year" ? yearReview(r) : r)(perCache[perKey(p)] || null);
+const perShown = () => perGet(perNow());
+const perHas = p => S.demo || !relay() || !!perCache[perKey(p)];
+function perLoad(p, fresh){
+  const k = perKey(p);
+  if (S.demo || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 29 || (p.per === "all" ? !perAllOk() : p.per !== "year" && !reviewOk())) return Promise.resolve();
+  if (!fresh && Date.now() - (perAt[k] || 0) < 60000) return Promise.resolve();
+  perAt[k] = Date.now();
+  const url = relay() + (p.per === "year" ? `/year?y=${perYear(p)}` : `/review?span=${p.per}&back=${p.per === "all" ? 0 : p.rb}`) + perPlaceQ();
+  return fetchJSON(url, {}, 15000).then(j => { perCache[k] = j; lbSig = ""; renderLogbook(); }).catch(e => { perAt[k] = 0; throw e; });
 }
 function perWarm(){
   fetchLogbook();
-  for (const per of ["week", "month", "year"]) perLoad({per, yb: 0, rb: 0}).catch(() => {});
+  for (const per of ["week", "month", "year", "all"]) perLoad({per, yb: 0, rb: 0}).catch(() => {});
 }
 const yearReview = y => y && {span: "year", start: `${y.year}-01-01`, end: `${y.year}-12-31`, complete: y.year < new Date().getFullYear(), ...y};
-let lbPeriod = "year", yearBack = 0, perMore = false, perWant = null;
-function periodHtml(){
-  const per = reviewOk() ? lbPeriod : "year", yr = new Date().getFullYear() - yearBack, back = per === "year" ? yearBack : review.back;
-  const on = perWant ? perWant.per : per, onBack = perWant ? (perWant.per === "year" ? perWant.yb : perWant.rb) : back;
-  const seg = reviewOk() ? `<div class="seg lbPer" role="group">` + [["week", "Week"], ["month", "Month"], ["year", "Year"]]
-    .map(([k, l]) => `<button type="button" data-per="${k}" aria-pressed="${on === k}">${escH(T(l))}</button>`).join("") + `</div>` : "";
-  const arrows = `<span class="perArr"><button class="cBtn" type="button" data-pb="1" aria-label="${escH(T("Earlier"))}">◀</button>` +
-    `<button class="cBtn" type="button" data-pb="-1" aria-label="${escH(T("Later"))}"${onBack ? "" : " disabled"}>▶</button></span>`;
-  const r = per === "year" ? yearReview(yearData && yearData.year === yr ? yearData : null) : reviewData(), f = reviewFacts(r || {}), nt = r ? reviewNewTypes(r) : "";
-  const nums = (list, x = "") => `<div class="yNums${x}">` + list.map(([k, l]) => `<div><b>${r ? nf.format(r[k] || 0) : "–"}</b><span>${escH(T(l))}</span></div>`).join("") + `</div>`;
-  const facts = list => `<dl class="yFacts">` + list.map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v || "–")}</dd></div>`).join("") + `</dl>`;
-  const csv = relay() && !S.demo && (window.OVERHEAD_RELAY_VERSION || 0) >= 29 ? `<div class="yActs"><a class="cBtn" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
-    `<p class="sum">${escH(T("Every sighting as a spreadsheet, for a spotting app or Excel."))}</p>` : "";
-  const title = per === "year" ? T("{y} in planes", {y: yr}) : T("{p} in planes", {p: reviewTitle()});
-  const body = nums(REVIEW_NUMS.slice(0, 4)) + facts(f.slice(0, 4)) +
-    `<div class="yActs"><button class="cBtn" type="button" id="${per === "year" ? "yShare" : "pShare"}"${r && r.planes ? "" : " disabled"}>${escH(T("Share"))}</button></div>` +
-    `<ul class="idx perMore"><li><button type="button" data-pmore aria-expanded="${perMore}"><b>${escH(T(perMore ? "Less" : "More"))}</b><i aria-hidden="true">›</i></button></li></ul>` +
-    (perMore ? `<div class="perMoreIn">${r ? `<p class="sum">${escH(reviewSummary(r))}</p>` : ""}${nums(PER_MORE, " yMore")}${facts(f.slice(4).concat([[T("New types"), nt]]))}${csv}</div>` : "");
-  return secPlate(title, `<div class="perHead">${seg}${arrows}</div>${body}`, "perCard");
+function perTitle(p = perNow()){
+  const t = p.per === "all" ? T("All time") : p.per === "year" ? T("{y} in planes", {y: perYear(p)}) : T("{p} in planes", {p: reviewTitle(p.per, p.rb)});
+  return lbPlace ? `${t} · ${lbPlaceName(lbPlace)}` : t;
 }
-const PER_MORE = [["newTypeCount", "New types"], ["rare", "Rare"], ["countries", "Countries"], ["days", "Days"], ["points", "Points"]];
+function perDates(r, p = perNow()){
+  if (!r || !r.start) return "";
+  const x = d => new Date(d + "T12:00:00"), today = lblIso(new Date());
+  if (p.per === "all") return T("Counting since {d}", {d: x(r.start).toLocaleDateString(LOC(), {day: "numeric", month: "long", year: "numeric"})});
+  const wk = p.per === "week", a = x(r.start), b = x(wk || r.end < today ? r.end : today);
+  const sameY = a.getFullYear() === b.getFullYear(), sameM = sameY && a.getMonth() === b.getMonth(), yr = !wk || b.getFullYear() !== new Date().getFullYear();
+  const f = (d, o) => d.toLocaleDateString(LOC(), {...(wk ? {weekday: "short"} : {}), day: "numeric", ...o}).replace(/,/g, "");
+  return `${f(a, sameM ? {} : {month: "short", ...(sameY ? {} : {year: "numeric"})})} – ${f(b, {month: "short", ...(yr ? {year: "numeric"} : {})})}`;
+}
+let lbPeriod = "year", yearBack = 0, perWant = null, perPick = "cats", perListK = "";
+const PER_LISTS = {cats: ["Planes", "planes", "Categories"], regs: ["Aircraft", "airframes", "Most seen aircraft"], types: ["Types", "types", "Aircraft types"],
+  airlines: ["Airlines", "airlines", "Airlines"], newTypes: ["New types", "newTypeCount", "New types"], rare: ["Rare", "rare", "Rare planes"],
+  countries: ["Countries", "countries", "Countries"], days: ["Days", "days", "Busiest days"]};
+const PER_SAVE = "od.lbper";
+try { const o = JSON.parse(localStorage.getItem(PER_SAVE) || "{}"); if (PER_TABS.some(([k]) => k === o.per)) lbPeriod = o.per; if (PER_LISTS[o.pick]) perPick = o.pick; } catch {}
+const perKeep = () => { try { localStorage.setItem(PER_SAVE, JSON.stringify({per: lbPeriod, pick: perPick})); } catch {} };
+const perN = (r, k, per = perOn()) => !r ? null : k === "newTypes" && per === "all" ? r.types || 0 : r[PER_LISTS[k][1]] || 0;
+function perRows(k, r, per = perOn()){
+  const li = (name, n, sub, tap = "") => `<li class="lbTap"${tap}><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
+  const fmt = n => nf.format(n || 0), ct = (c, nm) => ` data-ct="${escH(c)}" data-cn="${escH(nm || "")}"`;
+  const bar = (n, max) => `<span class="bar"><i style="width:${(n / Math.max(1, max) * 100).toFixed(1)}%"></i></span>`;
+  if (k === "cats") {
+    const c = r.cats || {}, l = LB_CATS.filter(([x]) => c[x]).sort((a, b) => c[b[0]] - c[a[0]]), max = Math.max(1, ...l.map(([x]) => c[x])), ok = catOk();
+    return {wrap: "ranks cats", rows: l.map(([x, en, , col]) => `<li style="--lamp:${col}"${ok ? ` data-cat="${x}" class="catTap${lbCat === x ? " open" : ""}"` : ""}><i class="lamp"></i>` +
+      `<span class="name">${escH(T(en))}${ok ? ` <span class="chev">${DD}</span>` : ""}</span><span class="n">${fmt(c[x])}</span>${bar(c[x], max)}</li>` + (ok && lbCat === x ? catOpenHtml(x) : ""))};
+  }
+  if (k === "regs") return {wrap: "ranks", rows: (r.regList || []).map(([g, t, n]) => li(g, fmt(n), t ? typeShown(t) : "", ` data-cr="${escH(g)}"`))};
+  if (k === "types") return {wrap: "ranks", rows: (r.typeList || []).map(([c, nm, n]) => li(typeLabel(c, nm), fmt(n), "", ct(c, nm)))};
+  if (k === "airlines") return {wrap: "ranks", rows: (r.airlineList || []).map(([c, nm, n]) => li((AIRLINES[c] || [])[1] || nm || c, fmt(n), "",
+    ` data-co="${escH(c)}" data-cn="${escH(nm || "")}" data-ci="${escH((AIRLINES[c] || [])[0] || "")}"`))};
+  if (k === "newTypes") return {wrap: "ranks plain", rows: ((per === "all" ? r.allTypeList : r.newTypeList) || []).map(([c, nm, d]) =>
+    `<li class="lbTap"${ct(c, nm)}><span class="name">${escH(typeLabel(c, nm))}</span><span class="n perWhen">${escH(reviewDay(d))}</span></li>`)};
+  if (k === "countries") return {wrap: "ranks", rows: (r.countryList || []).map(([c, n]) => li(c, fmt(n)))};
+  if (k === "days") return {wrap: "ranks", rows: (r.dayList || []).map(([d, n]) => li(lblWord(d), fmt(n)))};
+  if (k === "rare") {
+    const t = r.tiers || {}, l = ["legendary", "epic", "rare"].filter(x => t[x]), max = Math.max(1, ...l.map(x => t[x]));
+    return {wrap: "ranks cats tiers", rows: l.map(x => `<li style="--lamp:${TIER_COL[x]}"><img class="tico" src="${tierIcon(x)}" alt=""><span class="name">${escH(T(TIER_NAME[x]))}</span><span class="n">${fmt(t[x])}</span>${bar(t[x], max)}</li>`),
+      more: (r.rareList || []).map(([c, nm, x, n]) => `<li class="lbTap"${ct(c, nm)}><img class="tico" src="${tierIcon(x)}" alt=""><span class="name">${escH(typeLabel(c, nm))}</span><span class="n">${fmt(n)}</span></li>`)};
+  }
+  return {wrap: "ranks", rows: []};
+}
+const perWrap = (cls, rows) => rows.length ? `<${cls === "ranks" || cls === "ranks plain" ? "ol" : "ul"} class="${cls}">${rows.join("")}</${cls === "ranks" || cls === "ranks plain" ? "ol" : "ul"}>` : "";
+function perMoreRow(k, r, L){
+  const len = k === "rare" ? (L.more || []).length : L.rows.length, all = k === "rare" ? r.rareTypes || len : k === "cats" ? len : perN(r, k);
+  if (k === "rare" ? !len : len <= 5) return "";
+  return `<ul class="idx perAll"><li><button type="button" data-pall="${k}"><b>${escH(T(len < all ? "Top {n}" : "All {n}", {n: nf.format(len)}))}</b><i aria-hidden="true">›</i></button></li></ul>`;
+}
+function periodHtml(){
+  const per = perOn(), now = perWant || perNow(), on = now.per, onBack = on === "year" ? now.yb : on === "all" ? 0 : now.rb;
+  const r = perShown(), has = !!r, k = perPick;
+  const seg = `<div class="seg lbPer" role="group">` + perTabs().map(([x, l]) => `<button type="button" data-per="${x}" aria-pressed="${on === x}">${escH(T(l))}</button>`).join("") + `</div>`;
+  const arrows = `<span class="perArr"><button class="cBtn" type="button" data-pb="1" aria-label="${escH(T("Earlier"))}"${on === "all" ? " disabled" : ""}>◀</button>` +
+    `<button class="cBtn" type="button" data-pb="-1" aria-label="${escH(T("Later"))}"${onBack && on !== "all" ? "" : " disabled"}>▶</button></span>`;
+  const num = ([x, [l]]) => { const n = perN(r, x, per); return `<button type="button" class="perN${x === k ? " on" : ""}" data-pn="${x}"${n ? "" : " disabled"}><b>${n == null ? "–" : nf.format(n)}</b><span>${escH(T(l))}</span></button>`; };
+  const L = has ? perRows(k, r, per) : {rows: []};
+  const pane = `<div class="perPane" data-k="${k}"><h4 class="perPaneH">${escH(T(PER_LISTS[k][2]))}</h4>` +
+    (!has ? `<p class="sum">${escH(T("Loading …"))}</p>` : L.rows.length ? perWrap(L.wrap, L.rows.slice(0, 5)) + perMoreRow(k, r, L) : `<p class="sum">${escH(T("Nothing here yet."))}</p>`) + `</div>`;
+  const facts = `<dl class="yFacts perRecs">` + reviewFacts(r || {}).slice(4).map(([l, v]) => `<div${v ? "" : ' class="off"'}><dt>${escH(l)}</dt><dd>${escH(v || "–")}</dd></div>`).join("") + `</dl>`;
+  const live = has && r.planes > 0;
+  const csv = relay() && !S.demo && (window.OVERHEAD_RELAY_VERSION || 0) >= 29 ? `<a class="cBtn" id="yCsv" href="${escH(perCsvUrl(r, per))}" download${live ? "" : ' aria-disabled="true" tabindex="-1"'}>${escH(T("Download (CSV)"))}</a>` : "";
+  const acts = `<div class="yActs perActs"><button class="cBtn" type="button" id="perShare"${live ? "" : " disabled"}>${escH(T("Share"))}</button>${csv}</div>`;
+  const E = Object.entries(PER_LISTS);
+  return secPlate(perTitle(), `<div class="perHead">${seg}${arrows}</div><div class="perNums">${E.map(num).join("")}</div>` +
+    pane + facts + acts + plFoot(perDates(r)), "perCard");
+}
+function perListHtml(){
+  const r = perShown(), k = perListK;
+  if (!r || !PER_LISTS[k]) return "";
+  const L = perRows(k, r), more = L.more && L.more.length ? `<h4 class="perPaneH">${escH(T("Rarest first"))}</h4>${perWrap("ranks cats tiers", L.more)}` : "";
+  return secPlate(T(PER_LISTS[k][2]), perWrap(L.wrap, L.rows) + more + plFoot(perDates(r)), "perList");
+}
+const perCsvUrl = (r, per) => `${relay()}/logbook.csv?` + (per !== "all" && r && r.start ? `from=${r.start}&to=${r.end}` : "") + perPlaceQ();
 document.addEventListener("click", e => {
-  const b = e.target && e.target.closest && e.target.closest("[data-pmore], #yCsv");
-  if (!b) return;
-  ctlSound.click();
-  if (b.id === "yCsv") return;
-  perMore = !perMore; lbSig = ""; renderLogbook();
+  const b = e.target && e.target.closest && e.target.closest("[data-pn], [data-pall], #yCsv");
+  if (!b || b.disabled) return;
+  if (b.id === "yCsv") { if (b.getAttribute("aria-disabled") === "true") e.preventDefault(); else ctlSound.click(); return; }
+  if (b.dataset.pn) {
+    ctlSound.click();
+    if (perPick === b.dataset.pn) return;
+    perPick = b.dataset.pn; lbCat = ""; perKeep();
+    lbSig = ""; renderLogbook(); return;
+  }
+  perListK = b.dataset.pall; lbHoldNext = true;
+  lbSig = ""; renderLogbook(); lbPanelOpen("list");
 });
 document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-per], [data-pb]");
   if (!b || b.disabled) return;
   ctlSound.click();
-  const was = perWant || {per: lbPeriod, yb: yearBack, rb: review.back}, p = {...was};
+  const was = perWant || perNow(), p = {...was};
   if (b.dataset.per) { p.per = b.dataset.per; if (p.per !== "year") p.rb = 0; }
   else if (p.per === "year") p.yb = Math.max(0, Math.min(10, p.yb + +b.dataset.pb));
-  else p.rb = Math.max(0, Math.min(60, p.rb + +b.dataset.pb));
+  else if (p.per !== "all") p.rb = Math.max(0, Math.min(60, p.rb + +b.dataset.pb));
   const go = () => {
-    perWant = null; lbPeriod = p.per; yearBack = p.yb;
-    if (p.per !== "year") { review.span = p.per; review.back = p.rb; }
-    lbSig = ""; renderLogbook();
+    perWant = null; lbPeriod = p.per; yearBack = p.yb; lbCat = "";
+    if (p.per === "week" || p.per === "month") { review.span = p.per; review.back = p.rb; }
+    perKeep(); lbSig = ""; renderLogbook();
   };
   if (perHas(p)) { go(); perLoad(p).catch(() => {}); return; }
   perWant = p; lbSig = ""; renderLogbook();
-  perLoad(p).then(() => { if (perWant === p) go(); }, () => { if (perWant === p) { perWant = null; lbSig = ""; renderLogbook(); } });
+  perLoad(p, true).then(() => { if (perWant === p) go(); }, () => { if (perWant === p) { perWant = null; lbSig = ""; renderLogbook(); } });
 });
+async function perShare(){
+  const r = perShown(), p = perNow();
+  if (!r || !r.planes) return;
+  ctlSound.click();
+  picCard(await periodPicture({title: perTitle(p), sub: perDates(r, p), facts: reviewFacts(r).filter(x => x[1]),
+    nums: [[r.planes, "planes"], [r.types, "types"], [r.airlines, "airlines"], [r.airframes, "airframes"], [r.countries, "countries"], [r.days, "days"]]}),
+    `fallblatt-${p.per}-${r.start || "all"}.png`, T({year: "Your year as a picture, ready to send.", month: "Your month as a picture, ready to send.",
+      week: "Your week as a picture, ready to send."}[p.per] || "Your logbook as a picture, ready to send."));
+}
+document.addEventListener("click", e => { if (e.target && e.target.id === "perShare") perShare(); });
 function reviewHtml(){
   if (!reviewOk()) return "";
   const r = reviewData(), bt = (a, t, on, x = "") => `<button class="cap small" type="button" ${a}${on != null ? ` aria-pressed="${on}"` : ""}${x}>${t}</button>`;
@@ -9739,25 +9832,6 @@ function periodPicture(p){
   });
   return new Promise(ok => cv.toBlob(ok, "image/png"));
 }
-async function shareYear(){
-  ctlSound.click();
-  const y = yearData;
-  picCard(await periodPicture({title: T("{y} in planes", {y: y.year}), facts: reviewFacts(y).filter(x => x[1]),
-    nums: [[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"], [y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]]}), `fallblatt-${y.year}.png`,
-    T("Your year as a picture, ready to send."));
-}
-async function sharePeriod(){
-  const r = reviewData();
-  if (!r || !r.planes) return;
-  ctlSound.click();
-  const yr = {day: "numeric", month: "short", year: "numeric"};
-  const sub = r.complete === false ? `${reviewDay(r.start, yr)} – ${T("today")}` : `${reviewDay(r.start)} – ${reviewDay(r.end, yr)}`;
-  picCard(await periodPicture({title: T("{p} in planes", {p: reviewTitle()}), sub, facts: reviewFacts(r).filter(x => x[1]),
-    nums: [[r.planes, "planes"], [r.types, "types"], [r.airlines, "airlines"], [r.newTypeCount, "new types"], r.points != null ? [r.points, "points"] : [r.airframes, "aircraft"], [r.days, "days"]]}),
-    `fallblatt-${r.span}-${r.start}.png`, T(r.span === "month" ? "Your month as a picture, ready to send." : "Your week as a picture, ready to send."));
-}
-document.addEventListener("click", e => { if (e.target && e.target.id === "pShare") sharePeriod(); });
-document.addEventListener("click", e => { if (e.target && e.target.id === "yShare") shareYear(); });
 
 let lookHeading = null, lookOn = false, lookRaf = 0;
 let lookWhy = "", lookWhyLogged = "";
@@ -11128,7 +11202,8 @@ function cardSheetPre(box, html){
       let hold = $("setHold"); if (!hold) { hold = document.createElement("div"); hold.id = "setHold"; hold.hidden = true; document.body.appendChild(hold); }
       hold.appendChild(ci); setHeld = ci; }
     else setBack();
-  }
+  } else if (ci && lbHoldNext && open && ci.querySelector('.lbIn[data-lbp="year"]')) lbHeld = ci;
+  else if (!lbHoldNext) lbHeld = null;
   return pre;
 }
 function cardSheetPost(box, pre){
@@ -11155,6 +11230,7 @@ function cardSheetClose(b){
   const ci = b.querySelector(".cardIn"), set = !!ci && ci.classList.contains("setSheet");
   if (ci) ci.style.transform = "";
   if (!set && setHeld && $("t-styles").hidden) { setRestore(b); return true; }
+  if (!set && lbHeld && lbRestore(b)) return true;
   if (set && draft && PLATES.some(p => p.id === setPid) && (cockpitUnsaved() || setAsking)) { b.classList.remove("drag"); setAsk(ci); return true; }
   b.classList.remove("in", "drag"); b.classList.add("closing"); cardSheetHtml = "";
   clearTimeout(cardSheetClose.t);
@@ -12560,6 +12636,13 @@ setInterval(() => {
   nowTurn = Date.now();
 }, 1000);
 const CHANGELOG = [
+  {v: "1.138", date: "2026-11-05", notes: [
+    "All time is now a tab of the Logbook's period card, next to Week, Month and Year.",
+    "Each number in the period card shows its list in the card; All opens the whole list.",
+    "Share and Download (CSV) for every week, month, year and All time.",
+    "With a saved place picked, its weeks, months and years have their own numbers too.",
+    "Rarest names the whole model, and Most seen aircraft names each plane's type.",
+  ]},
   {v: "1.137", date: "2026-11-04", notes: [
     "Sky view no longer asks you to name the plane's type.",
   ]},
@@ -14744,7 +14827,8 @@ addEventListener("keydown", e => { if (e.key === "Escape" && !cardOpenNow()) { i
 function showTab(t){
   if (t === "about") { aboutShow(); return; }
   const rv = /^review-(week|month)-(\d{1,2})$/.exec(t || "");
-  let plate = rv ? "period" : t === "today" ? "today" : t === "logbook" && tab !== "logbook" ? "all" : null;
+  let plate = rv ? "period" : t === "today" ? "today" : t === "logbook" && tab !== "logbook" ? "period" : null;
+  if (plate === "period" && !rv && perAllOk()) lbPeriod = "all";
   if (rv) { review.span = rv[1]; review.back = +rv[2]; lbPeriod = rv[1]; lbPlace = ""; t = "logbook"; }
   else if (t === "today") t = "logbook";
   aboutHide(); stylesHide();
@@ -14772,7 +14856,7 @@ function showTab(t){
   setTimeout(() => appTips(t), 900);
   if (was !== t) window.scrollTo(0, 0);
 }
-addEventListener("hashchange", () => { if (location.hash === tabHash()) return; const h = location.hash.slice(1); showTab(h); if (h === "logbook") lbPlateGo("all"); });
+addEventListener("hashchange", () => { if (location.hash === tabHash()) return; const h = location.hash.slice(1); showTab(h); if (h === "logbook") lbPlateGo("period"); });
 
 function statusLine(){
   if (S.demo) return T("Demo mode · sample flights, not live data");

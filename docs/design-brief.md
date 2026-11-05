@@ -50,7 +50,8 @@ two days later mockups again carried sentences and a second row of tabs. These r
     engraved title): no sliding pages, no back header, no new routes. Things that expand in place keep doing so. A
     card with a detail panel opens it on a tap anywhere on the card, with no extra "All N ›" row for it; index rows
     (a label and a one-line state) stay, they are the way into a panel of their own. The Logbook's All time numbers
-    open their lists, so that index is gone (Dave, 31 Oct).
+    open their lists, so that index is gone (Dave, 31 Oct); since 1.138 the period card's numbers pick the list shown in
+    the card, its top five, with "All N ›" for the rest (Dave's pick C, 5 Nov).
 12. **The first screenful answers the screen's question.** Now: what is over me. The Logbook, one screen: what came and what I have ever
     seen, Today's plate first. Club: how am I doing. Radar: what is around.
     Settings: what can I change. The rest after a scroll or a tap.
@@ -112,11 +113,11 @@ in the sheet a tap opens; the engraved plate title on every sheet.
 - **Bottom bar**: Now, Logbook, Club, Radar, Settings (four without the Club when there is no game: demo mode, no relay, an old relay).
 - **Now**: the checklist bar for a new user, the plane overhead on the flaps, its picture, the Sky view row (1.128: the key, the scan's label and value, Look, the compass strip under them; 105 px), recent
   flights, the notices bar; scan tickets and undo notices rise from below.
-- **Logbook** (1.123): one screen. The search with the filter icon at its end, stuck under the header; a sideways strip of three
-  twin plates, each a gold name and four named numbers: Today (always there, 0 on an empty day; a tap opens "Today in numbers"), the period (a tap
-  opens Week · Month · Year, with the CSV under More) and All time (amber names: each number
-  opens its list; Categories, Most seen aircraft, Aircraft types, Airlines, with Counting since as a footnote). The icon opens the segmented filters, this place / All places and Saved
-  places in place under the strip. Then the timeline rows (a rarity bubble, time, flight, route, type, marks at the end, no pills). Under Today: the day's, with the same amber "Today" headline (since 1.129.1; none on a day with no planes yet). Under the period and All time
+- **Logbook** (1.123): one screen. The search with the filter icon at its end, stuck under the header; a sideways strip of two
+  twin plates, each a gold name and four named numbers: Today (always there, 0 on an empty day; a tap opens "Today in numbers") and the period
+  (1.138: the tab its card is on, "2026 in planes" or All time; a tap opens the card: Week · Month · Year · All time, eight
+  numbers that pick the list shown in the card, the four records, Share and Download (CSV), the dates as a footnote). The icon opens the segmented filters, this place / All places and Saved
+  places in place under the strip. Then the timeline rows (a rarity bubble, time, flight, route, type, marks at the end, no pills). Under Today: the day's, with the same amber "Today" headline (since 1.129.1; none on a day with no planes yet). Under the period
   (1.127): back across days, 50 at a time: a day's amber headline between two lines on a 28 px band, sticking under the search until the next pushes it away; a Show more plate with screws at the end,
   which folds away at the period's start or the logbook's beginning; the Top key (arrow, TOP, the day; 106 px at every day in English) while scrolling, once more than 50 are loaded.
 - **Club**: sub-tabs Level, League (with Bingo and Trophies under it; League and Bingo with the weekly reset as a

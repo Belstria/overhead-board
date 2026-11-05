@@ -5276,7 +5276,9 @@ const MAKERS = /^(Airbus Helicopters|De Havilland Canada|De Havilland|McDonnell 
 // to fill, the whole name if it fits, else without the maker, else the code
 function typeShown(t, n){
   t = String(t || "");
-  const full = TYPES[t.toUpperCase()] || t, short = full.replace(MAKERS, "") || full;
+  // 1.138 (to-do #318): a name that is only a number without its maker keeps it ("Fokker 100", "Cessna 172", "ATR 72-600";
+  // Boeing's are known by their numbers: "737-800")
+  const full = TYPES[t.toUpperCase()] || t, rest = full.replace(MAKERS, ""), short = rest && (!/^\d/.test(rest) || /^Boeing\s/i.test(full)) ? rest : full;
   return !n ? short : full.length <= n ? full : short.length <= n ? short : t;
 }
 function demoLogbook(){
@@ -8212,6 +8214,13 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.138", date: "2026-11-05", notes: [
+    "All time is now a tab of the Logbook's period card, next to Week, Month and Year.",
+    "Each number in the period card shows its list in the card; All opens the whole list.",
+    "Share and Download (CSV) for every week, month, year and All time.",
+    "With a saved place picked, its weeks, months and years have their own numbers too.",
+    "Rarest names the whole model, and Most seen aircraft names each plane's type.",
+  ]},
   {v: "1.137", date: "2026-11-04", notes: [
     "Sky view no longer asks you to name the plane's type.",
   ]},

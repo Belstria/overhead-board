@@ -63,7 +63,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 114
+RELAY_VERSION = 115
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -4244,14 +4244,16 @@ CATEGORY_WORDS = {"military": ("MILITARY", "MIL", "ARMY", "AIRFORCE", "NAVY"), "
                   "private": ("PRIVATE", "LIGHT", "GA"), "passenger": ("PASSENGER", "AIRLINER", "AIRLINERS")}
 
 
-def _logbook_entries(spot):
-    """Every sighting of every saved day (today's as it is now)."""
+def _logbook_entries(spot, start="", end="9999"):
+    """Every sighting of every saved day (today's as it is now); relay 115: of the days from `start` to `end` only."""
     with _data_lock:
         spot.ensure_day()
         files = sorted(spot.dir.glob("sightings-*.json"))
         today, sday = list(spot.entries), spot.day
     for f in files:
         day = f.stem[len("sightings-"):]
+        if not start <= day <= end:
+            continue
         for e in (today if day == sday else _load(f, [])):
             if isinstance(e, dict):
                 yield e
@@ -4397,15 +4399,15 @@ def search_json(spot, q):
 _cat_cache = {}
 
 
-def category_top_json(spot, cat, places=None):
+def category_top_json(spot, cat, places=None, start="", end="9999"):
     """Relay 61: one category of the logbook (the app's Logbook → Categories, tapped): its top ten types, aircraft and
-    operators over every saved day, optionally for some places only."""
-    key = (str(spot.dir), cat, tuple(places or ()), spot.day, spot.rev // 5)
+    operators over every saved day, optionally for some places only; relay 115: or over the days from `start` to `end`."""
+    key = (str(spot.dir), cat, tuple(places or ()), start, end, spot.day, spot.rev // 5)
     hit = _cat_cache.get(key)
     if hit and time.time() - hit[0] < 120:
         return hit[1]
     types, regs, ops, total = {}, {}, {}, 0
-    for e in _logbook_entries(spot):
+    for e in _logbook_entries(spot, start, end):
         if category_of(e) != cat or (places and (e.get("place") or "home") not in places):
             continue
         total += 1
@@ -4484,12 +4486,38 @@ def logbook_json(spot):
 _place_days = {}             # (spot folder, day) -> {place: summary}
 
 
-def _place_summary(entries):
-    out = {}
+def _place_summary(entries, centre=None):
+    """Relay 115 (to-do #318): also what the period card's lists need: points, tiers, the rare types, owner countries, the
+    types first seen that day, new aircraft and airlines, the rarest plane and the farthest route (with the spot's centre)."""
+    out, order = {}, {t: i for i, t in enumerate(TIERS)}
     for e in entries:
+        if not isinstance(e, dict):
+            continue
         k = e.get("place") or "home"
-        p = out.setdefault(k, {"n": 0, "types": {}, "airlines": {}, "regs": {}, "cats": {}, "book": {}, "first": None})
+        p = out.get(k)
+        if p is None:
+            p = out[k] = {"n": 0, "types": {}, "airlines": {}, "regs": {}, "cats": {}, "book": {}, "first": None,
+                          "pts": 0, "tiers": {}, "rareT": {}, "ctry": {}, "newT": {}, "nReg": 0, "nAl": 0, "rarest": None}
         p["n"] += 1
+        p["pts"] += e.get("gp", 0) + e.get("lock", 0)
+        ti = order.get(e.get("tier"), -1)
+        if ti >= order["rare"]:
+            p["tiers"][e["tier"]] = p["tiers"].get(e["tier"], 0) + 1
+            tc = _tc(e)
+            if tc:
+                r = p["rareT"].setdefault(tc, {"name": e.get("aircraftType") or e.get("desc") or "", "tier": ti, "n": 0})
+                r["n"] += 1
+                r["tier"] = max(r["tier"], ti)
+        if e.get("ownerCountry"):
+            p["ctry"][e["ownerCountry"]] = p["ctry"].get(e["ownerCountry"], 0) + 1
+        if e.get("typeCode") and e.get("newType"):
+            p["newT"].setdefault(e["typeCode"], e.get("aircraftType") or e.get("desc") or "")
+        p["nReg"] += bool(e.get("newReg"))
+        p["nAl"] += bool(e.get("newAirline"))
+        rk = (ti, -FLEET.get(_tc(e), 500))
+        if p["rarest"] is None or rk > p["rarest"][0]:
+            p["rarest"] = (rk, {"reg": e.get("reg") or "", "type": e.get("aircraftType") or e.get("typeCode") or "", "code": _tc(e),
+                                "callsign": e.get("callsign") or "", "tier": e.get("tier") or "", "ts": e.get("ts")})
         ts = e.get("ts") or 0
         p["first"] = ts if p["first"] is None else min(p["first"], ts)
         def note(d, key, name):
@@ -4508,8 +4536,25 @@ def _place_summary(entries):
         note(p["regs"], e.get("reg"), e.get("typeCode"))
         c = category_of(e)
         p["cats"][c] = p["cats"].get(c, 0) + 1
-        note_records(p["book"], e)
+        note_records(p["book"], e, centre)
     return out
+
+
+def _day_summary(spot, day):
+    """A day's per-place summary: a past day's kept in memory once made (dropped when the day changes, Spot.day_changed),
+    today's made again when a sighting comes in (relay 115). Call with _data_lock held."""
+    if day == spot.day:
+        hit = getattr(spot, "_today_summ", None)
+        if hit and hit[0] == (day, spot.rev):
+            return hit[1]
+        summ = _place_summary(spot.entries, spot.center() if spot.center else None)
+        spot._today_summ = ((day, spot.rev), summ)
+        return summ
+    key = (str(spot.dir), day)
+    summ = _place_days.get(key)
+    if summ is None:
+        summ = _place_days[key] = _place_summary(spot.day_entries(day), spot.center() if spot.center else None)
+    return summ
 
 
 def _merge_items(into, items):
@@ -4534,13 +4579,7 @@ def place_logbook(spot, place=None):
         today = spot.day
         merged = {}
         for day in days:
-            key = (str(spot.dir), day)
-            if day == today:
-                summ = _place_summary(spot.entries)
-            else:
-                summ = _place_days.get(key)
-                if summ is None:
-                    summ = _place_days[key] = _place_summary(_load(spot.dir / f"sightings-{day}.json", []))
+            summ = _day_summary(spot, day)
             for k, p in summ.items():
                 if many and k not in want or not many and place is not None and k != place:
                     continue
@@ -4580,57 +4619,116 @@ def _days_of(spot, prefix=""):
         yield day, spot.day_entries(day)
 
 
-def year_json(spot, year):
-    """A year in planes (relay 29), for the phone app's year card: totals, the busiest day, the most seen airframe,
-    the rarest plane, the year's records and its points."""
-    key = (year, spot.rev)
-    cached = getattr(spot, "_year", None)
-    if cached and cached[0] == key:
-        return cached[1]
-    n, types, airlines, countries, regs, days, pts = 0, set(), {}, set(), collections.Counter(), {}, 0
-    rec, rarest, rare, new_types, new_regs, new_al = {}, None, 0, {}, 0, 0
-    order = {t: i for i, t in enumerate(TIERS)}
-    centre = spot.center() if spot.center else None
+# Relay 115 (to-do #318): a period's numbers and lists (the app's period card: Week, Month, Year and All time), merged
+# from the days' per-place summaries (_day_summary), so a period, a year or the whole logbook costs one pass over small
+# dicts, not over every sighting. `places`: None for all, else a set of place keys.
+PERIOD_CAP = 200               # rows of each list at most (the regs: PERIOD_REGS; the days: PERIOD_DAYS)
+PERIOD_REGS = 25
+PERIOD_DAYS = 100
+
+
+def _period(spot, start, end, places=None):
     with _data_lock:
-        for day, entries in _days_of(spot, f"{year}-"):
-            days[day] = len(entries)
-            for e in entries:
-                n += 1
-                pts += e.get("gp", 0) + e.get("lock", 0)
-                rare += order.get(e.get("tier"), -1) >= order["rare"]        # relay 101: as in review_json
-                if e.get("typeCode"):
-                    types.add(e["typeCode"])
-                    if e.get("newType"):
-                        new_types.setdefault(e["typeCode"], e.get("aircraftType") or e.get("desc") or "")
-                al = _al(e)
-                if al:
-                    a = airlines.setdefault(al, {"code": al, "name": e.get("airlineName") or "", "count": 0})
-                    a["count"] += 1
-                    a["name"] = a["name"] or e.get("airlineName") or ""
-                new_regs += bool(e.get("newReg"))
-                new_al += bool(e.get("newAirline"))
-                if e.get("ownerCountry"):
-                    countries.add(e["ownerCountry"])
-                if e.get("reg"):
-                    regs[e["reg"]] += 1
-                note_records(rec, e, centre)
-                k = (order.get(e.get("tier"), -1), -FLEET.get(_tc(e), 500))
-                if rarest is None or k > rarest[0]:
-                    rarest = (k, e)
-    top = regs.most_common(1)
-    busiest = max(days.items(), key=lambda kv: kv[1]) if days else None
-    who = lambda e: {"reg": e.get("reg") or "", "type": e.get("aircraftType") or e.get("typeCode") or "", "callsign": e.get("callsign") or "",
-                     "tier": e.get("tier") or "", "ts": e.get("ts")}
-    out = {"year": year, "planes": n, "types": len(types), "airlines": len(airlines), "countries": len(countries),
-           "airframes": len(regs), "days": len(days), "points": pts, "rare": rare,
-           "newTypes": [{"type": t, "name": nm} for t, nm in list(new_types.items())[:12]], "newTypeCount": len(new_types),
-           "newAircraft": new_regs, "newAirlines": new_al,
-           "busiest": {"day": busiest[0], "planes": busiest[1]} if busiest else None,
-           "topAirline": max(airlines.values(), key=lambda a: a["count"]) if airlines else None,
-           "mostSeen": {"reg": top[0][0], "count": top[0][1]} if top else None,
-           "rarest": who(rarest[1]) if rarest else None, "records": rec.get("records", {})}
-    spot._year = (key, out)
+        spot.ensure_day()
+        days = {f.stem[len("sightings-"):] for f in spot.dir.glob("sightings-*.json")}
+        if spot.entries:
+            days.add(spot.day)
+        n, pts, n_reg, n_al, per_day, rarest = 0, 0, 0, 0, {}, None
+        types, airlines, regs, cats, tiers, rare_t, ctry, new_t, t_day, recs = {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
+        first = None
+        for day in sorted(x for x in days if start <= x <= end):
+            cnt = 0
+            for k, p in _day_summary(spot, day).items():
+                if places is not None and k not in places:
+                    continue
+                cnt += p["n"]
+                pts += p.get("pts", 0)
+                n_reg += p.get("nReg", 0)
+                n_al += p.get("nAl", 0)
+                for part, into in (("types", types), ("airlines", airlines), ("regs", regs)):
+                    _merge_items(into, p[part])
+                for code in p["types"]:
+                    t_day.setdefault(code, day)
+                for src, into in ((p["cats"], cats), (p.get("tiers", {}), tiers), (p.get("ctry", {}), ctry)):
+                    for x, v in src.items():
+                        into[x] = into.get(x, 0) + v
+                for code, r in p.get("rareT", {}).items():
+                    cur = rare_t.get(code)
+                    if cur is None:
+                        rare_t[code] = dict(r)
+                    else:
+                        cur["n"] += r["n"]
+                        cur["tier"] = max(cur["tier"], r["tier"])
+                        cur["name"] = cur["name"] or r["name"]
+                for code, nm in p.get("newT", {}).items():
+                    new_t.setdefault(code, (nm, day))
+                if p.get("rarest") and (rarest is None or p["rarest"][0] > rarest[0]):
+                    rarest = p["rarest"]
+                for rk, rv in (p["book"].get("records") or {}).items():
+                    cur = recs.get(rk)
+                    if cur is None or (rv["v"] < cur["v"] if rk in ("closest", "lowest") else rv["v"] > cur["v"]):
+                        recs[rk] = rv
+            if cnt:
+                per_day[day] = cnt
+                first = first or day
+            n += cnt
+    by_n = lambda d: sorted(d.items(), key=lambda kv: (-kv[1]["count"], kv[0]))
+    busiest = max(per_day.items(), key=lambda kv: (kv[1], kv[0])) if per_day else None
+    top_al = by_n(airlines)[:1]
+    top_reg = by_n(regs)[:1]
+    fleet = lambda code: FLEET.get(code, 500)
+    return {"planes": n, "types": len(types), "airlines": len(airlines), "countries": len(ctry), "airframes": len(regs),
+            "days": len(per_day), "points": pts, "rare": sum(tiers.values()), "first": first,
+            "newTypes": [{"type": t, "name": nm} for t, (nm, _) in list(new_t.items())[:12]], "newTypeCount": len(new_t),
+            "newAircraft": n_reg, "newAirlines": n_al,
+            "busiest": {"day": busiest[0], "planes": busiest[1]} if busiest else None,
+            "topAirline": {"code": top_al[0][0], "name": top_al[0][1]["name"], "count": top_al[0][1]["count"]} if top_al else None,
+            "mostSeen": {"reg": top_reg[0][0], "count": top_reg[0][1]["count"]} if top_reg else None,
+            "rarest": rarest[1] if rarest else None, "records": recs,
+            # relay 115: the lists, each biggest first ([key, name, count]; new types newest first with the day)
+            "cats": cats, "tiers": tiers,
+            "typeList": [[k, v["name"], v["count"]] for k, v in by_n(types)[:PERIOD_CAP]],
+            "airlineList": [[k, v["name"], v["count"]] for k, v in by_n(airlines)[:PERIOD_CAP]],
+            "regList": [[k, v["name"], v["count"]] for k, v in by_n(regs)[:PERIOD_REGS]],
+            "countryList": [[k, v] for k, v in sorted(ctry.items(), key=lambda kv: (-kv[1], kv[0]))[:PERIOD_CAP]],
+            "dayList": [[k, v] for k, v in sorted(per_day.items(), key=lambda kv: (-kv[1], kv[0]))[:PERIOD_DAYS]],
+            "newTypeList": [[k, nm, dy] for k, (nm, dy) in sorted(new_t.items(), key=lambda kv: (kv[1][1], kv[0]), reverse=True)[:PERIOD_CAP]],
+            "allTypeList": [[k, types[k]["name"], dy] for k, dy in sorted(t_day.items(), key=lambda kv: (kv[1], kv[0]), reverse=True)[:PERIOD_CAP]],
+            "rareList": [[k, r["name"], TIERS[r["tier"]], r["n"]] for k, r in sorted(rare_t.items(), key=lambda kv: (-kv[1]["tier"], fleet(kv[0]), kv[1]["n"], kv[0]))[:PERIOD_CAP]],
+            "rareTypes": len(rare_t)}
+
+
+_periods = {}                  # (spot folder, start, end, places) -> numbers of a finished period
+
+
+def _period_kept(spot, start, end, places, done):
+    """_period, kept: a finished one for good, the current one until a sighting comes in."""
+    key = (str(spot.dir), start, end, tuple(sorted(places)) if places is not None else None)
+    out = _periods.get(key) if done else None
+    if out is None:
+        hit = getattr(spot, "_period", {}).get(key)
+        if hit and hit[0] == spot.rev:
+            return hit[1]
+        out = _period(spot, start, end, places)
+        if done:
+            if len(_periods) > 400:
+                _periods.clear()
+            _periods[key] = out
+        else:
+            if not hasattr(spot, "_period") or len(spot._period) > 40:
+                spot._period = {}
+            spot._period[key] = (spot.rev, out)
     return out
+
+
+def year_json(spot, year, places=None):
+    """A year in planes (relay 29), for the phone app's year card: totals, the busiest day, the most seen airframe,
+    the rarest plane, the year's records and its points; relay 115: its lists, and for some places only."""
+    with _data_lock:
+        spot.ensure_day()
+        today = spot.day
+    out = _period_kept(spot, f"{year}-01-01", f"{year}-12-31", places, f"{year}-12-31" < today)
+    return {"version": RELAY_VERSION, "year": year, "start": f"{year}-01-01", "end": f"{year}-12-31", **out}
 
 
 # Week and month in review (relay 46, to-do #44): like Today in numbers, over a calendar week (Monday to Sunday, board
@@ -4639,7 +4737,6 @@ def year_json(spot, year):
 REVIEW_SPANS = ("week", "month")
 REVIEW_WEEK_AT = (6, "20:00")     # Sunday evening: the week
 REVIEW_MONTH_AT = (1, "09:00")    # the 1st of the month, morning: the month before
-_reviews = {}                     # (spot folder, span, start) -> numbers of a finished period
 
 
 def review_range(span, back=0, day=None):
@@ -4655,75 +4752,21 @@ def review_range(span, back=0, day=None):
     return datetime.date(y, m, 1).isoformat(), (nxt - datetime.timedelta(days=1)).isoformat()
 
 
-def review_json(spot, span, back=0, prev=True):
-    span = span if span in REVIEW_SPANS else "week"
-    back = max(0, min(60, int(back or 0)))
+def review_json(spot, span, back=0, prev=True, places=None):
+    """Relay 115: span "all" is the whole logbook (from its first day to today)."""
+    span = span if span in REVIEW_SPANS + ("all",) else "week"
+    back = 0 if span == "all" else max(0, min(60, int(back or 0)))
     with _data_lock:
         spot.ensure_day()
         today = spot.day
-        start, end = review_range(span, back, today)
-        done = end < today
-        key = (str(spot.dir), span, start)
-        out = _reviews.get(key) if done else None
-        cached = getattr(spot, "_review", {}).get(key)
-        if out is None and cached and cached[0] == spot.rev:
-            out = cached[1]
-        if out is None:
-            days = {f.stem[len("sightings-"):] for f in spot.dir.glob("sightings-*.json")}
-            if spot.entries:
-                days.add(today)
-            n, pts, rare, types, airlines, regs, per_day, rec, rarest = 0, 0, 0, set(), {}, collections.Counter(), {}, {}, None
-            countries = set()
-            new_types, new_regs, new_al = {}, 0, 0
-            order = {t: i for i, t in enumerate(TIERS)}
-            centre = spot.center() if spot.center else None
-            for day in sorted(d for d in days if start <= d <= end):
-                entries = spot.entries if day == today else _load(spot.dir / f"sightings-{day}.json", [])
-                per_day[day] = len(entries)
-                for e in entries:
-                    n += 1
-                    pts += e.get("gp", 0) + e.get("lock", 0)
-                    rare += order.get(e.get("tier"), -1) >= order["rare"]
-                    if e.get("typeCode"):
-                        types.add(e["typeCode"])
-                        if e.get("newType"):
-                            new_types.setdefault(e["typeCode"], e.get("aircraftType") or e.get("desc") or "")
-                    al = _al(e)
-                    if al:
-                        a = airlines.setdefault(al, {"code": al, "name": e.get("airlineName") or "", "count": 0})
-                        a["count"] += 1
-                        a["name"] = a["name"] or e.get("airlineName") or ""
-                    if e.get("reg"):
-                        regs[e["reg"]] += 1
-                    new_regs += bool(e.get("newReg"))
-                    new_al += bool(e.get("newAirline"))
-                    if e.get("ownerCountry"):
-                        countries.add(e["ownerCountry"])
-                    note_records(rec, e, centre)
-                    k = (order.get(e.get("tier"), -1), -FLEET.get(_tc(e), 500))
-                    if rarest is None or k > rarest[0]:
-                        rarest = (k, e)
-            busiest = max(per_day.items(), key=lambda kv: (kv[1], kv[0])) if per_day else None
-            top_al = max(airlines.values(), key=lambda a: a["count"]) if airlines else None
-            top = regs.most_common(1)
-            who = lambda e: {"reg": e.get("reg") or "", "type": e.get("aircraftType") or e.get("typeCode") or "",
-                             "callsign": e.get("callsign") or "", "tier": e.get("tier") or "", "ts": e.get("ts")}
-            out = {"span": span, "start": start, "end": end, "complete": done, "planes": n, "days": sum(1 for v in per_day.values() if v),
-                   "types": len(types), "airlines": len(airlines), "countries": len(countries), "airframes": len(regs), "points": pts, "rare": rare,
-                   "newTypes": [{"type": t, "name": nm} for t, nm in list(new_types.items())[:12]], "newTypeCount": len(new_types),
-                   "newAircraft": new_regs, "newAirlines": new_al,
-                   "busiest": {"day": busiest[0], "planes": busiest[1]} if busiest and busiest[1] else None,
-                   "topAirline": top_al, "mostSeen": {"reg": top[0][0], "count": top[0][1]} if top else None,
-                   "rarest": who(rarest[1]) if rarest else None, "records": rec.get("records", {})}
-            if done:
-                _reviews[key] = out
-            else:
-                if not hasattr(spot, "_review"):
-                    spot._review = {}
-                spot._review[key] = (spot.rev, out)
-    res = {"version": RELAY_VERSION, "back": back, **out}
+    if span == "all":
+        out = _period_kept(spot, "", "9999", places, False)
+        return {"version": RELAY_VERSION, "back": 0, "span": "all", "start": out["first"] or today, "end": today, "complete": False, **out}
+    start, end = review_range(span, back, today)
+    out = _period_kept(spot, start, end, places, end < today)
+    res = {"version": RELAY_VERSION, "back": back, "span": span, "start": start, "end": end, "complete": end < today, **out}
     if prev:
-        res["prevPlanes"] = review_json(spot, span, back + 1, prev=False)["planes"]
+        res["prevPlanes"] = review_json(spot, span, back + 1, prev=False, places=places)["planes"]
     return res
 
 
@@ -4736,14 +4779,19 @@ def _csv_safe(v):
     return "'" + v if isinstance(v, str) and v[:1] in ("=", "+", "-", "@") else v
 
 
-def logbook_csv(spot):
-    """Every saved sighting of a spot as a spreadsheet (relay 29), for moving the log into a spotting app."""
+def logbook_csv(spot, start="", end="9999", places=None):
+    """Every saved sighting of a spot as a spreadsheet (relay 29), for moving the log into a spotting app; relay 115: of
+    the days from `start` to `end`, and of some places only (the period card's Download)."""
     buf = io.StringIO()
     w = csv.writer(buf)
     w.writerow(CSV_COLS)
     with _data_lock:
         for day, entries in _days_of(spot):
+            if not start <= day <= end:
+                continue
             for e in reversed(entries):
+                if places is not None and (e.get("place") or "home") not in places:
+                    continue
                 p = lambda k: ((e.get(k) or {}).get("code") or "") if isinstance(e.get(k), dict) else ""
                 w.writerow([_csv_safe(v) for v in [day, e.get("time") or "", e.get("place") or "home", e.get("callsign") or "", e.get("flightIata") or "", e.get("reg") or "",
                             e.get("typeCode") or "", e.get("aircraftType") or e.get("desc") or "", e.get("airlineName") or "",
@@ -9814,6 +9862,20 @@ class Handler(BaseHTTPRequestHandler):
     def query(self):
         return urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
 
+    def places_arg(self):
+        """Relay 115: place=a&place=b as /logbook reads them (with the profile's places at the same spot), as a set;
+        None for every place."""
+        raw = [place_key(k) for k in (self.query().get("place") or [""])[:6]]
+        if not all(raw):
+            return None
+        mine = places_of(self.guest[0]) if self.guest else []
+        return set().union(*(same_spot(self.spot, mine, k) for k in raw)) or None
+
+    def day_range(self):
+        """Relay 115: from=YYYY-MM-DD&to=YYYY-MM-DD (either may be left out): the first and last day, as the files name them."""
+        q, ok = self.query(), lambda v: v if re.fullmatch(r"\d{4}-\d\d-\d\d", v) else ""
+        return ok((q.get("from") or [""])[0]), ok((q.get("to") or [""])[0]) or "9999"
+
     def client_ip(self):
         """The screen's address. Behind a proxy on this computer (the Cloudflare tunnel, say) every request comes from
         this computer, and the proxy names the real one in Cf-Connecting-IP or X-Forwarded-For."""
@@ -10530,9 +10592,10 @@ class Handler(BaseHTTPRequestHandler):
             if not allow("cat:" + (self.guest[0] if self.guest else self.client_ip()), 1, 6):
                 return self.reply(429, "text/plain", b"Too many requests")
             places = [place_key(k) for k in (q.get("place") or [])[:6] if place_key(k)]
-            return self.reply(200, "application/json", json.dumps(category_top_json(self.spot, cat, places)).encode())
+            start, end = self.day_range()
+            return self.reply(200, "application/json", json.dumps(category_top_json(self.spot, cat, places, start, end)).encode())
         if path == "/logbook":
-            raw = [place_key(k) for k in (self.query().get("place") or [""])[:6]]
+            raw = [place_key(k) for k in (self.query().get("place") or [""])[:6]]   # (places_arg reads them the same way)
             # relay 40: place=a&place=b, merged; relay 77 (to-do #126): with the profile's places at the same spot
             # (same_spot: "Home" and "home"), each sighting once (one place each)
             mine = places_of(self.guest[0]) if self.guest else []
@@ -10582,17 +10645,18 @@ class Handler(BaseHTTPRequestHandler):
                 y = int((self.query().get("y") or [time.strftime("%Y")])[0])
             except ValueError:
                 y = int(time.strftime("%Y"))
-            return self.reply(200, "application/json", json.dumps(year_json(self.spot, max(2000, min(2100, y)))).encode())
+            return self.reply(200, "application/json", json.dumps(year_json(self.spot, max(2000, min(2100, y)), self.places_arg())).encode())
         if path == "/review":                   # relay 46: the week or month in review
             q = self.query()
             try:
                 back = int((q.get("back") or ["0"])[0])
             except ValueError:
                 back = 0
-            return self.reply(200, "application/json", json.dumps(review_json(self.spot, (q.get("span") or ["week"])[0], back)).encode())
+            return self.reply(200, "application/json", json.dumps(review_json(self.spot, (q.get("span") or ["week"])[0], back, places=self.places_arg())).encode())
         if path == "/logbook.csv":
-            name = "fallblatt-logbook-" + time.strftime("%Y-%m-%d") + ".csv"
-            return self.reply(200, "text/csv; charset=utf-8", logbook_csv(self.spot), {"Content-Disposition": f'attachment; filename="{name}"'})
+            start, end = self.day_range()
+            name = "fallblatt-logbook-" + (f"{start}-to-{end}" if start or end != "9999" else time.strftime("%Y-%m-%d")) + ".csv"
+            return self.reply(200, "text/csv; charset=utf-8", logbook_csv(self.spot, start, end, self.places_arg()), {"Content-Disposition": f'attachment; filename="{name}"'})
         if path == "/sky":
             code = re.sub(r"[^A-Za-z]", "", (self.query().get("code") or [""])[0])[:3]
             if len(code) != 3:

@@ -899,17 +899,22 @@ Five buttons along the bottom:
   screws in the corners, its name engraved between two lines, level with the top screws (1.83.1).
 - **Logbook** (1.55): a switch at the top for the views (Logbook and Week & month; Collection and Records moved to the
   Game page in 1.72); the place buttons only under Logbook. Logbook: the totals, most seen model, categories, top aircraft types and airlines, most seen aircraft.
-  **Since 1.123 the Logbook is one screen**: the search and the filter icon, three plates you swipe sideways (**Today**, which stays at 0 on a day with no planes yet since 1.124.1,
-  the period, such as "2026 in planes", and **All time**; in that order since 1.127), then the planes. Under Today, the day's, with its amber "Today" headline over the flights as under the others (1.129.1; none on a day with no planes yet). **Under the period and All time the list goes back across days
+  **Since 1.123 the Logbook is one screen**: the search and the filter icon, two plates you swipe sideways (**Today**, which stays at 0 on a day with no planes yet since 1.124.1,
+  and the period, such as "2026 in planes" or **All time**: since 1.138 All time is a tab of the period's card, and the plate
+  shows the tab the card is on), then the planes. Under Today, the day's, with its amber "Today" headline over the flights as under the others (1.129.1; none on a day with no planes yet). **Under the period the list goes back across days
   (1.127, relay 105)**: the last 50 flights, newest first, then **Show more** at the bottom for the 50 before those, as far as the period's start or the logbook's beginning, with the filters and the chosen place
   applied. Each day is its own metal plate (1.129.12), its amber headline (Today, Yesterday, then the date) engraved on it; the headline stays under the search, a strip of the plate with its screws, until the next day's pushes it away; Today's is there before the day's first flight too (not under a filter). Once more than 50 are loaded, a **Top** key with the
   day you're in shows while you scroll past the first screens, and stays at the very bottom; it fades when you stop and steps aside while Show more goes by. It goes back up to the plates. A new flight waits at the top while you're further down, so what you're reading doesn't move.
-  A tap on All time's numbers opens their lists
-  (Sightings: **Categories**, Aircraft: **Most seen aircraft**, Types: **Aircraft types**, Airlines: **Airlines**), with since when
-  it counts as a footnote; with a saved place on, its name and numbers are that place's. Each list rises from below as
-  a panel; a type or an airline in it opens its card, an aircraft searches for it. The period's panel: Week · Month ·
-  Year and ◀ ▶, three numbers, four facts and **Share**; **More** unfolds the dates, the other numbers and facts, the
-  new types and the CSV. While a search is on, its results replace the page.
+  A tap on the period plate opens its card (1.138): **Week · Month · Year · All time** and ◀ ▶ (greyed on All time),
+  eight numbers (Planes, Aircraft, Types, Airlines, New types, Rare, Countries, Days), each picking the list shown under
+  them: **Categories** (a category opens its top ten), **Most seen aircraft**, **Aircraft types**, **Airlines**, **New types**
+  (by name, with the day first seen, newest first; on All time every type), **Rare planes** (by rarity), **Countries** and
+  **Busiest days**. The picked number is amber with a short line under it; the card shows the list's top five and
+  **All N ›** opens the whole list over the card (closing it brings the card back). Then the four records (farthest route,
+  lowest pass, closest, fastest), **Share** and **Download (CSV)** for that tab's planes, and the period's dates as the
+  footnote ("Counting since …" on All time). The card remembers its tab and list. With a saved place on, every tab
+  counts that place. A type or an airline in a list opens its card, an aircraft searches for it. While a search is on, its
+  results replace the page.
   The app's bottom bar is **Now, Logbook, Club, Radar, Settings** (1.120; without a game, four keys). The Logbook key opens on the
   **Today** plate. The **filter icon** opens the filters, this place or all places and **Saved places** under the plates (a dot on
   the icon: a filter or a saved place is on). A swipe to the left off the plates and rows goes from the Logbook to the Club, on Level. In the Club a sideways swipe goes to the next or previous section (Level, League, Hangar, Passport, Frequent flyer) and stops at both ends. Start it away from the screen's sides, where the phone's own back gesture lives. A swipe on something that moves by itself (the cards, the shelves, the map) stays with that, and back still goes to Now in one step. The search row and the Club's tabs
