@@ -982,6 +982,24 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.138 (to-do #318, Dave, 4–5 Nov 2026: "Remove the 'All time' in the logbook, and add it as a tab in the 2026 card", his
+  pick C "Lists in the card"): **All time is a tab of the period's card.** The plates are Today and the period (`LB_PLATES`; `#lbPlate`
+  and its four panels are gone); the period plate takes the card's tab and title ("2026 in planes", "All time", a place after a
+  dot), and the list under it follows (`lblSpan`: All time runs back over every day; `#logbook` lands on All time). The card
+  (`periodHtml`): Week · Month · Year · All time (`PER_TABS`, All time from relay 115), ◀ ▶ greyed on All time; eight numbers
+  (`PER_LISTS`: Planes, Aircraft, Types, Airlines, New types, Rare, Countries, Days) that each pick the list shown under them (`perPick`,
+  `.perN.on`: amber with a short engraved line), its top five (`perRows`) and "All N ›" (`perMoreRow`; "Top N" when the relay sends
+  only the top: 25 aircraft, 100 days); the four records; Share and Download (CSV) side by side for the tab's own rows
+  (`perShare`, `perCsvUrl`); the period's dates as the footnote (`perDates`: "Counting since 14 December 2025", "1 Jan – 4 Nov 2026",
+  "Mon 2 – Sun 8 Nov"). More and Points are gone from the card. The tab and the list are kept (`od.lbper`). "All N ›" opens the
+  whole list over the card (`perListHtml`, panel "list"): the card is laid aside (`lbHeld`, set in `cardSheetPre` when `lbHoldNext`)
+  and `cardSheetClose` brings it back (`lbRestore`); a row that leads elsewhere drops it (`lbDrop`). `lbPanelOn` now asks the sheet
+  (`.lbIn[data-lbp]`), not a token. The data: `perCache` by `perKey` (period and place), `perLoad`, `perShown`; with a place picked
+  every tab counts that place (relay 115's `place=`; an older relay hides the period plate with a place, as before). A category's top
+  ten counts the card's period (`from`/`to`). New types on All time are every type, newest first (`allTypeList`). Fixes:
+  `typeShown` keeps the maker when only a number would be left ("Fokker 100", "Cessna 172"; Boeing's stay "737-800"), so Rarest
+  no longer reads "100"; Most seen aircraft names the type (H135, not EC35); `#cardBox .perArr .cBtn[disabled]` now greys ◀ ▶ in
+  sheets. Tests: `period_card_checks`, `period_checks` (flows.py).
 - 1.137 (to-do #317, Dave, 4 Nov 2026: "No, I don't want this", then "Remove it fully"): **Name that plane removed.** Taken out
   by hand, not by reverting the merge (1.135 and 1.136 sit on it): `gNq`, `nqShow`, `nqPunch`, `nqHide`, `nqTypes`, `nqBand`, `nqEnd`
   and `NQ_MS`/`NQ_AFTER` in `main.js`, the `gScanPops` hook, `arClose`'s sweep of an open card, the "?" in `arLabel`, `arPeekHtml`
@@ -2163,6 +2181,16 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 115 (1.138, to-do #318): **the period card's lists, for any range of days and any place.** `_place_summary` (the per-day,
+  per-place summary `_place_days` keeps in memory, relay 37) also counts points, tiers, the rare types, owner countries, the types
+  first seen that day (`newType`), new aircraft and airlines, the rarest plane and, with the spot's centre, the farthest route;
+  `_day_summary` gives a day's (today's again when `spot.rev` moves). `_period(spot, start, end, places)` merges them into the old
+  `/year` and `/review` fields plus `cats`, `tiers`, `typeList`, `airlineList`, `regList` (top 25), `countryList`, `dayList` (busiest
+  100), `newTypeList` (newest first, with the day), `allTypeList` (every type by its first day), `rareList` (rarest first: tier, then
+  `FLEET`, then fewest seen) and `rareTypes`; `_period_kept` keeps a finished period for good and the current one until a sighting
+  comes. `year_json` and `review_json` are built on it (the two copies of the counting loop are gone); `/review?span=all` is All
+  time (from the first saved day). `/year`, `/review` and `/logbook.csv` take `place=` (`Handler.places_arg`, as `/logbook` reads
+  them); `/logbook.csv` and `/logbook/category` take `from=`/`to=` (`Handler.day_range`).
 - Relay 114 (1.137, to-do #317): **Name that plane removed.** `GUESS_NAMES`, `GUESS_CLASS`, `guess_choices`, `_guess_family`, `guess_offer`,
   `game_guess`, `POST /game/guess`, `guessTypes` in `/game/me`, `guess` in `/game/lockon`'s answer, the `eagle10/50/250` rungs of
   `TROPHY_LADDER` (and `trophy_check`'s skip of a ladder it can't count) and `trophy_counts`' `eagle` are gone. **Nothing is deleted

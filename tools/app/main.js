@@ -1092,7 +1092,7 @@ function tdOpen(){
 $("tdPlate").onclick = tdOpen;
 // 1.123 (to-do #241, Dave's pick C): the plates, sideways. Each: a gold name and four named numbers, nothing else (rule 16).
 // Where the strip stands isn't kept: the routes pick a plate (lbPlateGo), and lbPlateOn keeps it there when a plate comes or folds.
-const LB_PLATES = {today: "tdPlate", period: "lbYear", all: "lbPlate"};      // 1.127 (to-do #254): Today, 2026, All time
+const LB_PLATES = {today: "tdPlate", period: "lbYear"};      // 1.127 (to-do #254): Today, 2026; 1.138 (to-do #318): All time is the period's tab
 let lbPlateOn = "today", lbStripSig = "";
 const lbPlateNum = (v, k) => `<span><b>${v == null ? "–" : nf.format(v)}</b><small>${escH(T(k))}</small></span>`;
 const lbPlateHtml = (title, nums, chev) => `<span class="lbPlH"><small>${escH(title)}</small>${chev ? '<i aria-hidden="true">›</i>' : ""}</span><span class="lbPlN">${nums.map(([v, k]) => lbPlateNum(v, k)).join("")}</span>`;
@@ -1215,10 +1215,10 @@ const lblIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "
 // [first day, last day ("": up to today, the shared list)] of the plate on show. Fixed once worked out: midnight doesn't
 // take a week's rows away from under you.
 function lblSpan(today){
-  const plate = lblPlate(), per = reviewOk() ? lbPeriod : "year", back = per === "year" ? yearBack : review.back, k = [plate, per, back].join();
+  const plate = lblPlate(), per = perOn(), back = per === "year" ? yearBack : review.back, k = [plate, per, back].join();
   if (k === lbl.spanKey) return lbl.span;
   lbl.spanKey = k;
-  if (plate === "all") return lbl.span = ["", ""];
+  if (per === "all") return lbl.span = ["", ""];      // 1.138: All time runs back over every day
   const d = new Date(today + "T12:00:00");
   if (per === "year") { const y = d.getFullYear() - back; return lbl.span = [`${y}-01-01`, back ? `${y}-12-31` : ""]; }
   const s = per === "week" ? new Date(d.getTime() - ((d.getDay() + 6) % 7 + 7 * back) * 864e5) : new Date(d.getFullYear(), d.getMonth() - back, 1, 12);
@@ -1699,7 +1699,7 @@ async function lbFind(){
 // whole logbook (relay 61, /logbook/category); a type opens its card, an operator its airline card, an aircraft the search.
 const catOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 61;
 let lbCat = "", lbCatView = "types", lbCatData = {};
-const lbCatKey = () => lbCat + "|" + (lbPlace || "");
+const lbCatKey = () => lbCat + "|" + (lbPlace || "") + "|" + perKey(perNow());
 function catOpenHtml(k){
   const d = lbCatData[lbCatKey()];
   if (!d) return `<li class="catSub"><p class="sum">${escH(T("Loading …"))}</p></li>`;
@@ -1714,7 +1714,8 @@ function catOpenHtml(k){
 async function catFetch(){
   const key = lbCatKey();
   if (lbCatData[key]) return;
-  try { lbCatData[key] = await fetchJSON(`${relay()}/logbook/category?c=${lbCat}${lbPlace ? "&place=" + encodeURIComponent(lbPlace) : ""}`, {}, 15000); }
+  const r = perShown(), span = perOn() !== "all" && r && r.start && perAllOk() ? `&from=${r.start}&to=${r.end}` : "";     // 1.138: the card's period
+  try { lbCatData[key] = await fetchJSON(`${relay()}/logbook/category?c=${lbCat}${lbPlace ? "&place=" + encodeURIComponent(lbPlace) : ""}${span}`, {}, 15000); }
   catch { lbCatData[key] = {types: [], regs: [], operators: []}; }
   lbSig = ""; renderLogbook();
 }
@@ -1723,12 +1724,12 @@ document.addEventListener("click", e => {
   const t = e.target && e.target.closest && e.target.closest(".lbSheet [data-cat], .lbSheet [data-cv], .lbSheet .catRow, .lbSheet .lbTap, .lbSheet [data-pk], #lbFound [data-fp]");
   if (!t) return;
   ctlSound.click();
-  if (t.dataset.pk != null) { cardClose(); if (t.dataset.pk !== lbPlace) lbPick(t.dataset.pk); return; }
+  if (t.dataset.pk != null) { lbDrop(); cardClose(); if (t.dataset.pk !== lbPlace) lbPick(t.dataset.pk); return; }
   if (t.dataset.cat){ lbCat = lbCat === t.dataset.cat ? "" : t.dataset.cat; lbCatView = "types"; if (lbCat) catFetch(); }
   else if (t.dataset.cv) lbCatView = t.dataset.cv;
   else if (t.dataset.ct) return typeCard({typeCode: t.dataset.ct, type: t.dataset.cn});
   else if (t.dataset.co != null && t.matches(".catRow, .lbTap")) return airlineCard({airlineIcao: t.dataset.co, airline: t.dataset.cn, airlineCode: t.dataset.ci});
-  else if (t.dataset.cr) { if (t.closest("#cardBox")) cardClose(); const inp = $("lbFindBox").querySelector("[data-q]"); if (inp) { inp.value = t.dataset.cr; inp.dispatchEvent(new Event("input")); window.scrollTo({top: 0, behavior: "smooth"}); } return; }
+  else if (t.dataset.cr) { if (t.closest("#cardBox")) { lbDrop(); cardClose(); } const inp = $("lbFindBox").querySelector("[data-q]"); if (inp) { inp.value = t.dataset.cr; inp.dispatchEvent(new Event("input")); window.scrollTo({top: 0, behavior: "smooth"}); } return; }
   else if (t.dataset.fp) return foundCard(t.dataset.fp, lbFoundRows[+t.dataset.fi]);
   lbSig = ""; renderLogbook();
 });
@@ -1772,16 +1773,33 @@ async function foundCard(k, g){
 /* 1.117 (to-do #210), 1.123 (to-do #241, Dave's pick C): the All time plate's numbers each raise a list's plate as the
    app's sheet (cardOpen: the grip, swiped down, a tap beside or back); the plates are drawn here (lbPanels) and a panel on
    show follows new numbers in place (lbPanelSync). The search results stay as they were. */
-let lbPanels = {}, lbPanel = "", lbPanelTok = 0;
-const lbPanelOn = () => !!lbPanel && cardTok === lbPanelTok && cardOpenNow();
+// 1.138 (to-do #318): "All N ›" in the period's card opens its list over it; the card is laid aside (lbHeld, as Settings'
+// panels are) and comes back when the list closes (cardSheetClose → lbRestore).
+let lbPanels = {}, lbPanel = "", lbHeld = null, lbHoldNext = false;
+const lbPanelOn = () => !!lbPanel && cardOpenNow() && !!document.querySelector(`#cardBox .lbIn[data-lbp="${lbPanel}"]`);
 function lbPanelOpen(k){
-  if (!lbPanels[k]) return;
+  if (!lbPanels[k]) { lbHoldNext = false; return; }
   ctlSound.nav();
+  if (!lbHoldNext) lbHeld = null;
   lbPanel = k;
-  lbPanelTok = cardOpen(`<div class="lbIn">${lbPanels[k]}</div>`, ci => ci.classList.add("tdSheet", "lbSheet"));
+  cardOpen(`<div class="lbIn" data-lbp="${k}">${lbPanels[k]}</div>`, ci => ci.classList.add("tdSheet", "lbSheet"));
+  lbHoldNext = false;
 }
+function lbRestore(b){
+  const ci = lbHeld;
+  lbHeld = null; perListK = "";
+  if (!ci || tab !== "logbook") return false;
+  b.replaceChildren(ci);
+  b.classList.remove("closing", "drag"); ci.style.transform = ""; ci.style.height = "";
+  if (b.hidden) { b.hidden = false; b.classList.remove("in"); void b.offsetWidth; }
+  b.classList.add("in");
+  cardSheetHtml = ""; lbPanel = "year";
+  lbSig = ""; renderLogbook();                       // new numbers, if any came meanwhile
+  return true;
+}
+const lbDrop = () => { lbHeld = null; perListK = ""; };   // closing for good (a row that leads elsewhere)
 function lbPanelSync(){
-  const el = lbPanelOn() && document.querySelector("#cardBox .lbIn");
+  const el = lbPanelOn() && document.querySelector(`#cardBox .lbIn[data-lbp="${lbPanel}"]`);
   if (!el) return;
   const html = lbPanels[lbPanel] || "", ci = el.closest(".cardIn"), h0 = ci.offsetHeight;
   if (el.dataset.h === html) return;
@@ -1794,59 +1812,31 @@ function renderLogbook(){
   lbViewsBar();
   const v = lbView;
   if (S.demo && !lbDemoPer) { lbDemoPer = true; lbPeriod = "week"; }     // 1.123: demo mode has sample weeks and months, no sample year
-  if (v === "logbook") { if (lbPeriod === "year") fetchYear(); else fetchReview(() => { lbSig = ""; renderLogbook(); }); }
+  if (v === "logbook") perLoad(perNow()).catch(() => {});
   const all = lbData() || {}, pl = v === "logbook" && lbPlaceOk() ? lbChips() : [];
   if (v === "logbook" && lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
   if (lblOn() && lblKey() !== lbl.key) renderToday();   // 1.127: another period or place under the plates
   const place = v === "logbook" ? lbPlace : "";
   // 1.89 (to-do #90): All · On the go · the saved places; 1.123: a row in the filter, its panel the list to pick from.
-  // Counting since and a place's own line are the engraved footnote of the All time plate's four panels.
   const live = pl.find(c => c.id === "live"), saved = pl.filter(c => c.id !== "live"), cur = pl.find(c => c.id === lbPlace);
-  const b = place ? lbPlaceData[place] || {} : all, has = place ? !!lbPlaceData[place] : !!lbData();
   $("lbSum").hidden = v === "review" || v === "logbook";
   $("lbSum").textContent = v === "collection" ? T("How rare a type is depends on how many fly today. Every type you see fills its place in the collections; points come in the Spotters' Club.")
     : v === "records" ? T("The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.") : "";
-  const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
-  const types = byCount(b.types), airlines = byCount(b.airlines);
-  const foot = v !== "logbook" ? "" : plFoot(place ? !has ? T("Loading …")
-    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(place), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"}) : "",
-    logbookSummary(true));
   $("t-logbook").classList.toggle("lbOther", v !== "logbook");
   // A plate with no data folds away (rule 13): All time's and the period's once the logbook is known to be empty or out of reach
-  const noBook = S.demo ? !all.sightings : !relayV5() || (lbCache ? !lbCache.sightings : !!lbError);
-  $("lbYear").hidden = v !== "logbook" || !!place || noBook || !(S.demo || relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 29);
-  $("lbPlate").hidden = v !== "logbook" || !place && noBook;
+  const noBook = S.demo ? !all.sightings : !relayV5() || (lbCache ? !lbCache.sightings && !(perShown() || {}).planes : !!lbError);
+  // 1.138: the period's plate with a place too (relay 115 counts a place's weeks, months and years)
+  $("lbYear").hidden = v !== "logbook" || !place && noBook || !(S.demo || relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 29) || !!place && !perAllOk();
   tdFilDot();
   lbStripSync();
-  const sig = JSON.stringify([v, place, foot, b.since, b.sightings, b.regsCount, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, pl, all.game, all.records, yearData, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], lbPeriod, yearBack, perMore, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
+  const sig = JSON.stringify([v, place, all.since, all.sightings, all.regsCount, pl, all.game, all.records, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], perOn(), yearBack, review.back, perWant, perShown(), perPick, perListK, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
-  const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
-  // 1.113 (to-do #185): a type, an airline or an aircraft opens what the same row inside a category opens (tap: data-*)
-  const li = (name, n, sub, tap = "") => `<li${tap ? ` class="lbTap"${tap}` : ""}><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
   const P = {};
   let html = "";
   const g0 = all.game;                               // the collection, bingo and trophies count every place
   if (v === "logbook") {
-    if (b.categories) {
-      const max = Math.max(1, ...LB_CATS.map(([k]) => b.categories[k] || 0));
-      if (LB_CATS.some(([k]) => b.categories[k])) P.cats = secPlate(T("Categories"), `<ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
-        const n = b.categories[k] || 0;
-        const open = lbCat === k && catOk() && n;
-        return `<li style="--lamp:${col}"${n && catOk() ? ` data-cat="${k}" class="catTap${open ? " open" : ""}"` : ""}><i class="lamp"></i><span class="name">${escH(T(en))}${n && catOk() ? ` <span class="chev">${DD}</span>` : ""}</span><span class="n">${nf.format(n)}</span>` +
-          `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>` + (open ? catOpenHtml(k) : "");
-      }).join("") + "</ul>" + foot);
-    }
-    if (types.length) {
-      P.types = secPlate(T("Aircraft types"), rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0), "", ` data-ct="${escH(c)}" data-cn="${escH(t.name || "")}"`))) + foot);
-    }
-    if (airlines.length) {
-      P.airlines = secPlate(T("Airlines"), rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0), "",
-        ` data-co="${escH(c)}" data-cn="${escH(a.name || "")}" data-ci="${escH((AIRLINES[c] || [])[0] || "")}"`))) + foot);
-    }
-    if ((b.regsTop || []).length) {
-      P.regs = secPlate(T("Most seen aircraft"), rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name, ` data-cr="${escH(r.reg)}"`))) + foot);
-    }
+    // 1.138 (to-do #318): All time's four lists are the period card's, on its All time tab
     if (pl.length) {
       const name = saved.length ? T("Saved places") : live.name;
       const opt = (k, n, cnt) => `<li class="catTap" data-pk="${escH(k)}" style="--lamp:${k === lbPlace ? "var(--c-gold)" : "#3a3c41"}"><i class="lamp"></i><span class="name">${escH(n)}</span><span class="n">${cnt != null ? nf.format(cnt) : ""}</span></li>`;
@@ -1855,11 +1845,9 @@ function renderLogbook(){
       $("lbFilPlace").innerHTML = `<li><button type="button" data-lp="places"><b>${escH(name)}</b><small>${escH(cur ? cur.name : T("All"))}</small><i aria-hidden="true">›</i></button></li>`;
     }
     $("lbFilPlace").hidden = !pl.length;
-    // The All time plate: amber names, no chevron; each number opens its list (a number with no list yet: no amber, no tap)
-    const opener = (n, k, panel) => `<button type="button" data-lp="${panel}"${P[panel] ? "" : " disabled"}><b>${has ? nf.format(n || 0) : "–"}</b><small>${escH(T(k))}</small></button>`;
-    $("lbPlate").innerHTML = `<span class="lbPlH"><small>${escH(cur ? `${T("All time")} · ${cur.name}` : T("All time"))}</small></span><span class="lbPlN">` +
-      opener(b.sightings, "Sightings", "cats") + opener(b.regsCount, "Aircraft", "regs") + opener(types.length, "Types", "types") + opener(airlines.length, "Airlines", "airlines") + `</span>`;
-    if (!place) { P.year = periodHtml(); lbYearCard(); }
+    P.year = periodHtml();
+    if (perListK) P.list = perListHtml();
+    lbYearCard();
   } else if (v === "collection") html = collectionHtml(g0);
   else if (v === "records") html = recordsHtml(all, g0);
   else html = reviewHtml();
@@ -1868,22 +1856,22 @@ function renderLogbook(){
   trWire($("lbLists"), () => { lbSig = ""; renderLogbook(); });
   lbPanelSync();
 }
-// The period's plate: its title and four numbers, "–" while they load; a tap opens its panel.
+// The period's plate: the card's tab, its title and four numbers ("–" while they load; All time the logbook's until its
+// own come); a tap opens its card.
 function lbYearCard(){
-  const per = reviewOk() ? lbPeriod : "year", yr = new Date().getFullYear() - yearBack;
-  const r = per === "year" ? (yearData && yearData.year === yr ? yearData : null) : reviewData();
-  const title = per === "year" ? T("{y} in planes", {y: yr}) : T("{p} in planes", {p: reviewTitle()}), n = k => r ? r[k] || 0 : null;
-  $("lbYear").innerHTML = lbPlateHtml(title, [[n("planes"), "Planes"], [n("airframes"), "Aircraft"], [n("types"), "Types"], [n("airlines"), "Airlines"]], true);
+  const r = perShown(), b = perOn() === "all" && !lbPlace && !r && lbData(), n = k => r ? r[k] || 0 : null;
+  $("lbYear").innerHTML = lbPlateHtml(perTitle(), b ? [[b.sightings, "Planes"], [b.regsCount, "Aircraft"], [Object.keys(b.types || {}).length, "Types"], [Object.keys(b.airlines || {}).length, "Airlines"]]
+    : [[n("planes"), "Planes"], [n("airframes"), "Aircraft"], [n("types"), "Types"], [n("airlines"), "Airlines"]], true);
 }
 $("lbYear").onclick = () => { lbPanelOpen("year"); perWarm(); };
 document.addEventListener("click", e => {
-  const b = e.target.closest && e.target.closest("#lbPlate [data-lp], #lbFilPlace [data-lp]");
+  const b = e.target.closest && e.target.closest("#lbFilPlace [data-lp]");
   if (!b) return;
   lbPanelOpen(b.dataset.lp);
 });
 // 1.89: a place picked (All, on the go or a saved one): its numbers come from the relay the first time.
 async function lbPick(id){
-  lbPlace = id; if (id) lbPlateOn = "all";          // 1.123: the place's numbers are what was asked for
+  lbPlace = id; if (id) lbPlateOn = "period";       // 1.123: the place's numbers are what was asked for
   lbSig = ""; renderLogbook(); lbStripSync(true); renderToday();
   if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
 }
@@ -3068,88 +3056,171 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => plFo
 const secPlate = (title, body, cls = "") => `<section class="plate secPlate${cls ? " " + cls : ""}" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${escH(title)}</h3>${body}</section>`;
 // A trophy cup for the trophies list (gold when won, by CSS).
 const CUP = '<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10c0 5-1.5 8-5 8.5C8.5 11 7 8 7 3zM11 11.5h2l.5 4h-3zM8 16h8v2.2H8z"/><path d="M7 4.5C4.5 4.5 4 8 7.5 9M17 4.5c2.5 0 3 3.5-.5 4.5" fill="none" stroke-width="1.6"/></svg>';
-// The year in planes (relay 29, /year): a card at the top of the Logbook with a Share button (a picture of the card)
-// and the logbook as a spreadsheet (/logbook.csv).
-let yearData = null, yearAt = {}, yearCache = {};
-function fetchYear(){
-  const y = new Date().getFullYear() - yearBack;
-  yearData = yearCache[y] || null;
-  // 1.119.3 (to-do #219): every minute, like the week and the month (every five, it could be a plane behind them)
-  if (!relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 29 || Date.now() - (yearAt[y] || 0) < 60000) return;
-  perLoad({per: "year", yb: yearBack}).catch(() => {});
+// The period's numbers (1.74; 1.119.3, to-do #219; 1.138, to-do #318): the year from /year (relay 29), a week or a month
+// from /review (relay 46), All time from /review?span=all (relay 115), for the place picked too (relay 115's place=), each
+// with its lists. Kept by what picks it ({per, yb, rb} and the place); fresh every minute while on show. The switch shows
+// what it has until the new numbers come (perWant says where it is going), so the card never goes blank.
+const perCache = {}, perAt = {};
+const perAllOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 115;
+const PER_TABS = [["week", "Week"], ["month", "Month"], ["year", "Year"], ["all", "All time"]];
+const perTabs = () => PER_TABS.filter(([k]) => k === "all" ? perAllOk() : k === "year" || reviewOk());
+const perOn = () => perTabs().some(([k]) => k === lbPeriod) ? lbPeriod : "year";
+const perNow = () => ({per: perOn(), yb: yearBack, rb: review.back});
+const perYear = p => new Date().getFullYear() - p.yb;
+const perKey = p => (p.per === "year" ? "y" + perYear(p) : p.per === "all" ? "all" : p.per + p.rb) + "|" + (lbPlace || "");
+const perPlaceQ = () => lbPlace ? lbPlace.split("\n").map(k => "&place=" + encodeURIComponent(k)).join("") : "";
+function perDemo(p){              // demo mode: the sample week or month
+  if (p.per === "year" || p.per === "all") return null;     // (no sample year)
+  const was = [review.span, review.back];
+  review.span = p.per; review.back = p.rb;
+  const r = demoReview();
+  [review.span, review.back] = was;
+  return r;
 }
-// 1.119.3 (to-do #219): a period's data by what picks it ({per, yb, rb}): has it, and fetch it. The panel shows what the
-// switch has until then (perWant says where it is going), so it never goes blank. Fresh when it comes up, so the three agree.
-const perKey = p => p.per === "year" ? new Date().getFullYear() - p.yb : p.per + p.rb;
-const perHas = p => S.demo || !relay() || !!(p.per === "year" ? yearCache[perKey(p)] : review.data[perKey(p)]);
-function perLoad(p){
-  const k = perKey(p), year = p.per === "year", at = year ? yearAt : review.at;
-  if (S.demo || !relay() || !reviewOk() && !year) return Promise.resolve();
-  at[k] = Date.now();
-  return fetchJSON(year ? `${relay()}/year?y=${k}` : `${relay()}/review?span=${p.per}&back=${p.rb}`, {}, 12000).then(j => {
-    if (year) { yearCache[k] = j; if (k === new Date().getFullYear() - yearBack) yearData = j; }
-    else review.data[k] = j;
-    lbSig = ""; renderLogbook();
-  }).catch(e => { at[k] = 0; throw e; });
+const perGet = p => S.demo ? perDemo(p) : (r => r && p.per === "year" ? yearReview(r) : r)(perCache[perKey(p)] || null);
+const perShown = () => perGet(perNow());
+const perHas = p => S.demo || !relay() || !!perCache[perKey(p)];
+function perLoad(p, fresh){
+  const k = perKey(p);
+  if (S.demo || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 29 || (p.per === "all" ? !perAllOk() : p.per !== "year" && !reviewOk())) return Promise.resolve();
+  if (!fresh && Date.now() - (perAt[k] || 0) < 60000) return Promise.resolve();
+  perAt[k] = Date.now();
+  const url = relay() + (p.per === "year" ? `/year?y=${perYear(p)}` : `/review?span=${p.per}&back=${p.per === "all" ? 0 : p.rb}`) + perPlaceQ();
+  return fetchJSON(url, {}, 15000).then(j => { perCache[k] = j; lbSig = ""; renderLogbook(); }).catch(e => { perAt[k] = 0; throw e; });
 }
-// The panel opened: the logbook's totals and this week, this month and this year fresh at once, so the first switch has them.
+// The panel opened: the logbook's totals and this week, this month, this year and All time fresh at once, so a switch has them.
 function perWarm(){
   fetchLogbook();
-  for (const per of ["week", "month", "year"]) perLoad({per, yb: 0, rb: 0}).catch(() => {});
+  for (const per of ["week", "month", "year", "all"]) perLoad({per, yb: 0, rb: 0}).catch(() => {});
 }
 // A year's numbers in the form reviewFacts and reviewSummary read (a week's or a month's has them from the relay).
 const yearReview = y => y && {span: "year", start: `${y.year}-01-01`, end: `${y.year}-12-31`, complete: y.year < new Date().getFullYear(), ...y};
-// 1.74: the Logbook's period card: this week, this month or the year in one card, picked with Week · Month · Year,
-// ◀ ▶ for earlier and later (week and month from /review, relay 46; the year from /year, with Share and the CSV).
-let lbPeriod = "year", yearBack = 0, perMore = false, perWant = null;
-// 1.117 (to-do #210, Dave's pick B): the period's panel: Week · Month · Year, three big numbers, four facts and Share;
-// More unfolds the rest in place (the dates, the finer numbers, the other facts, the new types and the CSV).
-// 1.119.3 (to-do #219): the three are twins: the same numbers and facts in the same order and at the same height, a dash
-// for what a period hasn't got (and while its first data is on its way), and one "More".
-function periodHtml(){
-  const per = reviewOk() ? lbPeriod : "year", yr = new Date().getFullYear() - yearBack, back = per === "year" ? yearBack : review.back;
-  const on = perWant ? perWant.per : per, onBack = perWant ? (perWant.per === "year" ? perWant.yb : perWant.rb) : back;
-  const seg = reviewOk() ? `<div class="seg lbPer" role="group">` + [["week", "Week"], ["month", "Month"], ["year", "Year"]]
-    .map(([k, l]) => `<button type="button" data-per="${k}" aria-pressed="${on === k}">${escH(T(l))}</button>`).join("") + `</div>` : "";
-  const arrows = `<span class="perArr"><button class="cBtn" type="button" data-pb="1" aria-label="${escH(T("Earlier"))}">◀</button>` +
-    `<button class="cBtn" type="button" data-pb="-1" aria-label="${escH(T("Later"))}"${onBack ? "" : " disabled"}>▶</button></span>`;
-  const r = per === "year" ? yearReview(yearData && yearData.year === yr ? yearData : null) : reviewData(), f = reviewFacts(r || {}), nt = r ? reviewNewTypes(r) : "";
-  const nums = (list, x = "") => `<div class="yNums${x}">` + list.map(([k, l]) => `<div><b>${r ? nf.format(r[k] || 0) : "–"}</b><span>${escH(T(l))}</span></div>`).join("") + `</div>`;
-  const facts = list => `<dl class="yFacts">` + list.map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v || "–")}</dd></div>`).join("") + `</dl>`;
-  const csv = relay() && !S.demo && (window.OVERHEAD_RELAY_VERSION || 0) >= 29 ? `<div class="yActs"><a class="cBtn" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
-    `<p class="sum">${escH(T("Every sighting as a spreadsheet, for a spotting app or Excel."))}</p>` : "";
-  const title = per === "year" ? T("{y} in planes", {y: yr}) : T("{p} in planes", {p: reviewTitle()});
-  const body = nums(REVIEW_NUMS.slice(0, 4)) + facts(f.slice(0, 4)) +
-    `<div class="yActs"><button class="cBtn" type="button" id="${per === "year" ? "yShare" : "pShare"}"${r && r.planes ? "" : " disabled"}>${escH(T("Share"))}</button></div>` +
-    `<ul class="idx perMore"><li><button type="button" data-pmore aria-expanded="${perMore}"><b>${escH(T(perMore ? "Less" : "More"))}</b><i aria-hidden="true">›</i></button></li></ul>` +
-    (perMore ? `<div class="perMoreIn">${r ? `<p class="sum">${escH(reviewSummary(r))}</p>` : ""}${nums(PER_MORE, " yMore")}${facts(f.slice(4).concat([[T("New types"), nt]]))}${csv}</div>` : "");
-  return secPlate(title, `<div class="perHead">${seg}${arrows}</div>${body}`, "perCard");
+// The period's name: "2026 in planes", "This week in planes", "All time" (a place picked: its name after a dot).
+function perTitle(p = perNow()){
+  const t = p.per === "all" ? T("All time") : p.per === "year" ? T("{y} in planes", {y: perYear(p)}) : T("{p} in planes", {p: reviewTitle(p.per, p.rb)});
+  return lbPlace ? `${t} · ${lbPlaceName(lbPlace)}` : t;
 }
-const PER_MORE = [["newTypeCount", "New types"], ["rare", "Rare"], ["countries", "Countries"], ["days", "Days"], ["points", "Points"]];
+// The period's dates for its footnote: "Counting since 14 December 2025", "1 Jan – 4 Nov 2026", "Mon 2 – Sun 8 Nov".
+function perDates(r, p = perNow()){
+  if (!r || !r.start) return "";
+  const x = d => new Date(d + "T12:00:00"), today = lblIso(new Date());
+  if (p.per === "all") return T("Counting since {d}", {d: x(r.start).toLocaleDateString(LOC(), {day: "numeric", month: "long", year: "numeric"})});
+  const wk = p.per === "week", a = x(r.start), b = x(wk || r.end < today ? r.end : today);
+  const sameY = a.getFullYear() === b.getFullYear(), sameM = sameY && a.getMonth() === b.getMonth(), yr = !wk || b.getFullYear() !== new Date().getFullYear();
+  const f = (d, o) => d.toLocaleDateString(LOC(), {...(wk ? {weekday: "short"} : {}), day: "numeric", ...o}).replace(/,/g, "");
+  return `${f(a, sameM ? {} : {month: "short", ...(sameY ? {} : {year: "numeric"})})} – ${f(b, {month: "short", ...(yr ? {year: "numeric"} : {})})}`;
+}
+// 1.74: the Logbook's period card. 1.117, 1.119.3: three twins. 1.138 (to-do #318, Dave's pick C): Week · Month · Year ·
+// All time, eight numbers that each pick a list (the picked one amber, an engraved line under it), its top five in the
+// card and "All N ›" for the rest (as a sheet over the card, which comes back when it closes), the four records, Share
+// and Download (CSV) for the tab's own rows, and the period's dates as the footnote. The card keeps its tab and list.
+let lbPeriod = "year", yearBack = 0, perWant = null, perPick = "cats", perListK = "";
+const PER_LISTS = {cats: ["Planes", "planes", "Categories"], regs: ["Aircraft", "airframes", "Most seen aircraft"], types: ["Types", "types", "Aircraft types"],
+  airlines: ["Airlines", "airlines", "Airlines"], newTypes: ["New types", "newTypeCount", "New types"], rare: ["Rare", "rare", "Rare planes"],
+  countries: ["Countries", "countries", "Countries"], days: ["Days", "days", "Busiest days"]};
+const PER_SAVE = "od.lbper";
+try { const o = JSON.parse(localStorage.getItem(PER_SAVE) || "{}"); if (PER_TABS.some(([k]) => k === o.per)) lbPeriod = o.per; if (PER_LISTS[o.pick]) perPick = o.pick; } catch {}
+const perKeep = () => { try { localStorage.setItem(PER_SAVE, JSON.stringify({per: lbPeriod, pick: perPick})); } catch {} };
+const perN = (r, k, per = perOn()) => !r ? null : k === "newTypes" && per === "all" ? r.types || 0 : r[PER_LISTS[k][1]] || 0;
+// A list's rows (all of them; the card shows five) and what holds them
+function perRows(k, r, per = perOn()){
+  const li = (name, n, sub, tap = "") => `<li class="lbTap"${tap}><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
+  const fmt = n => nf.format(n || 0), ct = (c, nm) => ` data-ct="${escH(c)}" data-cn="${escH(nm || "")}"`;
+  const bar = (n, max) => `<span class="bar"><i style="width:${(n / Math.max(1, max) * 100).toFixed(1)}%"></i></span>`;
+  if (k === "cats") {
+    const c = r.cats || {}, l = LB_CATS.filter(([x]) => c[x]).sort((a, b) => c[b[0]] - c[a[0]]), max = Math.max(1, ...l.map(([x]) => c[x])), ok = catOk();
+    return {wrap: "ranks cats", rows: l.map(([x, en, , col]) => `<li style="--lamp:${col}"${ok ? ` data-cat="${x}" class="catTap${lbCat === x ? " open" : ""}"` : ""}><i class="lamp"></i>` +
+      `<span class="name">${escH(T(en))}${ok ? ` <span class="chev">${DD}</span>` : ""}</span><span class="n">${fmt(c[x])}</span>${bar(c[x], max)}</li>` + (ok && lbCat === x ? catOpenHtml(x) : ""))};
+  }
+  if (k === "regs") return {wrap: "ranks", rows: (r.regList || []).map(([g, t, n]) => li(g, fmt(n), t ? typeShown(t) : "", ` data-cr="${escH(g)}"`))};
+  if (k === "types") return {wrap: "ranks", rows: (r.typeList || []).map(([c, nm, n]) => li(typeLabel(c, nm), fmt(n), "", ct(c, nm)))};
+  if (k === "airlines") return {wrap: "ranks", rows: (r.airlineList || []).map(([c, nm, n]) => li((AIRLINES[c] || [])[1] || nm || c, fmt(n), "",
+    ` data-co="${escH(c)}" data-cn="${escH(nm || "")}" data-ci="${escH((AIRLINES[c] || [])[0] || "")}"`))};
+  if (k === "newTypes") return {wrap: "ranks plain", rows: ((per === "all" ? r.allTypeList : r.newTypeList) || []).map(([c, nm, d]) =>
+    `<li class="lbTap"${ct(c, nm)}><span class="name">${escH(typeLabel(c, nm))}</span><span class="n perWhen">${escH(reviewDay(d))}</span></li>`)};
+  if (k === "countries") return {wrap: "ranks", rows: (r.countryList || []).map(([c, n]) => li(c, fmt(n)))};
+  if (k === "days") return {wrap: "ranks", rows: (r.dayList || []).map(([d, n]) => li(lblWord(d), fmt(n)))};
+  if (k === "rare") {
+    const t = r.tiers || {}, l = ["legendary", "epic", "rare"].filter(x => t[x]), max = Math.max(1, ...l.map(x => t[x]));
+    return {wrap: "ranks cats tiers", rows: l.map(x => `<li style="--lamp:${TIER_COL[x]}"><img class="tico" src="${tierIcon(x)}" alt=""><span class="name">${escH(T(TIER_NAME[x]))}</span><span class="n">${fmt(t[x])}</span>${bar(t[x], max)}</li>`),
+      more: (r.rareList || []).map(([c, nm, x, n]) => `<li class="lbTap"${ct(c, nm)}><img class="tico" src="${tierIcon(x)}" alt=""><span class="name">${escH(typeLabel(c, nm))}</span><span class="n">${fmt(n)}</span></li>`)};
+  }
+  return {wrap: "ranks", rows: []};
+}
+const perWrap = (cls, rows) => rows.length ? `<${cls === "ranks" || cls === "ranks plain" ? "ol" : "ul"} class="${cls}">${rows.join("")}</${cls === "ranks" || cls === "ranks plain" ? "ol" : "ul"}>` : "";
+// How many rows "All N ›" opens: every one of them, or the top of a long list ("Top 25 ›": the aircraft, and over 100 days)
+function perMoreRow(k, r, L){
+  const len = k === "rare" ? (L.more || []).length : L.rows.length, all = k === "rare" ? r.rareTypes || len : k === "cats" ? len : perN(r, k);
+  if (k === "rare" ? !len : len <= 5) return "";
+  return `<ul class="idx perAll"><li><button type="button" data-pall="${k}"><b>${escH(T(len < all ? "Top {n}" : "All {n}", {n: nf.format(len)}))}</b><i aria-hidden="true">›</i></button></li></ul>`;
+}
+function periodHtml(){
+  const per = perOn(), now = perWant || perNow(), on = now.per, onBack = on === "year" ? now.yb : on === "all" ? 0 : now.rb;
+  const r = perShown(), has = !!r, k = perPick;     // the old numbers stay while a switch waits for its own
+  const seg = `<div class="seg lbPer" role="group">` + perTabs().map(([x, l]) => `<button type="button" data-per="${x}" aria-pressed="${on === x}">${escH(T(l))}</button>`).join("") + `</div>`;
+  const arrows = `<span class="perArr"><button class="cBtn" type="button" data-pb="1" aria-label="${escH(T("Earlier"))}"${on === "all" ? " disabled" : ""}>◀</button>` +
+    `<button class="cBtn" type="button" data-pb="-1" aria-label="${escH(T("Later"))}"${onBack && on !== "all" ? "" : " disabled"}>▶</button></span>`;
+  const num = ([x, [l]]) => { const n = perN(r, x, per); return `<button type="button" class="perN${x === k ? " on" : ""}" data-pn="${x}"${n ? "" : " disabled"}><b>${n == null ? "–" : nf.format(n)}</b><span>${escH(T(l))}</span></button>`; };
+  const L = has ? perRows(k, r, per) : {rows: []};
+  const pane = `<div class="perPane" data-k="${k}"><h4 class="perPaneH">${escH(T(PER_LISTS[k][2]))}</h4>` +
+    (!has ? `<p class="sum">${escH(T("Loading …"))}</p>` : L.rows.length ? perWrap(L.wrap, L.rows.slice(0, 5)) + perMoreRow(k, r, L) : `<p class="sum">${escH(T("Nothing here yet."))}</p>`) + `</div>`;
+  const facts = `<dl class="yFacts perRecs">` + reviewFacts(r || {}).slice(4).map(([l, v]) => `<div${v ? "" : ' class="off"'}><dt>${escH(l)}</dt><dd>${escH(v || "–")}</dd></div>`).join("") + `</dl>`;
+  const live = has && r.planes > 0;
+  const csv = relay() && !S.demo && (window.OVERHEAD_RELAY_VERSION || 0) >= 29 ? `<a class="cBtn" id="yCsv" href="${escH(perCsvUrl(r, per))}" download${live ? "" : ' aria-disabled="true" tabindex="-1"'}>${escH(T("Download (CSV)"))}</a>` : "";
+  const acts = `<div class="yActs perActs"><button class="cBtn" type="button" id="perShare"${live ? "" : " disabled"}>${escH(T("Share"))}</button>${csv}</div>`;
+  const E = Object.entries(PER_LISTS);
+  return secPlate(perTitle(), `<div class="perHead">${seg}${arrows}</div><div class="perNums">${E.map(num).join("")}</div>` +
+    pane + facts + acts + plFoot(perDates(r)), "perCard");
+}
+// The whole list, as a sheet over the card (the card comes back when it closes)
+function perListHtml(){
+  const r = perShown(), k = perListK;
+  if (!r || !PER_LISTS[k]) return "";
+  const L = perRows(k, r), more = L.more && L.more.length ? `<h4 class="perPaneH">${escH(T("Rarest first"))}</h4>${perWrap("ranks cats tiers", L.more)}` : "";
+  return secPlate(T(PER_LISTS[k][2]), perWrap(L.wrap, L.rows) + more + plFoot(perDates(r)), "perList");
+}
+const perCsvUrl = (r, per) => `${relay()}/logbook.csv?` + (per !== "all" && r && r.start ? `from=${r.start}&to=${r.end}` : "") + perPlaceQ();
 document.addEventListener("click", e => {
-  const b = e.target && e.target.closest && e.target.closest("[data-pmore], #yCsv");
-  if (!b) return;
-  ctlSound.click();
-  if (b.id === "yCsv") return;
-  perMore = !perMore; lbSig = ""; renderLogbook();
+  const b = e.target && e.target.closest && e.target.closest("[data-pn], [data-pall], #yCsv");
+  if (!b || b.disabled) return;
+  if (b.id === "yCsv") { if (b.getAttribute("aria-disabled") === "true") e.preventDefault(); else ctlSound.click(); return; }
+  if (b.dataset.pn) {
+    ctlSound.click();
+    if (perPick === b.dataset.pn) return;
+    perPick = b.dataset.pn; lbCat = ""; perKeep();
+    lbSig = ""; renderLogbook(); return;
+  }
+  perListK = b.dataset.pall; lbHoldNext = true;
+  lbSig = ""; renderLogbook(); lbPanelOpen("list");
 });
 document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-per], [data-pb]");
   if (!b || b.disabled) return;
   ctlSound.click();
-  const was = perWant || {per: lbPeriod, yb: yearBack, rb: review.back}, p = {...was};
+  const was = perWant || perNow(), p = {...was};
   if (b.dataset.per) { p.per = b.dataset.per; if (p.per !== "year") p.rb = 0; }
   else if (p.per === "year") p.yb = Math.max(0, Math.min(10, p.yb + +b.dataset.pb));
-  else p.rb = Math.max(0, Math.min(60, p.rb + +b.dataset.pb));
+  else if (p.per !== "all") p.rb = Math.max(0, Math.min(60, p.rb + +b.dataset.pb));
   const go = () => {
-    perWant = null; lbPeriod = p.per; yearBack = p.yb;
-    if (p.per !== "year") { review.span = p.per; review.back = p.rb; }
-    lbSig = ""; renderLogbook();
+    perWant = null; lbPeriod = p.per; yearBack = p.yb; lbCat = "";
+    if (p.per === "week" || p.per === "month") { review.span = p.per; review.back = p.rb; }
+    perKeep(); lbSig = ""; renderLogbook();
   };
   if (perHas(p)) { go(); perLoad(p).catch(() => {}); return; }
   perWant = p; lbSig = ""; renderLogbook();          // the switch answers now; the old numbers stay until the new ones come
-  perLoad(p).then(() => { if (perWant === p) go(); }, () => { if (perWant === p) { perWant = null; lbSig = ""; renderLogbook(); } });
+  perLoad(p, true).then(() => { if (perWant === p) go(); }, () => { if (perWant === p) { perWant = null; lbSig = ""; renderLogbook(); } });
 });
+// The period as a picture to share (1.74; 1.80 the week and the month; 1.138 every tab, a place's too): its name and dates, six numbers, three facts
+async function perShare(){
+  const r = perShown(), p = perNow();
+  if (!r || !r.planes) return;
+  ctlSound.click();
+  picCard(await periodPicture({title: perTitle(p), sub: perDates(r, p), facts: reviewFacts(r).filter(x => x[1]),
+    nums: [[r.planes, "planes"], [r.types, "types"], [r.airlines, "airlines"], [r.airframes, "airframes"], [r.countries, "countries"], [r.days, "days"]]}),
+    `fallblatt-${p.per}-${r.start || "all"}.png`, T({year: "Your year as a picture, ready to send.", month: "Your month as a picture, ready to send.",
+      week: "Your week as a picture, ready to send."}[p.per] || "Your logbook as a picture, ready to send."));
+}
+document.addEventListener("click", e => { if (e.target && e.target.id === "perShare") perShare(); });
 // Week and month in review (1.52, relay 46): a card above the year's, with Week / Month and earlier / later.
 function reviewHtml(){
   if (!reviewOk()) return "";
@@ -3199,25 +3270,6 @@ function periodPicture(p){
   });
   return new Promise(ok => cv.toBlob(ok, "image/png"));
 }
-async function shareYear(){
-  ctlSound.click();
-  const y = yearData;
-  picCard(await periodPicture({title: T("{y} in planes", {y: y.year}), facts: reviewFacts(y).filter(x => x[1]),
-    nums: [[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"], [y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]]}), `fallblatt-${y.year}.png`,
-    T("Your year as a picture, ready to send."));
-}
-async function sharePeriod(){
-  const r = reviewData();
-  if (!r || !r.planes) return;
-  ctlSound.click();
-  const yr = {day: "numeric", month: "short", year: "numeric"};
-  const sub = r.complete === false ? `${reviewDay(r.start, yr)} – ${T("today")}` : `${reviewDay(r.start)} – ${reviewDay(r.end, yr)}`;
-  picCard(await periodPicture({title: T("{p} in planes", {p: reviewTitle()}), sub, facts: reviewFacts(r).filter(x => x[1]),
-    nums: [[r.planes, "planes"], [r.types, "types"], [r.airlines, "airlines"], [r.newTypeCount, "new types"], r.points != null ? [r.points, "points"] : [r.airframes, "aircraft"], [r.days, "days"]]}),
-    `fallblatt-${r.span}-${r.start}.png`, T(r.span === "month" ? "Your month as a picture, ready to send." : "Your week as a picture, ready to send."));
-}
-document.addEventListener("click", e => { if (e.target && e.target.id === "pShare") sharePeriod(); });
-document.addEventListener("click", e => { if (e.target && e.target.id === "yShare") shareYear(); });
 
 // Where to look (1.28): from the place to the plane on top, its compass direction and how high to look; a dial with
 // north up, or, with the compass (secure pages only; iPhones ask first), turning with the phone so the arrow points
@@ -4817,7 +4869,8 @@ function cardSheetPre(box, html){
       let hold = $("setHold"); if (!hold) { hold = document.createElement("div"); hold.id = "setHold"; hold.hidden = true; document.body.appendChild(hold); }
       hold.appendChild(ci); setHeld = ci; }
     else setBack();                                        // or (still closing) its plate home
-  }
+  } else if (ci && lbHoldNext && open && ci.querySelector('.lbIn[data-lbp="year"]')) lbHeld = ci;   // 1.138: the period's card, under its list
+  else if (!lbHoldNext) lbHeld = null;
   return pre;
 }
 function cardSheetPost(box, pre){
@@ -4846,6 +4899,7 @@ function cardSheetClose(b){
   if (ci) ci.style.transform = "";                   // from where the finger left it
   // 1.116: a card over a Settings panel gives the panel back; a panel with changes asks first (Save or Discard)
   if (!set && setHeld && $("t-styles").hidden) { setRestore(b); return true; }
+  if (!set && lbHeld && lbRestore(b)) return true;        // 1.138: a list from the period's card: back to the card
   if (set && draft && PLATES.some(p => p.id === setPid) && (cockpitUnsaved() || setAsking)) { b.classList.remove("drag"); setAsk(ci); return true; }
   b.classList.remove("in", "drag"); b.classList.add("closing"); cardSheetHtml = "";
   clearTimeout(cardSheetClose.t);
@@ -6563,7 +6617,8 @@ function showTab(t){
   const rv = /^review-(week|month)-(\d{1,2})$/.exec(t || "");      // a review notification (1.52): the Logbook at that week or month
   // 1.123: every route to the Logbook lands on its plate: the key and #today on Today, #logbook on All time, a review on the period
   // (which a saved place hides, so that goes). The page itself, asked for again (a language change), stays where it is.
-  let plate = rv ? "period" : t === "today" ? "today" : t === "logbook" && tab !== "logbook" ? "all" : null;
+  let plate = rv ? "period" : t === "today" ? "today" : t === "logbook" && tab !== "logbook" ? "period" : null;
+  if (plate === "period" && !rv && perAllOk()) lbPeriod = "all";      // 1.138: #logbook is All time, a tab of the period now
   if (rv) { review.span = rv[1]; review.back = +rv[2]; lbPeriod = rv[1]; lbPlace = ""; t = "logbook"; }
   else if (t === "today") t = "logbook";
   aboutHide(); stylesHide();
@@ -6591,7 +6646,7 @@ function showTab(t){
   setTimeout(() => appTips(t), 900);
   if (was !== t) window.scrollTo(0, 0);
 }
-addEventListener("hashchange", () => { if (location.hash === tabHash()) return; const h = location.hash.slice(1); showTab(h); if (h === "logbook") lbPlateGo("all"); });   // 1.97.7: not when it's the page's own back putting the URL right
+addEventListener("hashchange", () => { if (location.hash === tabHash()) return; const h = location.hash.slice(1); showTab(h); if (h === "logbook") lbPlateGo("period"); });   // 1.97.7: not when it's the page's own back putting the URL right
 
 /* ---------- status: a dot by the clock, a line under the lists ---------- */
 function statusLine(){

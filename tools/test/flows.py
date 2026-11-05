@@ -2891,6 +2891,41 @@ def pass_line_checks(expect):
     expect("a sighting from before relay 113 starts its line with the next reading", len(e.get("pass", {}).get("p", [])), 1)
 
 
+def period_checks(expect):
+    """Relay 115 (to-do #318): the period card's numbers and lists for a week, a month, a year and All time, for a place
+    too; the CSV and a category's top ten over a range of days."""
+    import datetime
+    get = lambda q: (lambda r: json.loads(r[2]) if r[0] == 200 else {"status": r[0]})(call(q, "test-device"))   # noqa: E731
+    al, wk, yr = get("/review?span=all"), get("/review?span=week"), get(f"/year?y={datetime.date.today().year}")
+    lists = ["typeList", "airlineList", "regList", "countryList", "dayList", "newTypeList", "allTypeList", "rareList", "cats", "tiers"]
+    expect("/review?span=all: All time with every list", (al.get("span"), al.get("version", 0) >= 115, [k for k in lists if k not in al]), ("all", True, []))
+    expect("... the week's and the year's lists", ([k for k in lists if k not in wk], [k for k in lists if k not in yr]), ([], []))
+    expect("... All time counts at least the week", al.get("planes", 0) >= wk.get("planes", 0) > 0, True)
+    expect("... the categories add up to the planes", sum((al.get("cats") or {}).values()), al.get("planes"))
+    expect("... every type once, newest first (All time's new types)", (len(al.get("allTypeList") or []), al.get("types")), (al.get("types"), len(al.get("typeList") or [])))
+    days = [d for d, _ in al.get("dayList") or []]
+    expect("... the days, busiest first, each counted", (al.get("dayList") or [[0, 0]])[0][1] == (al.get("busiest") or {}).get("planes"), True)
+    expect("... the types, most seen first, as [code, name, count]", all(len(t) == 3 and t[2] >= u[2] for t, u in zip(al.get("typeList") or [], (al.get("typeList") or [])[1:])), True)
+    expect("... the aircraft with their type's code", "C130" in [r[1] for r in al.get("regList") or []], True)
+    expect("... All time starts on the first saved day", al.get("start"), min(days) if days else None)
+    pl = get("/review?span=all&place=home")
+    expect("... a place's own (the test profile's sightings are all at home)", (pl.get("planes"), pl.get("span")), (al.get("planes"), "all"))
+    expect("... a place with none", get("/review?span=all&place=nowhere-at-all").get("planes"), 0)
+    # the CSV over a range of days: yesterday's rows only, none for a range with no days
+    yd = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+    st, h, b = call(f"/logbook.csv?from={yd}&to={yd}", "test-device")
+    rows = b.decode("utf-8-sig").splitlines()[1:] if st == 200 else None
+    want = dict(al.get("dayList") or []).get(yd)
+    expect("/logbook.csv?from&to: that day's rows only", (rows is not None and all(r.startswith(yd + ",") for r in rows), len(rows or []), yd in (h.get("Content-Disposition") or "")),
+           (True, want, True))
+    st, _, b = call("/logbook.csv?from=2099-01-01", "test-device")
+    expect("... nothing in a range with no days (only the header)", len(b.decode("utf-8-sig").splitlines()) if st == 200 else st, 1)
+    st, _, b = call("/logbook.csv?place=nowhere-at-all", "test-device")
+    expect("... nothing for a place with none", len(b.decode("utf-8-sig").splitlines()) if st == 200 else st, 1)
+    c_all, c_none = get("/logbook/category?c=passenger"), get("/logbook/category?c=passenger&from=2099-01-01")
+    expect("/logbook/category over a range of days", (c_all.get("total", 0) > 0, c_none.get("total")), (True, 0))
+
+
 def checks():
     bad = []
 
@@ -2899,6 +2934,7 @@ def checks():
             bad.append(f"{what}: got {got}, expected {want}")
 
     passport_checks(expect)
+    period_checks(expect)
     now_extras_checks(expect)
     ranks_checks(expect)
     showcase_checks(expect)
@@ -3466,8 +3502,8 @@ def logbook_list_checks(browser, bad):
     e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
     pg.evaluate("document.querySelector('[data-tab=logbook]').click()")
     pg.wait_for_timeout(1200)
-    if e('[...$("lbStrip").children].map(c => c.id).join()') != "tdPlate,lbYear,lbPlate":
-        bad.append("the strip isn't Today, 2026, All time")
+    if e('[...$("lbStrip").children].map(c => c.id).join()') != "tdPlate,lbYear":
+        bad.append("the strip isn't Today and the period (1.138: All time is the period's tab)")
     if e('lbPlateOn') != "today":
         bad.append("the Logbook's key doesn't open on Today")
     # 1.129.1 (to-do #264): Today's plate has the day's amber headline over its flights ("Today", 28 px, sticking), also over an empty day (1.129.5, #271);
@@ -3509,7 +3545,7 @@ def logbook_list_checks(browser, bad):
     t2 = e(f'({tp})("{kk}")')
     if t1 is not None and (t0 != t1 or t0 != t2 or grew):
         bad.append(f"swiping Today, 2026 and back moved the row in view: {t0}, {t1}, {t2}, grew: {grew}")
-    e('lbPlateGo("all")')
+    e('lbPeriod = "all"; lbSig = ""; renderLogbook(); lbPlateGo("period")')
     pg.wait_for_timeout(800)
     # the page replaced the live rows it found only in part: wait for it and look at what's there
     heads = e('[...document.querySelectorAll("#svList .lbDayH span")].map(x => x.textContent)')
@@ -3568,7 +3604,7 @@ def logbook_list_checks(browser, bad):
     pg.wait_for_timeout(200)
     if e('document.querySelectorAll("#svList .lbDayH").length') > 1 or e('$("svList").querySelector(".lbMore")'):
         bad.append("back on Today Show more or the other days stayed")
-    e('window.OVERHEAD_RELAY_VERSION = 104; lbPlateGo("all")')
+    e('window.OVERHEAD_RELAY_VERSION = 104; lbPeriod = "all"; lbSig = ""; renderLogbook(); lbPlateGo("period")')
     pg.wait_for_timeout(200)
     if e('document.querySelectorAll("#svList .lbDayH").length') > 1 or e('$("svList").querySelector(".lbMore")'):
         bad.append("an older relay should keep today's list, with only its own headline")
@@ -3629,6 +3665,64 @@ def recent_midnight_checks(browser, bad):
     run("00:01 with nothing since 23:01", at(4, 0, 1), "2026-11-04", False, True, "", 0, False, True)
 
 
+def period_card_checks(browser, bad):
+    """1.138 (to-do #318, Dave's pick C): the Logbook's plates are Today and the period; the period's card has Week · Month ·
+    Year · All time (◀ ▶ greyed on All time), the tab kept; a number picks the list in the card (its top five, the picked
+    one marked); "All N ›" opens the whole list over the card, and closing it brings the card back."""
+    ctx = browser.new_context(viewport={"width": 360, "height": 740})
+    ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+
+    def hooked(route):
+        r = route.fetch()
+        t = r.text()
+        i = t.rindex("})();")
+        route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+    ctx.route("**/app/", hooked)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: bad.append(f"period card page error: {e}"))
+    pg.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
+    pg.goto(BASE + "/app/")
+    pg.wait_for_timeout(3500)
+    e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
+    pg.evaluate("document.querySelector('[data-tab=logbook]').click()")
+    pg.wait_for_timeout(1500)
+    e('lbPlateGo("period")')
+    pg.wait_for_timeout(300)
+    pg.click("#lbYear")
+    pg.wait_for_timeout(1500)
+    tabs = e('[...document.querySelectorAll("#cardBox .lbPer button")].map(b => b.textContent)')
+    if tabs != ["Week", "Month", "Year", "All time"]:
+        bad.append(f"the period card's tabs: {tabs}")
+    if e('[...document.querySelectorAll("#cardBox .lbPer button")].some(b => b.scrollWidth > b.clientWidth + 1)'):
+        bad.append("a tab's word is cut at 360 px")
+    pg.click("#cardBox [data-per=all]")
+    pg.wait_for_timeout(1500)
+    if e('[perOn(), $("lbYear").querySelector(".lbPlH small").textContent, [...document.querySelectorAll("#cardBox .perArr .cBtn")].map(b => b.disabled && getComputedStyle(b).opacity === "0.35")]') != ["all", "All time", [True, True]]:
+        bad.append("All time: not on, not the plate's title, or ◀ ▶ not greyed")
+    if e('JSON.parse(localStorage.getItem("od.lbper") || "{}").per') != "all":
+        bad.append("the card doesn't keep its tab")
+    pg.click("#cardBox [data-pn=types]")
+    pg.wait_for_timeout(500)
+    got = e('[document.querySelector("#cardBox .perN.on").dataset.pn, document.querySelector("#cardBox .perPaneH").textContent, document.querySelectorAll("#cardBox .perPane .ranks li").length, !!document.querySelector("#cardBox [data-pall]")]')
+    n = e('perShown().types')
+    if got[:2] != ["types", "Aircraft types"] or got[2] != min(5, n) or got[3] != (n > 5):
+        bad.append(f"Types picked: {got} (types: {n})")
+    if n > 5:
+        pg.click("#cardBox [data-pall]")
+        pg.wait_for_timeout(900)
+        if e('[lbPanel, document.querySelectorAll("#cardBox .perList .ranks li").length, !!lbHeld]') != ["list", n, True]:
+            bad.append("All N doesn't open the whole list over the card")
+        e("cardClose()")
+        pg.wait_for_timeout(900)
+        if e('[lbPanel, !!document.querySelector("#cardBox .perCard"), cardOpenNow(), lbPanelOn(), !!lbHeld]') != ["year", True, True, True, False]:
+            bad.append("closing the whole list doesn't bring the card back")
+        e("cardClose()")
+        pg.wait_for_timeout(900)
+        if e("cardOpenNow()"):
+            bad.append("the card doesn't close after its list")
+    ctx.close()
+
+
 def logbook_lead_checks(browser, bad):
     """1.129.5 (to-do #271, #270): Today's amber headline stands at the top of the unfiltered Logbook lists with no flight
     today (2026 and All time: an empty day, then Yesterday), once when the day's first flight comes, again at midnight,
@@ -3676,7 +3770,7 @@ def logbook_lead_checks(browser, bad):
     def long_list(pg, e):
         if e(heads) != '["Today"]' or not e('!!$("svList").querySelector(":scope > .st")'):
             bad.append("no flights today: Today's plate isn't the headline and its one line")
-        e('lbPlateGo("all")')
+        e('lbPeriod = "all"; lbSig = ""; renderLogbook(); lbPlateGo("period")')
         pg.wait_for_timeout(1000)
         h = json.loads(e(heads))
         if h[:2] != ["Today", "Yesterday"] or len(h) != len(set(h)):
@@ -3728,7 +3822,7 @@ def logbook_lead_checks(browser, bad):
     run(140, long_list)
 
     def empty(pg, e):
-        e('lbPlateGo("all")')
+        e('lbPeriod = "all"; lbSig = ""; renderLogbook(); lbPlateGo("period")')
         pg.wait_for_timeout(1000)
         order = e('[...$("svList").children].map(x => x.className).join()')
         if json.loads(e(heads)) != ["Today"] or not order.startswith("lbDay,st"):
@@ -4378,6 +4472,7 @@ def browser_checks(browser):
     ctx.close()
     logbook_list_checks(browser, bad)
     logbook_lead_checks(browser, bad)
+    period_card_checks(browser, bad)
     recent_midnight_checks(browser, bad)
     demo_rows_checks(browser, bad)
     sky_sizes_checks(browser, bad)
@@ -5115,7 +5210,9 @@ def club_swipe_checks(browser, bad):
     check("a swipe on the Logbook's plates stays there", e("tab"), "logbook")
     if e("$('lbStrip').scrollLeft") <= plate[1]:
         bad.append("club swipe: the Logbook's plates didn't move under the finger")
-    gap = e("$('lbStrip').getBoundingClientRect().bottom + 2")
+    # 1.138: 16 px under the plates (the period plate, a button, is now the strip's last: 2 px under it the emulated touch
+    # is moved onto it, which takes the swipe)
+    gap = e("$('lbStrip').getBoundingClientRect().bottom + 16")
     touch(300, gap, 120, gap)
     check("the Logbook's swipe opens the Club", e("tab"), "game")
     check("arriving on the Club, at Level", now(), "level")

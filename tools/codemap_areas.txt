@@ -217,17 +217,19 @@ test/index.html: LB_ROWS RV_ROWS LB_CATS LB_RECS LB_RECS.forEach LB_BOX lbBox LB
     +#viewTools 'vdef("logbook"'
 tools/app/head.html: .ranks .cats .yearCard .yNums .yFacts .reviewCard .rvTools .yActs .model .lbFindBox .plate
     #t-logbook.finding #lbFound .lbfPin .seg.lbViews .secPlate .perCard .perHead .perArr .sum.lbFoot .dd
-    .seg.catSeg .catRow .lbfRead .lbfLast #lbFindBox #lbLists #lbSum #lbViews #t-logbook #lbYear #lbFilPlace .lbFilter #lbStrip .lbStrip .lbStrip.one .lbPlate .lbPlate.lbOpens css:button.lbPlate .lbPlH .lbPlN .lbOpens #lbPlate #tdPlate .perMore
-    .perMoreIn
+    .seg.catSeg .catRow .lbfRead .lbfLast #lbFindBox #lbLists #lbSum #lbViews #t-logbook #lbYear #lbFilPlace .lbFilter #lbStrip .lbStrip .lbStrip.one .lbPlate .lbPlate.lbOpens css:button.lbPlate .lbPlH .lbPlN .lbOpens #tdPlate .perMore
+    .perMoreIn .perNums .perN .perN.on .perPane .perPaneH .perList .perAll .perRecs .perActs
 tools/app/main.js: lbCache lbError fetchLogbook lbSig lbView lbViewsBar lbQuery lbFindT lbFindTok lbFindSetup LBQ_KEY lbLastNew lbFindSet lbLastGet lbLastAdd lbLastSync
     lbFind catOk lbCat lbCatView lbCatData lbCatKey catOpenHtml catFetch PIN DD lbfPlaces lbFoundRows foundCard
-    lbPanels lbPanel lbPanelTok lbPanelOn lbPanelOpen lbPanelSync renderLogbook lbYearCard LB_PLATES lbPlateOn lbStripSig lbPlateNum lbPlateHtml lbStripSync lbPlateGo lbDemoPer lbPick recordsHtml secPlate plFoot plFootFit
-    yearData yearAt yearCache fetchYear perKey perHas perLoad perWarm yearReview lbPeriod yearBack perMore perWant periodHtml PER_MORE reviewHtml +periodPicture +shareYear +sharePeriod
+    lbPanels lbPanel lbHeld lbHoldNext lbPanelOn lbPanelOpen lbRestore lbDrop lbPanelSync renderLogbook lbYearCard LB_PLATES lbPlateOn lbStripSig lbPlateNum lbPlateHtml lbStripSync lbPlateGo lbDemoPer lbPick recordsHtml secPlate plFoot plFootFit
+    perCache perAt perAllOk PER_TABS perTabs perOn perNow perYear perKey perPlaceQ perDemo perGet perShown perHas perLoad perWarm yearReview perTitle perDates
+    lbPeriod yearBack perWant perPick perListK PER_LISTS PER_SAVE perKeep perN perRows perWrap perMoreRow periodHtml perListHtml perCsvUrl reviewHtml +periodPicture +perShare
 relay/serve.py: _rec_entry note_records _gc_km _backfill_records _backfill_flights CARGO_AIRLINES HELICOPTERS
     MILITARY_TYPES BIZJETS LIGHT category_of CATEGORY_WORDS _logbook_entries search_json _cat_cache category_top_json
     SEARCH_KEEP SEARCH_FIELDS _NOWHERE _search_kept _search_n _search_lock _search_rows _search_day
-    _book_late logbook_json _place_days _place_summary _merge_items place_logbook place_logbook_json _days_of year_json
-    REVIEW_SPANS REVIEW_WEEK_AT REVIEW_MONTH_AT _reviews review_range review_json CSV_COLS _csv_safe logbook_csv
+    _book_late logbook_json _place_days _place_summary _day_summary _merge_items place_logbook place_logbook_json _days_of
+    PERIOD_CAP PERIOD_REGS PERIOD_DAYS _period _periods _period_kept year_json
+    REVIEW_SPANS REVIEW_WEEK_AT REVIEW_MONTH_AT review_range review_json CSV_COLS _csv_safe logbook_csv
     +seen_json +where_name +geo_where +where_of +review_check /logbook /search /logbook/category /year /review
     /logbook.csv /seen
 README.md: "- **Logbook** (press" "- **The Logbook's buttons**" "- **Records** (a plate" "- **Week, month and year**"
@@ -394,7 +396,7 @@ changelog: favourite|hidden|hide|swipe
 
 [share] The share picture: a sighting, the year or a period as a split-flap picture to share (and its photo)
 test/index.html: SHARE_OK shareImg shareCanvas spottedBy shareCard picCard +planeBody +photoCredit +psOk +planePic
-tools/app/main.js: PIC_ONE periodPicture shareYear sharePeriod +arSnap
+tools/app/main.js: PIC_ONE periodPicture perShare +arSnap
 relay/serve.py: PHOTO_HOSTS PHOTO_TYPES PHOTO_MAX _photos _photo_host_ok photo_get /photo
 android/app/src/main/java/io/github/belstria/overhead/MainActivity.kt: "fun shareImage"
 android/app/src/main/java/io/github/belstria/overhead/ShareProvider.kt: "class ShareProvider"
@@ -662,7 +664,7 @@ relay/serve.py: RELAY_VERSION BOARD_URL PAGE_TTL USER_AGENT PAGE BOARD_FILE PACK
     SAVED_KEYS DATA_DIR ARGS STARTED STATE EVENTS _event_id _cache _lock event fetch cached _fail_until
     cached_or_stale +BOARD_PATHS _board_seen _board_date _board_file_try file_version board_file board_html _buckets
     _gzip allow +save_config +ADMIN_PATHS Handler Handler.log_message Handler.handle Handler.finish Handler.reply
-    Handler.query Handler.client_ip Handler.at_home Handler.owner_ok Handler.on_this_computer Handler.https
+    Handler.query Handler.places_arg Handler.day_range Handler.client_ip Handler.at_home Handler.owner_ok Handler.on_this_computer Handler.https
     Handler.host_ok Handler.same_origin Handler.form Handler.json_body Handler.jerr Handler.do_GET Handler.do_POST
     Handler.profile_post lan_address main
 relay/install.sh: "#!"
