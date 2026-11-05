@@ -982,6 +982,11 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.137 (to-do #317, Dave, 4 Nov 2026: "No, I don't want this", then "Remove it fully"): **Name that plane removed.** Taken out
+  by hand, not by reverting the merge (1.135 and 1.136 sit on it): `gNq`, `nqShow`, `nqPunch`, `nqHide`, `nqTypes`, `nqBand`, `nqEnd`
+  and `NQ_MS`/`NQ_AFTER` in `main.js`, the `gScanPops` hook, `arClose`'s sweep of an open card, the "?" in `arLabel`, `arPeekHtml`
+  and `gTixShow` (the type shows as it did in 1.133), `NUDGE_DO.eagle`, the `.nq*` CSS, the Eagle eye ladder in `TROPHY_LADDERS`
+  (48 trophies again), `name_that_plane_checks`. Sky view's scan and ticket are as in 1.133. See the 1.134 entry for what it was.
 - 1.136 (to-do #308 "Your pass, drawn", Dave's picks A "Mini scope", C "letters inside the scope", A "tiles beside the
   scope, the radar right"; relay 113): `tlCardHtml` passes `infoCard` a `tilesSide` (new, shared): the tiles then sit in
   `.cPass` (a grid: `.cTiles` stacked in one column on the left with engraved lines, the scope on the right) with
@@ -2158,6 +2163,12 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 114 (1.137, to-do #317): **Name that plane removed.** `GUESS_NAMES`, `GUESS_CLASS`, `guess_choices`, `_guess_family`, `guess_offer`,
+  `game_guess`, `POST /game/guess`, `guessTypes` in `/game/me`, `guess` in `/game/lockon`'s answer, the `eagle10/50/250` rungs of
+  `TROPHY_LADDER` (and `trophy_check`'s skip of a ladder it can't count) and `trophy_counts`' `eagle` are gone. **Nothing is deleted
+  from saved data; the relay ignores it:** a sighting may still hold `gq` (the three codes and when), the game logbook `eagle`
+  (the right-answer count) and, for a player who got that far, `trophies.eagle10` (and 50, 250). `TROPHY_IDS` (relay) no longer lists the
+  eagle ids and the app's `TROPHY_IDS` (the count, `achList`) skips ids it doesn't know, so a kept one is neither shown nor counted. Not `GAME_V`/`GAME3_V`: it never paid points. Checks: `guess_checks` and the HTTP ones removed.
 - Relay 113 (1.136, to-do #308): **the line of each pass.** `_record` calls `pass_note(e, _pass_xy(...), radius,
   closer, track)` on a new sighting and every reading of it from its own place: `e["pass"] = {"r": circle km, "p":
   points [km east, km north] of the place to 0.1 km, "c": the closest reading, "h": the last track}`. A point is added

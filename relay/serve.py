@@ -63,7 +63,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 113
+RELAY_VERSION = 114
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -836,7 +836,6 @@ TROPHY_LADDER = {              # id: (what is counted, how many)
     "busyday": ("today", 100), "busy300": ("today", 300), "busy500": ("today", 500),
     "oldfriend": ("friend", 25), "regular100": ("friend", 100),
     "streak7": ("streak", 7), "streak30": ("streak", 30),
-    "eagle10": ("eagle", 10), "eagle50": ("eagle", 50), "eagle250": ("eagle", 250),     # relay 111: Name that plane (no points)
 }
 TROPHY_IDS = list(TROPHY_LADDER) + ["a320fam", "giants", "jumbochopper", "nightowl", "aroundclock", "lowpass", "bullseye",
                                     "stratos", "specialday", "daytypes40", "dayairlines40", "beluga", "antonov", "allsets",
@@ -855,7 +854,7 @@ def trophy_counts(book, day_entries=None, day=None):
             "regs": len(regs), "countries": len(book.get("countries", {})), "points": book.get("points", 0),
             "legendary": book.get("tiers", {}).get("legendary", 0), "today": len(day_entries or []),
             "friend": max((r.get("count", 0) if isinstance(r, dict) else r for r in regs.values()), default=0),
-            "streak": _streak(book, day or board_day()), "eagle": book.get("eagle", 0)}
+            "streak": _streak(book, day or board_day())}
 
 
 def trophy_check(book, e, day_entries, ctx=None):
@@ -878,8 +877,7 @@ def trophy_check(book, e, day_entries, ctx=None):
             "today": len(day_entries), "friend": (r.get("count", 0) if isinstance(r, dict) else r) if r else 0,
             "streak": c["streak"] if "streak" in c else _streak(book, board_day())}
     for k, (what, n) in TROPHY_LADDER.items():
-        if what in have:                        # relay 111: "eagle" is won by Name that plane only (game_guess)
-            win(k, have[what] >= n)
+        win(k, have[what] >= n)
     win("a320fam", all(t in types for t in A320_FAMILY) and any(t in types for t in ("A20N", "A21N", "A19N")))
     win("giants", "A388" in types and any(t.startswith("B74") for t in types))
     win("jumbochopper", any(str(x.get("typeCode") or "").startswith("B74") for x in day_entries)
@@ -1943,136 +1941,10 @@ def game_lockon(spot, hx):
         school_pass(spot, g, "scan")            # relay 85: the school's "scan a plane" (its 50 aren't in the bonus)
         spot.changed("book", "day")
         lv = game_level(g)
-        guess = guess_offer(g, e, now)          # relay 111: Name that plane, before the ticket names the type
         return {"bonus": bonus, "lines": lines, "tier": tier, "full": full, "had": e["gp"], "streak": streak, "gold": gold,
                 "airline": {"code": al, "scans": sa[al]} if al and sa is not None else None,
                 "route": route, "countries": len(pp) if isinstance(pp, dict) else None,
-                "points": g["points"], "level": lv[0], **{k: e.get(k) or "" for k in PLANE_KEYS}, "km": e.get("liveMin"),
-                **({"guess": guess} if guess else {})}
-
-
-# ---------- relay 111 (1.134, to-do #312, Dave's pick B): Name that plane ----------
-# At a Sky view scan the app first asks the type: three printed names, one punched. The relay picks the two wrong ones,
-# keeps the three on the sighting and judges the punch (/game/guess), so the app can't claim a right answer it didn't
-# give, and a pick comes only once a pass and only within GUESS_S of the scan. A right answer counts toward the
-# Eagle eye trophies (g["eagle"]); nothing pays points either way. No punch (the app's few seconds, or Sky view closed)
-# is no guess: neither right nor wrong.
-GUESS_S = 30                # a punch counts this long after the scan (the app gives up after its own few seconds)
-GUESS_NAMES = {             # the types a guess can be about or offer, by the boards' names (TYPES), each in SETS
-    "A318": "Airbus A318", "A319": "Airbus A319", "A320": "Airbus A320", "A321": "Airbus A321",
-    "A19N": "Airbus A319neo", "A20N": "Airbus A320neo", "A21N": "Airbus A321neo", "BCS1": "Airbus A220-100",
-    "BCS3": "Airbus A220-300", "A332": "Airbus A330-200", "A333": "Airbus A330-300", "A338": "Airbus A330-800neo",
-    "A339": "Airbus A330-900neo", "A343": "Airbus A340-300", "A346": "Airbus A340-600", "A359": "Airbus A350-900",
-    "A35K": "Airbus A350-1000", "A388": "Airbus A380", "B736": "Boeing 737-600", "B737": "Boeing 737-700",
-    "B738": "Boeing 737-800", "B739": "Boeing 737-900", "B37M": "Boeing 737 MAX 7", "B38M": "Boeing 737 MAX 8",
-    "B39M": "Boeing 737 MAX 9", "B752": "Boeing 757-200", "B753": "Boeing 757-300", "B762": "Boeing 767-200",
-    "B763": "Boeing 767-300", "B764": "Boeing 767-400", "B772": "Boeing 777-200", "B77L": "Boeing 777-200LR",
-    "B77W": "Boeing 777-300ER", "B788": "Boeing 787-8", "B789": "Boeing 787-9", "B78X": "Boeing 787-10",
-    "B744": "Boeing 747-400", "B748": "Boeing 747-8", "E170": "Embraer E170", "E175": "Embraer E175",
-    "E75L": "Embraer E175", "E190": "Embraer E190", "E195": "Embraer E195", "E290": "Embraer E190-E2",
-    "E295": "Embraer E195-E2", "CRJ7": "Bombardier CRJ700", "CRJ9": "Bombardier CRJ900",
-    "CRJX": "Bombardier CRJ1000", "AT43": "ATR 42", "AT45": "ATR 42-500", "AT72": "ATR 72", "AT75": "ATR 72-500",
-    "AT76": "ATR 72-600", "DH8A": "Dash 8-100", "DH8C": "Dash 8-300", "DH8D": "Dash 8 Q400", "SF34": "Saab 340",
-    "JS41": "Jetstream 41", "A3ST": "Airbus Beluga", "A337": "Airbus BelugaXL", "A124": "Antonov An-124",
-    "A225": "Antonov An-225", "C17": "Boeing C-17", "C5M": "C-5 Galaxy", "A400": "Airbus A400M",
-    "EC35": "Airbus H135", "EC45": "Airbus H145", "EC30": "Airbus H130", "EC55": "Airbus H155",
-    "EC75": "Airbus H175", "AS50": "Airbus H125", "AS65": "Airbus H155 Dauphin", "A139": "Leonardo AW139",
-    "A169": "Leonardo AW169", "H160": "Airbus H160", "B06": "Bell 206", "B407": "Bell 407", "R44": "Robinson R44",
-    "S76": "Sikorsky S-76", "NH90": "NH90", "C25A": "Citation CJ2", "C25B": "Citation CJ3", "C560": "Citation V",
-    "C56X": "Citation Excel", "C680": "Citation Sovereign", "C68A": "Citation Latitude", "C750": "Citation X",
-    "CL35": "Challenger 350", "CL60": "Challenger 650", "GLF5": "Gulfstream G550", "GLF6": "Gulfstream G650",
-    "GLEX": "Global Express", "F2TH": "Falcon 2000", "FA7X": "Falcon 7X", "E55P": "Phenom 300", "LJ45": "Learjet 45",
-    "PC24": "Pilatus PC-24"
-}
-
-
-def _guess_family(name):
-    """A model's family by its printed name, "Boeing 73" for every 737, "Airbus A32" for the A318 to A321neo: two names
-    of one family never stand side by side (a 737-800 against a 737 MAX 8 is a coin toss from the ground)."""
-    mk, _, model = name.partition(" ")
-    tok = re.split(r"[\s-]", model.upper() + " ", maxsplit=1)[0]
-    m = re.match(r"([A-Z]*)(\d*)", tok)
-    letters, digits = m.group(1), m.group(2)
-    fam = letters[:6] if len(letters) >= 2 or not digits else letters + digits[:2]
-    if mk == "Airbus" and fam in ("A31", "A32"):
-        fam = "A32"
-    return mk + " " + fam
-
-
-_GUESS_SORTED = sorted(GUESS_NAMES)
-GUESS_CLASS = {"Airbus narrowbodies": "narrow", "Boeing narrowbodies": "narrow", "Airbus widebodies": "wide",
-               "Boeing widebodies": "wide", "Giants": "wide"}     # a set's size class (the others: the set itself)
-
-
-def guess_choices(tc, rnd=random):
-    """The three type codes to print for a plane of type tc, shuffled: the right one and two wrong ones that are
-    plausible, of its size class (the narrowbodies of either maker, the regional jets, the helicopters ...), each of
-    another family than the others. None when tc isn't a type the guess knows, or its class has too few families."""
-    tc = str(tc or "").upper()
-    name = GUESS_NAMES.get(tc)
-    if not name:
-        return None
-    cls = {GUESS_CLASS.get(n, n) for n, ts in SETS if tc in ts}
-    pool = {c for n, ts in SETS if GUESS_CLASS.get(n, n) in cls for c in ts if c in GUESS_NAMES}
-    fams, picked = {_guess_family(name)}, [tc]
-    while len(picked) < 3:
-        cand = sorted(c for c in pool if _guess_family(GUESS_NAMES[c]) not in fams)
-        if not cand:
-            return None
-        c = rnd.choices(cand, weights=[max(FLEET.get(c, 0), 20) for c in cand])[0]
-        picked.append(c)
-        fams.add(_guess_family(GUESS_NAMES[c]))
-    rnd.shuffle(picked)
-    return picked
-
-
-def _guess_track(g):
-    """The Eagle eye count and the next tier's mark (the last one once all are won)."""
-    n = g.get("eagle", 0)
-    ats = [at for what, at in TROPHY_LADDER.values() if what == "eagle"]
-    return {"n": n, "at": next((a for a in ats if a > n), ats[-1])}
-
-
-def guess_offer(g, e, now):
-    """At a scan (game_lockon, under the lock): the guess for this plane, once a pass, kept on its sighting ("gq": the
-    codes, when). For the app: the three names, in the order printed, and the count so far. None: no guess for it."""
-    if e.get("gq"):
-        return None
-    codes = guess_choices(e.get("typeCode"))
-    if not codes:
-        return None
-    e["gq"] = {"c": codes, "t": int(now * 1000)}
-    return {"names": [GUESS_NAMES[c] for c in codes], **_guess_track(g)}
-
-
-def game_guess(spot, hx, i):
-    """The app punched name i of the plane's guess: right or not, by the relay's own codes. Once a pass, within GUESS_S of
-    the scan. A right one counts toward Eagle eye and wins its tiers as they come (no points: never _game_trophies)."""
-    now = time.time()
-    with _data_lock:
-        spot.ensure_day()
-        e = spot.by_hex.get(str(hx or "").lower())
-        q = e and e.get("gq")
-        if not q:
-            return {"why": "none"}
-        if "a" in q:
-            return {"why": "done"}
-        if now * 1000 - q.get("t", 0) > GUESS_S * 1000:
-            return {"why": "late"}
-        codes, tc = q["c"], str(e.get("typeCode") or "").upper()
-        right = codes[i] == tc
-        q["a"] = i
-        g = game_book(spot.book())
-        won = []
-        if right:
-            g["eagle"] = g.get("eagle", 0) + 1
-            got = g.setdefault("trophies", {})
-            for k, (what, at) in TROPHY_LADDER.items():
-                if what == "eagle" and g["eagle"] >= at and k not in got:
-                    got[k] = int(now * 1000)
-                    won.append(k)
-        spot.changed("book", "day")
-        return {"right": right, "answer": codes.index(tc) if tc in codes else -1, "won": won, **_guess_track(g)}
+                "points": g["points"], "level": lv[0], **{k: e.get(k) or "" for k in PLANE_KEYS}, "km": e.get("liveMin")}
 
 
 def game3_json(book, day):
@@ -10610,7 +10482,6 @@ class Handler(BaseHTTPRequestHandler):
                     "scanKm", "lockons", "limits", "resets", "rules", "school", "wings", "standby", "showcase", "styleKept")   # relay 76: the limits, the rules; no more combo; 85: the school; 87: the standby
             out = {k: g.get(k) for k in keep}
             out["scan"] = scan                  # relay 82: the planes a scan counts for now (the app's tickets)
-            out["guessTypes"] = _GUESS_SORTED   # relay 111: the types Name that plane asks (Sky view hides them till then)
             if aw is not None:
                 out["aw"] = aw                  # relay 76: the awards since ?since= (the app's pop-ups)
             out.update(rank=(me or {}).get("rank"), was=(me or {}).get("was"), champion=lg["championMe"],
@@ -10936,15 +10807,6 @@ class Handler(BaseHTTPRequestHandler):
             out = game_lockon(self.spot, hx)
             if out.get("bonus"):
                 event("info", f"Sky view scan for {self.guest[1].get('name')}: +{out['bonus']}")
-            return self.reply(200, "application/json", json.dumps(out).encode())
-        if path == "/game/guess":           # relay 111 (to-do #312): Name that plane, the name punched
-            if not self.same_origin() or not allow("guess:" + self.guest[0], 1, 4):
-                return self.reply(429, "text/plain", b"Not now")
-            j = self.json_body()
-            hx, i = str(j.get("hex") or ""), j.get("i")
-            if not re.fullmatch(r"~?[0-9a-fA-F]{6}", hx) or type(i) is not int or not 0 <= i <= 2:
-                return self.reply(400, "text/plain", b"hex or pick missing")
-            out = game_guess(self.spot, hx, i)
             return self.reply(200, "application/json", json.dumps(out).encode())
         if path == "/game/school":          # relay 85 (to-do #153): the app opened a plane's card (the school's mission)
             if not self.same_origin() or not allow("school:" + self.guest[0], 1, 4):

@@ -3662,7 +3662,6 @@ const TROPHY_LADDERS = [
   ["countries", "Aircraft from {n} countries scanned", [["countries10", 10, "Passport"], ["countries25", 25, "Diplomat"], ["countries50", 50, "United Nations"]]],
   ["points", "{n} points", [["points1k", 1000, "High scorer"], ["points10k", 10000, "Big scorer"], ["points100k", 100000, "Top scorer"]]],
   ["legendary", "{n} special planes scanned", [["legend10", 10, "Spotter's eye"], ["legend100", 100, "Rare breed"], ["legend500", 500, "Hall of fame"]]],
-  ["eagle", "{n} types named right", [["eagle10", 10, "Eagle eye"], ["eagle50", 50, "Sharp eye"], ["eagle250", 250, "Hawk eye"]]],   // 1.134 (relay 111): Name that plane
   ["today", "{n} planes in one day", [["busyday", 100, "Busy sky"], ["busy300", 300, "Rush hour"], ["busy500", 500, "Gridlock"]]],
   ["friend", "The same aircraft scanned {n} times", [["oldfriend", 25, "Old friend"], ["regular100", 100, "Regular"]]],
   ["streak", "Points {n} days running", [["streak7", 7, "On a roll"], ["streak30", 30, "Unstoppable"]]]];
@@ -7403,6 +7402,7 @@ function achList(g0){
     if (Object.keys(b.done || {}).length >= 9) out.push({k: "card:" + b.week, icon: "▦", title: T("Full card"), text: T("All nine on this week's bingo card"), pts: bp && bp.full ? bp.card : 0});
   }
   for (const id of Object.keys(g0.trophies || {})) {
+    if (!TROPHY_IDS.includes(id)) continue;                 // 1.137: a trophy this version no longer has (Eagle eye) stays in the data, unshown
     const [name, desc] = trophyText(id);
     out.push({k: "tr:" + id, icon: "★", title: T("Trophy: {name}", {name}), text: desc, pts: tp[id] || 0});
   }
@@ -8212,6 +8212,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.137", date: "2026-11-04", notes: [
+    "Sky view no longer asks you to name the plane's type.",
+  ]},
   {v: "1.136", date: "2026-11-04", notes: [
     "Opened plane cards draw your pass: a small radar with the line it flew, its closest point and where it was heading. Tap it for the words.",
   ]},
