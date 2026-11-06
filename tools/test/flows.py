@@ -4047,7 +4047,7 @@ def no_position_checks(browser, bad):
                 pg.wait_for_function("__e('skyMem.k === \"finding\"')", timeout=6000)
             except Exception:
                 pass
-            if e('skyMem.k') != "finding" or e(f'{plate} && {plate}.textContent') != "Finding where you are …The planes show once live location has found you.":
+            if e('skyMem.k') != "finding" or e(f'{plate} && {plate}.textContent') != "Finding where you are …":
                 bad.append(f"no position: the first 20 s aren't Finding you: {e('skyMem.k')}")
             e('liveRunAt = Date.now() - 21000; 1')
         try:
