@@ -4555,7 +4555,7 @@ let svSig = "";function svData(){
 }
 function spottedSummary(){
   const {real, counts} = svData();
-  if (!real.length) return T("Nothing spotted yet today. Every plane that comes within {n} km is listed here.", {n: +S.radiusKm || 15});
+  if (!real.length) return T("Nothing spotted yet today.");
   const airlines = new Set(real.map(e => e.airlineCode || clean(e.airline)).filter(Boolean)).size;
   const types = new Set(real.map(e => e.typeCode || clean(e.type)).filter(Boolean)).size;
   const st = relayV5() && (allPlaces ? fullDay.all && fullDay.stats : !liveWaiting() && relayStats), n = st ? st.planes : real.length, na = st ? st.airlines : airlines, nt = st ? st.types : types;
@@ -8214,6 +8214,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.138.1", date: "2026-11-06", notes: [
+    "The empty Recent flights line shows just its title, without the sentence under it.",
+  ]},
   {v: "1.138", date: "2026-11-05", notes: [
     "All time is now a tab of the Logbook's period card, next to Week, Month and Year.",
     "Each number in the period card shows its list in the card; All opens the whole list.",
