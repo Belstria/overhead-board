@@ -7525,9 +7525,9 @@ const tlHtml = (list, open, now) => list.map((e, i) => (e.prev && !(list[i - 1] 
   (open && tlKey(e) === open ? cardLi(e, now) : rowHtml(e, now))).join("");
 const SCR2 = '<i class="scr"></i><i class="scr"></i>';
 const tlState = (head, title, text, find) => `<li class="tg">${SCR2}<b>${escH(head)}</b></li><li class="st${find ? " find" : ""}">${SCR2}${title ? `<b>${escH(title)}</b>` : ""}${escH(text)}</li>`;
-const tlFinding = () => tlState(T("Now"), T("Finding where you are …"), T("The planes show once live location has found you."), true);
+const tlFinding = () => tlState(T("Now"), T("Finding where you are …"), "", true);
 const tlOffline = () => tlState(T("Now"), T("Offline · retrying"), "");
-const tlNothing = () => tlState(T("Today"), T("Nothing spotted yet"), T("Every plane that comes within {n} km joins this line, the newest on top.", {n: +S.radiusKm || 15}));
+const tlNothing = () => tlState(T("Today"), T("Nothing spotted yet"), "");
 const tlOpenId = {recent: "", svList: ""};
 let tlTok = 0, tlRunning = 0, tlCap = 0, tlAgain = false;
 const tlBusy = () => tlRunning > 0 && Date.now() < tlCap;
@@ -7767,7 +7767,7 @@ function svData(){
 }
 function spottedSummary(){
   const {real, counts} = svData();
-  if (!real.length) return T("Nothing spotted yet today. Every plane that comes within {n} km is listed here.", {n: +S.radiusKm || 15});
+  if (!real.length) return T("Nothing spotted yet today.");
   const airlines = new Set(real.map(e => e.airlineCode || clean(e.airline)).filter(Boolean)).size;
   const types = new Set(real.map(e => e.typeCode || clean(e.type)).filter(Boolean)).size;
   const st = relayV5() && (allPlaces ? fullDay.all && fullDay.stats : !liveWaiting() && relayStats), n = st ? st.planes : real.length, na = st ? st.airlines : airlines, nt = st ? st.types : types;
@@ -12636,6 +12636,9 @@ setInterval(() => {
   nowTurn = Date.now();
 }, 1000);
 const CHANGELOG = [
+  {v: "1.138.1", date: "2026-11-06", notes: [
+    "The empty Recent flights line shows just its title, without the sentence under it.",
+  ]},
   {v: "1.138", date: "2026-11-05", notes: [
     "All time is now a tab of the Logbook's period card, next to Week, Month and Year.",
     "Each number in the period card shows its list in the card; All opens the whole list.",
